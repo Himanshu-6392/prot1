@@ -1,0 +1,98 @@
+name: peerlend
+description: PeerLend — P2P Secured Loan Marketplace connecting borrowers and lenders across India.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.2
+  firebase_messaging: ^15.1.3
+  firebase_database: ^11.1.4
+
+  # State Management & Navigation
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  go_router: ^14.2.7
+
+  # Local Storage & Security
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+
+  # Networking
+  dio: ^5.7.0
+
+  # UI & Fonts
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  dotted_border: ^2.1.0
+  step_progress_indicator: ^1.0.2
+  lottie: ^3.1.2
+
+  # Media
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
+  file_picker: ^8.1.2
+  video_player: ^2.9.1
+
+  # Maps & Location
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.4
+  geocoding: ^4.0.0
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # PDF
+  pdf: ^3.11.0
+  printing: ^5.13.0
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.0
+  path_provider: ^2.1.4
+  permission_handler: ^11.3.1
+  pin_code_fields: ^8.0.1
+  url_launcher: ^6.3.0
+  share_plus: ^10.0.0
+  connectivity_plus: ^6.1.0
+  package_info_plus: ^8.1.0
+
+  # Icons
+  flutter_svg: ^2.0.10+1
+  iconsax: ^0.0.8
+  device_preview: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
+  json_serializable: ^6.8.0
+  freezed: ^2.5.7
+  freezed_annotation: ^2.4.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/animations/
+    - assets/icons/
+
+
+

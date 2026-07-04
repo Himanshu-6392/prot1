@@ -25,7 +25,13 @@ class PostRequestScreen extends StatelessWidget {
           title: const Text('Post a Request'),
           leading: AppIconButton(
             icon: Icons.arrow_back_rounded,
-            onPressed: () => context.pop(),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
             bgColor: Colors.transparent,
           ),
           bottom: TabBar(
@@ -74,31 +80,43 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
     }
     setState(() => _loading = true);
 
-    final user      = ref.read(firebaseAuthProvider).currentUser;
-    final userModel = ref.read(currentUserProvider).valueOrNull;
-    if (user == null) { setState(() => _loading = false); return; }
+    try {
+      final user      = ref.read(firebaseAuthProvider).currentUser;
+      final userModel = ref.read(currentUserProvider).valueOrNull;
+      if (user == null) return;
 
-    final now = DateTime.now();
-    final request = LoanRequestModel(
-      id:                      '',
-      borrowerId:              user.uid,
-      borrowerName:            userModel?.name ?? '',
-      borrowerCity:            userModel?.city ?? '',
-      loanAmount:              double.parse(_amountCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
-      collateralType:          _collateral!,
-      collateralValue:         double.parse(_valueCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
-      maxInterestRatePerMonth: double.parse(_interestCtr.text),
-      tenureMonths:            _tenure,
-      description:             _descCtr.text.trim(),
-      createdAt:               now,
-      expiresAt:               now.add(const Duration(days: 30)),
-    );
+      final now = DateTime.now();
+      final request = LoanRequestModel(
+        id:                      '',
+        borrowerId:              user.uid,
+        borrowerName:            userModel?.name ?? '',
+        borrowerCity:            userModel?.city ?? '',
+        loanAmount:              double.parse(_amountCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
+        collateralType:          _collateral!,
+        collateralValue:         double.parse(_valueCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
+        maxInterestRatePerMonth: double.parse(_interestCtr.text),
+        tenureMonths:            _tenure,
+        description:             _descCtr.text.trim(),
+        createdAt:               now,
+        expiresAt:               now.add(const Duration(days: 30)),
+      );
 
-    await ref.read(firestoreProvider).collection(AppConstants.colRequests).add(request.toMap());
+      await ref.read(firestoreProvider).collection(AppConstants.colRequests).add(request.toMap());
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Loan request posted successfully!')));
-      context.pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Loan request posted successfully!')));
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -202,32 +220,44 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
     }
     setState(() => _loading = true);
 
-    final user = ref.read(firebaseAuthProvider).currentUser;
-    if (user == null) { setState(() => _loading = false); return; }
+    try {
+      final user = ref.read(firebaseAuthProvider).currentUser;
+      if (user == null) return;
 
-    final now = DateTime.now();
-    final offer = LenderModel(
-      id:                   '',
-      userId:               user.uid,
-      businessName:         _nameCtr.text.trim(),
-      city:                 _city!,
-      description:          _descCtr.text.trim(),
-      availableCapital:     double.parse(_capitalCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
-      minLoanAmount:        double.parse(_minLoanCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
-      maxLoanAmount:        double.parse(_maxLoanCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
-      interestRatePerMonth: double.parse(_interestCtr.text),
-      maxTenureMonths:      _tenure,
-      acceptedCollateral:   _selectedCollateral.toList(),
-      ltvRatio:             _ltv,
-      createdAt:            now,
-      updatedAt:            now,
-    );
+      final now = DateTime.now();
+      final offer = LenderModel(
+        id:                   '',
+        userId:               user.uid,
+        businessName:         _nameCtr.text.trim(),
+        city:                 _city!,
+        description:          _descCtr.text.trim(),
+        availableCapital:     double.parse(_capitalCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
+        minLoanAmount:        double.parse(_minLoanCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
+        maxLoanAmount:        double.parse(_maxLoanCtr.text.replaceAll(RegExp(r'[^\d.]'), '')),
+        interestRatePerMonth: double.parse(_interestCtr.text),
+        maxTenureMonths:      _tenure,
+        acceptedCollateral:   _selectedCollateral.toList(),
+        ltvRatio:             _ltv,
+        createdAt:            now,
+        updatedAt:            now,
+      );
 
-    await ref.read(firestoreProvider).collection(AppConstants.colLenders).add(offer.toMap());
+      await ref.read(firestoreProvider).collection(AppConstants.colLenders).add(offer.toMap());
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Offer listed successfully!')));
-      context.pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Offer listed successfully!')));
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 

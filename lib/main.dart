@@ -9,6 +9,7 @@ import 'core/providers/firebase_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:device_preview/device_preview.dart';
+import 'scripts/fix_user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,7 @@ Future<void> main() async {
 
   // Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  
   // Hive local cache
   await Hive.initFlutter();
 

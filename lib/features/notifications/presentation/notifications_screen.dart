@@ -1,84 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/providers/firebase_providers.dart';
+import '../../../models/notification_model.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final notifications = [
-      _Notif(
-        icon: Icons.handshake_rounded, color: AppColors.gold,
-        title: 'New Match!', body: 'Prabhat Finance responded to your request of ₹25,000',
-        time: DateTime.now().subtract(const Duration(minutes: 5)), isRead: false,
-      ),
-      _Notif(
-        icon: Icons.chat_bubble_rounded, color: AppColors.info,
-        title: 'New Message', body: 'You have a new message in your active deal chat.',
-        time: DateTime.now().subtract(const Duration(hours: 2)), isRead: false,
-      ),
-      _Notif(
-        icon: Icons.verified_rounded, color: AppColors.emerald,
-        title: 'KYC Verified!', body: 'Your KYC documents have been verified. You are now a trusted borrower.',
-        time: DateTime.now().subtract(const Duration(hours: 6)), isRead: true,
-      ),
-      _Notif(
-        icon: Icons.star_rounded, color: AppColors.gold,
-        title: 'New Review', body: 'A borrower left you a 5★ review. Check it out!',
-        time: DateTime.now().subtract(const Duration(days: 1)), isRead: true,
-      ),
-      _Notif(
-        icon: Icons.info_rounded, color: AppColors.textMuted,
-        title: 'Request Expiring', body: 'Your loan request for ₹50,000 expires in 3 days.',
-        time: DateTime.now().subtract(const Duration(days: 2)), isRead: true,
-      ),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
+    final user = userAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Notifications'),
+        title: const Text('Notifications'),
         actions: [
-          TextButton(
-            onPressed: () {},
-            child: Text('Mark all read', style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
-          ),
+          if (user != null)
+            TextButton(
+              onPressed: () async {
+                // Mark all unread notifications as read
+                final query = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('notifications')
+                    .where('isRead', isEqualTo: false)
+                    .get();
+                
+                final batch = FirebaseFirestore.instance.batch();
+                for (var doc in query.docs) {
+                  batch.update(doc.reference, {'isRead': true});
+                }
+                await batch.commit();
+              },
+              child: Text('Mark all read', style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
+            ),
         ],
       ),
-      body: notifications.isEmpty
-          ? EmptyState(
-              icon: Icons.notifications_none_rounded,
-              title: 'No notifications yet',
-              subtitle: 'We\'ll notify you of matches, messages, and updates.',
-            )
-          : ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: notifications.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.border),
-              itemBuilder: (context, i) => _NotifTile(notif: notifications[i])
-                  .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideX(begin: 0.05, end: 0),
+      body: user == null
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('notifications')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading notifications', style: AppTextStyles.bodyMedium));
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+                
+                if (docs.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'No notifications yet',
+                    subtitle: 'We\'ll notify you of matches, messages, and updates.',
+                  );
+                }
+
+                return ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.border),
+                  itemBuilder: (context, i) {
+                    final notifMap = docs[i].data() as Map<String, dynamic>;
+                    final notif = NotificationModel.fromMap(notifMap, docs[i].id);
+
+                    return _NotifTile(notif: notif)
+                        .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideX(begin: 0.05, end: 0);
+                  },
+                );
+              },
             ),
     );
   }
 }
 
-class _Notif {
-  final IconData icon;
-  final Color color;
-  final String title, body;
-  final DateTime time;
-  final bool isRead;
-  const _Notif({required this.icon, required this.color, required this.title,
-    required this.body, required this.time, required this.isRead});
-}
-
 class _NotifTile extends StatelessWidget {
-  final _Notif notif;
+  final NotificationModel notif;
   const _NotifTile({required this.notif});
 
   @override
@@ -90,7 +103,7 @@ class _NotifTile extends StatelessWidget {
         leading: Container(
           width: 44, height: 44,
           decoration: BoxDecoration(
-            color:        notif.color.withOpacity(0.12),
+            color: notif.color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(notif.icon, color: notif.color, size: 22),
@@ -105,10 +118,10 @@ class _NotifTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
             Text(notif.body, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary), maxLines: 2),
-            SizedBox(height: 4),
-            Text(AppFormatters.formatRelative(notif.time), style: AppTextStyles.caption),
+            const SizedBox(height: 4),
+            Text(AppFormatters.formatRelative(notif.createdAt), style: AppTextStyles.caption),
           ],
         ),
         isThreeLine: true,

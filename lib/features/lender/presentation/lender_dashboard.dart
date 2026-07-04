@@ -10,6 +10,7 @@ import '../../../core/widgets/shimmer_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/widgets/glass_widgets.dart';
 import '../../../models/user_model.dart';
 
 class LenderDashboard extends ConsumerWidget {
@@ -89,18 +90,57 @@ class _LenderStatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 100,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _StatCard2(label: 'Available Capital', value: '₹5L', icon: Icons.account_balance_wallet_rounded, color: AppColors.gold),
-          _StatCard2(label: 'Active Offers', value: '2', icon: Icons.receipt_long_rounded, color: AppColors.emerald),
-          _StatCard2(label: 'Requests Received', value: '8', icon: Icons.inbox_rounded, color: AppColors.info),
-          _StatCard2(label: 'Accepted Deals', value: '6', icon: Icons.handshake_rounded, color: AppColors.success),
-        ],
-      ),
+    if (userId.isEmpty) return const SizedBox(height: 100);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(AppConstants.colLenders)
+          .where('userId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, snap) {
+        int activeOffers = 0;
+        double availableCapital = 0;
+
+        if (snap.hasData) {
+          final docs = snap.data!.docs;
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final isActive = data['isActive'] == true;
+            final capital = (data['availableCapital'] ?? 0).toDouble();
+
+            if (isActive) {
+              activeOffers++;
+              availableCapital += capital;
+            }
+          }
+        }
+
+        return SizedBox(
+          height: 120,
+          child: ListView(
+            clipBehavior: Clip.none,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            children: [
+              _StatCard2(
+                label: 'Available Capital', 
+                value: snap.hasData ? AppFormatters.formatINR(availableCapital) : '...', 
+                icon: Icons.account_balance_wallet_rounded, 
+                color: AppColors.gold
+              ),
+              _StatCard2(
+                label: 'Active Offers', 
+                value: snap.hasData ? '$activeOffers' : '...', 
+                icon: Icons.receipt_long_rounded, 
+                color: AppColors.emerald
+              ),
+              _StatCard2(label: 'Pending Requests', value: '0', icon: Icons.inbox_rounded, color: AppColors.info),
+              _StatCard2(label: 'Accepted Deals', value: '0', icon: Icons.handshake_rounded, color: AppColors.success),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -113,29 +153,28 @@ class _StatCard2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 130, margin: const EdgeInsets.only(right: 12),
+    return NeumorphicContainer(
+      width: 140, margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 18),
           ),
+          const SizedBox(height: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: AppTextStyles.amountSmall.copyWith(color: color, fontSize: 22, height: 1)),
-            Text(label, style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(value, style: AppTextStyles.amountSmall.copyWith(color: color, fontSize: 20, height: 1)),
+            const SizedBox(height: 4),
+            Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
           ]),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.2, end: 0);
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 }
 

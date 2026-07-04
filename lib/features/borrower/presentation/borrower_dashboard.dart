@@ -59,17 +59,21 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             ),
             if (_requestsExpanded) _MyRequestsSliver(userId: uid),
 
-            // ─── Nearby Lenders ────────────────
-            SliverToBoxAdapter(
-              child: SectionHeader(title: 'Lenders Near You', onSeeAll: () => context.go('/search')),
-            ),
-            SliverToBoxAdapter(child: _NearbyLendersRow()),
+            // ─── Nearby Lenders (For Borrowers or Both) ───
+            if (user?.role != UserRole.lender) ...[
+              SliverToBoxAdapter(
+                child: SectionHeader(title: 'Lenders Near You', onSeeAll: () => context.go('/search')),
+              ),
+              SliverToBoxAdapter(child: _NearbyLendersRow()),
+            ],
 
-            // ─── Borrowers Near You ────────────
-            SliverToBoxAdapter(
-              child: SectionHeader(title: 'Borrowers Near You', onSeeAll: () {}),
-            ),
-            SliverToBoxAdapter(child: _BorrowersNearYouRow()),
+            // ─── Borrowers Near You (For Lenders or Both) ───
+            if (user?.role != UserRole.borrower) ...[
+              SliverToBoxAdapter(
+                child: SectionHeader(title: 'Borrowers Near You', onSeeAll: () {}),
+              ),
+              SliverToBoxAdapter(child: _BorrowersNearYouRow()),
+            ],
 
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -136,19 +140,64 @@ class _StatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 115,
-      child: ListView(
-        clipBehavior: Clip.none,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(left: 24, right: 12), // 12 + 12 margin = 24 right padding
-        children: [
-          _StatCard(label: 'Total Borrowed', value: '₹1.2L', icon: Icons.account_balance_wallet_rounded, color: AppColors.gold),
-          _StatCard(label: 'Active Loans', value: '1', icon: Icons.bolt_rounded, color: AppColors.goldLight),
-          _StatCard(label: 'Completed Deals', value: '3', icon: Icons.check_circle_rounded, color: AppColors.emerald),
-        ],
-      ),
+    if (userId.isEmpty) return const SizedBox(height: 115);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(AppConstants.colRequests)
+          .where('borrowerId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, snap) {
+        int activeLoans = 0;
+        int completedDeals = 0;
+        double totalRequested = 0;
+
+        if (snap.hasData) {
+          final docs = snap.data!.docs;
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = data['status'] ?? 'open';
+            final amount = (data['loanAmount'] ?? 0).toDouble();
+
+            if (status == 'completed') {
+              completedDeals++;
+            } else if (status == 'open' || status == 'matched' || status == 'accepted') {
+              activeLoans++;
+              totalRequested += amount;
+            }
+          }
+        }
+
+        return SizedBox(
+          height: 115,
+          child: ListView(
+            clipBehavior: Clip.none,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            children: [
+              _StatCard(
+                label: 'Total Requested', 
+                value: snap.hasData ? AppFormatters.formatINR(totalRequested) : '...', 
+                icon: Icons.account_balance_wallet_rounded, 
+                color: AppColors.gold
+              ),
+              _StatCard(
+                label: 'Active Requests', 
+                value: snap.hasData ? '$activeLoans' : '...', 
+                icon: Icons.bolt_rounded, 
+                color: AppColors.goldLight
+              ),
+              _StatCard(
+                label: 'Completed Deals', 
+                value: snap.hasData ? '$completedDeals' : '...', 
+                icon: Icons.check_circle_rounded, 
+                color: AppColors.emerald
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -207,23 +256,6 @@ class _StatCard extends ConsumerWidget {
                         : ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                       child: Text(value, style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1)),
                     ),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: color == AppColors.emerald ? AppColors.emerald.withOpacity(0.15) : AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(color == AppColors.emerald ? Icons.arrow_upward_rounded : Icons.arrow_forward_rounded, 
-                           color: color == AppColors.emerald ? AppColors.emerald : AppColors.gold, size: 12),
-                      const SizedBox(width: 2),
-                      Text('12%', style: AppTextStyles.caption.copyWith(
-                        color: color == AppColors.emerald ? AppColors.emerald : AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
                   ),
                 ),
               ],
@@ -409,8 +441,19 @@ class _MyRequestsSliver extends ConsumerWidget {
           }
           var docs = snap.data!.docs.toList();
           docs.sort((a, b) {
-            final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-            final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            
+            DateTime? getSafeTime(Map<String, dynamic> data) {
+              final val = data['createdAt'];
+              if (val is Timestamp) return val.toDate();
+              if (val is String) return DateTime.tryParse(val);
+              return null;
+            }
+
+            final aTime = getSafeTime(aData);
+            final bTime = getSafeTime(bData);
+            
             if (aTime == null || bTime == null) return 0;
             return bTime.compareTo(aTime);
           });
@@ -448,7 +491,7 @@ class _MyRequestsSliver extends ConsumerWidget {
           return Column(
             children: docs.map((d) {
               final req = LoanRequestModel.fromMap(d.data() as Map<String, dynamic>, d.id);
-              return _RequestCard(request: req);
+              return _RequestCard(key: ValueKey(req.id), request: req);
             }).toList(),
           );
         },
@@ -460,7 +503,7 @@ class _MyRequestsSliver extends ConsumerWidget {
 
 class _RequestCard extends StatefulWidget {
   final LoanRequestModel request;
-  const _RequestCard({required this.request});
+  const _RequestCard({super.key, required this.request});
 
   @override
   State<_RequestCard> createState() => _RequestCardState();
@@ -848,3 +891,4 @@ class _BorrowersNearYouRow extends ConsumerWidget {
     );
   }
 }
+

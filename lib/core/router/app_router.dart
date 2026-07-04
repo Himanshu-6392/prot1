@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/firebase_providers.dart';
+import '../../models/user_model.dart';
 
 // ─── Auth Feature ─────────────────────────────
 import '../../features/auth/presentation/splash_screen.dart';
@@ -85,8 +86,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
-          GoRoute(path: '/',              builder: (c, s) => const BorrowerDashboard()),
-          GoRoute(path: '/lender',        builder: (c, s) => const LenderDashboard()),
+          GoRoute(path: '/',              builder: (c, s) => const DashboardRouter()),
+          GoRoute(path: '/lender',        builder: (c, s) => const LenderDashboard()), // Kept for direct linking if needed
           GoRoute(path: '/search',        builder: (c, s) => const LenderSearchScreen()),
           GoRoute(path: '/chat',          builder: (c, s) => const ChatListScreen()),
           GoRoute(path: '/notifications', builder: (c, s) => const NotificationsScreen()),
@@ -148,3 +149,24 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+// ─── Dashboard Router ────────────────────────
+class DashboardRouter extends ConsumerWidget {
+  const DashboardRouter({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      data: (user) {
+        // Universal dashboard that adapts its UI based on the user's role
+        return const BorrowerDashboard();
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const BorrowerDashboard(),
+    );
+  }
+}

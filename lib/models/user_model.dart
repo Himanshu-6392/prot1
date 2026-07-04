@@ -20,6 +20,7 @@ class UserModel {
   final DateTime updatedAt;
   final String? fcmToken;
   final String? city;
+  final String? gender;
 
   const UserModel({
     required this.uid,
@@ -38,6 +39,7 @@ class UserModel {
     required this.updatedAt,
     this.fcmToken,
     this.city,
+    this.gender,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -62,6 +64,7 @@ class UserModel {
       updatedAt:         (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fcmToken:          map['fcmToken'],
       city:              map['city'],
+      gender:            map['gender'],
     );
   }
 
@@ -83,13 +86,14 @@ class UserModel {
     'updatedAt':         Timestamp.fromDate(updatedAt),
     'fcmToken':          fcmToken,
     'city':              city,
+    'gender':            gender,
   };
 
   UserModel copyWith({
     String? name, String? email, String? phone, String? photoUrl,
     UserRole? role, KycStatus? kycStatus, bool? isVerified, bool? isBlocked,
     bool? isPremium, String? subscriptionPlan, DateTime? subscriptionExpiry,
-    String? fcmToken, String? city,
+    String? fcmToken, String? city, String? gender,
   }) => UserModel(
     uid:               uid,
     name:              name              ?? this.name,
@@ -107,5 +111,6 @@ class UserModel {
     updatedAt:         DateTime.now(),
     fcmToken:          fcmToken          ?? this.fcmToken,
     city:              city              ?? this.city,
+    gender:            gender            ?? this.gender,
   );
 }

@@ -54,15 +54,15 @@ class MainShell extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border.withOpacity(0.6), width: 1),
+              border: Border.all(color: AppColors.border.withValues(alpha: 0.6), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.gold.withOpacity(0.06),
+                  color: AppColors.gold.withValues(alpha: 0.06),
                   blurRadius: 24,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 16,
                   offset: const Offset(0, 2),
                 ),
@@ -129,7 +129,7 @@ class _NavItem extends StatelessWidget {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.gold.withOpacity(0.3),
+                        color: AppColors.gold.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )

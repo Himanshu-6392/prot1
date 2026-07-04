@@ -114,8 +114,8 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
                   final featA = dataA['isFeatured'] == true ? 1 : 0;
                   final featB = dataB['isFeatured'] == true ? 1 : 0;
                   if (featA != featB) return featB.compareTo(featA);
-                  final ratA = (dataA['rating'] ?? 0.0) as double;
-                  final ratB = (dataB['rating'] ?? 0.0) as double;
+                  final ratA = ((dataA['rating'] ?? 0.0) as num).toDouble();
+                  final ratB = ((dataB['rating'] ?? 0.0) as num).toDouble();
                   return ratB.compareTo(ratA);
                 });
 
@@ -240,7 +240,7 @@ class _FilterPanel extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color:        sel ? AppColors.gold.withOpacity(0.15) : AppColors.surfaceAlt,
+                    color:        sel ? AppColors.gold.withValues(alpha: 0.15) : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(8),
                     border:       Border.all(color: sel ? AppColors.gold : AppColors.border),
                   ),

@@ -7,8 +7,9 @@ import 'core/router/app_router.dart';
 import 'core/providers/security_provider.dart';
 import 'core/providers/firebase_providers.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/colors.dart';
+import 'core/theme/text_styles.dart';
 import 'firebase_options.dart';
-import 'package:device_preview/device_preview.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,11 +34,9 @@ Future<void> main() async {
   
   // Hive local cache
   await Hive.initFlutter();
+  await Hive.openBox('settings');
 
-  runApp(DevicePreview(
-    enabled: true,
-    builder: (context) => const ProviderScope(child: PeerLendApp()),
-  ));
+  runApp(const ProviderScope(child: PeerLendApp()));
 }
 
 class PeerLendApp extends ConsumerStatefulWidget {
@@ -52,10 +51,6 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Trigger initial auth if user is logged in
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkDeviceLock();
-    });
   }
 
   @override
@@ -66,22 +61,12 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // Re-blur sensitive data when app goes to background
-      ref.read(securityProvider.notifier).lockSensitiveData();
-    } else if (state == AppLifecycleState.resumed) {
-      // Authenticate with device lock when coming back
-      _checkDeviceLock();
-    }
-  }
-
-  Future<void> _checkDeviceLock() async {
-    final isLoggedIn = ref.read(currentUserProvider).valueOrNull != null;
-    if (isLoggedIn) {
-      // Assuming authenticateWithDevice handles its own UI (native overlay)
-      await ref.read(securityProvider.notifier).authenticateWithDevice(
-        'Please authenticate to unlock PeerLend',
-      );
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Re-blur sensitive data when it goes to background
+      final isLogged = ref.read(firebaseAuthProvider).currentUser != null;
+      if (isLogged) {
+        ref.read(securityProvider.notifier).lockSensitiveData();
+      }
     }
   }
 
@@ -94,17 +79,14 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
       debugShowCheckedModeBanner: false,
       theme:              AppTheme.dark,
       routerConfig:       router,
-      locale:             DevicePreview.locale(context),
       builder: (context, child) {
-        final dpChild = DevicePreview.appBuilder(context, child);
-        // Global text scale constraint — prevents huge text on accessibility settings
+        final textScaler = MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2);
+        
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(
-              MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
-            ),
+            textScaler: TextScaler.linear(textScaler),
           ),
-          child: dpChild,
+          child: child ?? const SizedBox.shrink(),
         );
       },
     );

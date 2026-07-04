@@ -34,7 +34,7 @@ class _PlansScreenState extends State<PlansScreen> {
               decoration: BoxDecoration(
                 gradient: AppColors.goldGradient,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 24, offset: const Offset(0, 8))],
               ),
               child: Column(children: [
                 Icon(Icons.workspace_premium_rounded, size: 48, color: Colors.white),
@@ -140,10 +140,10 @@ class _PlanCard extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : AppColors.surface,
+          color: isSelected ? color.withValues(alpha: 0.08) : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: isSelected ? color : AppColors.border, width: isSelected ? 2 : 1),
-          boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.15), blurRadius: 16)] : [],
+          boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 16)] : [],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class _PlanCard extends StatelessWidget {
             if (isSelected)
               Container(
                 width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 6),
-                decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
                 child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.check_circle_rounded, color: color, size: 14),
                   SizedBox(width: 4),
@@ -240,7 +240,7 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
             Container(
               width: 90, height: 90,
               decoration: BoxDecoration(
-                color: _unlocked ? AppColors.emerald.withOpacity(0.12) : AppColors.gold.withOpacity(0.12),
+                color: _unlocked ? AppColors.emerald.withValues(alpha: 0.12) : AppColors.gold.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
                 border: Border.all(color: _unlocked ? AppColors.emerald : AppColors.gold, width: 2),
               ),
@@ -295,9 +295,9 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
               Container(
                 width: double.infinity, padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.emerald.withOpacity(0.08),
+                  color: AppColors.emerald.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.emerald.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
                 ),
                 child: Column(children: [
                   Text('+91 98765 43210', style: AppTextStyles.h2.copyWith(color: AppColors.emerald)),

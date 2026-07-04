@@ -6,6 +6,7 @@ enum KycStatus { pending, submitted, verified, rejected }
 class UserModel {
   final String uid;
   final String name;
+  final String? displayId;
   final String email;
   final String phone;
   final String? photoUrl;
@@ -25,6 +26,7 @@ class UserModel {
   const UserModel({
     required this.uid,
     required this.name,
+    this.displayId,
     required this.email,
     required this.phone,
     this.photoUrl,
@@ -46,6 +48,7 @@ class UserModel {
     return UserModel(
       uid:               id,
       name:              map['name'] ?? '',
+      displayId:         map['displayId'],
       email:             map['email'] ?? '',
       phone:             map['phone'] ?? '',
       photoUrl:          map['photoUrl'],
@@ -70,6 +73,7 @@ class UserModel {
 
   Map<String, dynamic> toMap() => {
     'name':              name,
+    'displayId':         displayId,
     'email':             email,
     'phone':             phone,
     'photoUrl':          photoUrl,
@@ -90,13 +94,14 @@ class UserModel {
   };
 
   UserModel copyWith({
-    String? name, String? email, String? phone, String? photoUrl,
+    String? name, String? displayId, String? email, String? phone, String? photoUrl,
     UserRole? role, KycStatus? kycStatus, bool? isVerified, bool? isBlocked,
     bool? isPremium, String? subscriptionPlan, DateTime? subscriptionExpiry,
     String? fcmToken, String? city, String? gender,
   }) => UserModel(
     uid:               uid,
     name:              name              ?? this.name,
+    displayId:         displayId         ?? this.displayId,
     email:             email             ?? this.email,
     phone:             phone             ?? this.phone,
     photoUrl:          photoUrl          ?? this.photoUrl,

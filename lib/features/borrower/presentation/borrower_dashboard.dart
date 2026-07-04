@@ -96,7 +96,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               children: [
                 Text(greeting, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary))
                     .animate().fadeIn(),
-                Text(user?.name.split(' ').first ?? 'Borrower',
+                Text(user?.name.isNotEmpty == true ? user!.name.split(' ').first : 'User',
                     style: AppTextStyles.h1).animate().fadeIn(delay: 100.ms),
               ],
             ),
@@ -121,7 +121,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               ),
               child: Center(
                 child: Text(
-                  (user?.name.isNotEmpty == true ? user!.name[0] : 'B').toUpperCase(),
+                  (user?.name != null && user!.name.isNotEmpty ? user.name[0] : 'U').toUpperCase(),
                   style: AppTextStyles.h3.copyWith(color: AppColors.textInverse),
                 ),
               ),
@@ -239,24 +239,31 @@ class _StatCard extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                ImageFiltered(
-                  imageFilter: ColorFilter.mode(
-                    Colors.transparent, 
-                    BlendMode.srcOver,
-                  ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    foregroundDecoration: isVisible ? null : BoxDecoration(
-                      color: AppColors.bg.withOpacity(0.3),
-                      backgroundBlendMode: BlendMode.srcOver,
-                    ),
-                    child: ImageFiltered(
-                      imageFilter: isVisible 
-                        ? ImageFilter.blur(sigmaX: 0, sigmaY: 0)
-                        : ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                      child: Text(value, style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1)),
-                    ),
-                  ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: isVisible
+                      ? Text(
+                          value,
+                          key: const ValueKey('visible'),
+                          style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1),
+                        )
+                      : Row(
+                          key: const ValueKey('hidden'),
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              '••••',
+                              style: AppTextStyles.h1.copyWith(
+                                fontSize: 32,
+                                height: 1,
+                                color: AppColors.textPrimary.withOpacity(0.5),
+                                letterSpacing: 4,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(Icons.lock_rounded, size: 20, color: AppColors.textPrimary.withOpacity(0.4)),
+                          ],
+                        ),
                 ),
               ],
             ),
@@ -268,14 +275,42 @@ class _StatCard extends ConsumerWidget {
 }
 
 // ──────────────────────────────────────────────
-class _QuickActions extends StatelessWidget {
+class _QuickActions extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).valueOrNull;
+    final isVerified = user?.isVerified == true;
+
+    void handlePostRequest() {
+      if (!isVerified) {
+        showDialog(
+          context: context,
+          builder: (c) => AlertDialog(
+            backgroundColor: AppColors.surfaceAlt,
+            title: Text('Verification Required', style: AppTextStyles.h3),
+            content: Text('You must complete KYC verification before posting a loan request.', style: AppTextStyles.bodyMedium),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c), child: Text('Cancel', style: AppTextStyles.bodyMedium)),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(c);
+                  context.push('/profile/kyc');
+                },
+                child: Text('Verify Now', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.gold, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        context.push('/post-request');
+      }
+    }
+
     final actions = [
-      _Action('Find Lenders', Icons.search_rounded, AppColors.gold, '/search'),
-      _Action('Post Request', Icons.add_circle_rounded, AppColors.emerald, '/post-request'),
-      _Action('Saved', Icons.bookmark_rounded, AppColors.info, '/saved-lenders'),
-      _Action('Chat', Icons.chat_bubble_rounded, AppColors.success, '/chat'),
+      _Action('Find Lenders', Icons.search_rounded, AppColors.gold, () => context.go('/search')),
+      _Action('Post Request', Icons.add_circle_rounded, AppColors.emerald, handlePostRequest),
+      _Action('Saved', Icons.bookmark_rounded, AppColors.info, () => context.push('/saved-lenders')),
+      _Action('Chat', Icons.chat_bubble_rounded, AppColors.success, () => context.push('/chat')),
     ];
 
     return Padding(
@@ -290,8 +325,8 @@ class _QuickActions extends StatelessWidget {
 }
 
 class _Action {
-  final String label; final IconData icon; final Color color; final String route;
-  const _Action(this.label, this.icon, this.color, this.route);
+  final String label; final IconData icon; final Color color; final VoidCallback onTap;
+  const _Action(this.label, this.icon, this.color, this.onTap);
 }
 
 class _QuickActionBtn extends StatelessWidget {
@@ -301,7 +336,7 @@ class _QuickActionBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go(action.route),
+      onTap: action.onTap,
       child: SizedBox(
         width: 76,
         child: Column(

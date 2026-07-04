@@ -26,6 +26,29 @@ class ChatListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final dummyMatch = MatchModel(
+            id: 'dummy_match_1',
+            requestId: 'dummy_req',
+            borrowerId: uid, // Make current user the borrower
+            lenderId: 'dummy_lender_123',
+            chatRoomId: 'dummy_chat_room_1',
+            status: MatchStatus.accepted,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          await FirebaseFirestore.instance
+              .collection(AppConstants.colMatches)
+              .doc(dummyMatch.id)
+              .set(dummyMatch.toMap());
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Dummy chat added!')),
+          );
+        },
+        label: const Text('Add Dummy Chat'),
+        icon: const Icon(Icons.add),
+      ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [

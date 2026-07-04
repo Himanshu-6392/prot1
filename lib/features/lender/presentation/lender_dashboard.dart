@@ -64,7 +64,7 @@ class _LenderHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Lender Dashboard', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-            Text(user?.name ?? 'Lender', style: AppTextStyles.h1),
+            Text(user?.name.isNotEmpty == true ? user!.name.split(' ').first : 'User', style: AppTextStyles.h1),
           ],
         )),
         Container(

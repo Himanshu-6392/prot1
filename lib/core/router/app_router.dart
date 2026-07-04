@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/firebase_providers.dart';
 import '../../models/user_model.dart';
 
@@ -48,7 +49,13 @@ import '../../features/notifications/presentation/notifications_screen.dart';
 
 // ─── Admin ───────────────────────────────────
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+// ─── Profile ───────────────────────────────────
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/edit_profile_screen.dart';
+import '../../features/profile/presentation/bank_details_screen.dart';
+import '../../features/profile/presentation/change_role_screen.dart';
+import '../../features/profile/presentation/kyc_verification_screen.dart';
+import '../../features/profile/presentation/security_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -61,13 +68,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/splash' ||
           state.matchedLocation == '/onboarding';
 
+      final settingsBox = Hive.box('settings');
+      final hasSeenOnboarding = settingsBox.get('hasSeenOnboarding', defaultValue: false);
+
       // Fix for browser getting stuck on #/borrower_dashboard
       if (state.matchedLocation == '/borrower_dashboard') {
         return '/';
       }
 
-      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
-      if (isLoggedIn && (state.matchedLocation == '/auth/login' || state.matchedLocation == '/auth/signup')) return '/';
+      // If user is logged in, never let them see auth, splash, or onboarding
+      if (isLoggedIn && isAuthRoute) {
+        return '/';
+      }
+
+      // If user is logged out
+      if (!isLoggedIn) {
+        // If they try to access a protected route, send to login
+        if (!isAuthRoute) return '/auth/login';
+
+        // If they have already seen onboarding, bypass splash and onboarding
+        if (hasSeenOnboarding && (state.matchedLocation == '/splash' || state.matchedLocation == '/onboarding')) {
+          return '/auth/login';
+        }
+      }
+
       return null;
     },
     routes: [
@@ -88,7 +112,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/',              builder: (c, s) => const DashboardRouter()),
           GoRoute(path: '/lender',        builder: (c, s) => const LenderDashboard()), // Kept for direct linking if needed
-          GoRoute(path: '/search',        builder: (c, s) => const LenderSearchScreen()),
+          GoRoute(path: '/search',        builder: (c, s) => const SearchRouter()),
           GoRoute(path: '/chat',          builder: (c, s) => const ChatListScreen()),
           GoRoute(path: '/notifications', builder: (c, s) => const NotificationsScreen()),
         ],
@@ -136,6 +160,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ─── Admin ────────────────────────────
       GoRoute(path: '/admin',             builder: (c, s) => const AdminDashboardScreen()),
       GoRoute(path: '/profile',           builder: (c, s) => const ProfileScreen()),
+      GoRoute(path: '/profile/edit',      builder: (c, s) => const EditProfileScreen()),
+      GoRoute(path: '/profile/bank',      builder: (c, s) => const BankDetailsScreen()),
+      GoRoute(path: '/profile/role',      builder: (c, s) => const ChangeRoleScreen()),
+      GoRoute(path: '/profile/kyc',       builder: (c, s) => const KycVerificationScreen()),
+      GoRoute(path: '/profile/security',  builder: (c, s) => const SecurityScreen()),
     ],
 
     errorBuilder: (context, state) => Scaffold(
@@ -160,6 +189,9 @@ class DashboardRouter extends ConsumerWidget {
 
     return userAsync.when(
       data: (user) {
+        if (user?.role == UserRole.lender) {
+          return const LenderDashboard();
+        }
         // Universal dashboard that adapts its UI based on the user's role
         return const BorrowerDashboard();
       },
@@ -167,6 +199,30 @@ class DashboardRouter extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (_, __) => const BorrowerDashboard(),
+    );
+  }
+}
+
+// ─── Search Router ───────────────────────────
+class SearchRouter extends ConsumerWidget {
+  const SearchRouter({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      data: (user) {
+        if (user?.role == UserRole.lender) {
+          return const BorrowerSearchScreen();
+        }
+        // Default to finding lenders if role is borrower or both
+        return const LenderSearchScreen();
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const LenderSearchScreen(),
     );
   }
 }

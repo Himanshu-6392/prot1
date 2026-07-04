@@ -6,8 +6,23 @@ import '../providers/security_provider.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 
-Future<void> showPinDialog(BuildContext context, WidgetRef ref) async {
+Future<void> showPinDialog(BuildContext context, WidgetRef ref, {bool forceSetup = false}) async {
   final securityState = ref.read(securityProvider);
+  final canUseBio = !forceSetup && securityState.isPinSet && securityState.useBiometrics;
+
+  if (canUseBio) {
+    // Attempt biometric first
+    final success = await ref.read(securityProvider.notifier).authenticateWithDevice(
+      'Please authenticate to view sensitive data',
+    );
+    if (success) {
+      ref.read(sensitiveDataVisibleProvider.notifier).state = true;
+      return;
+    }
+    // If it fails or user cancels, it falls through to show the PIN sheet below.
+  }
+
+  if (!context.mounted) return;
 
   await showModalBottomSheet(
     context: context,
@@ -15,13 +30,17 @@ Future<void> showPinDialog(BuildContext context, WidgetRef ref) async {
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withOpacity(0.6),
     useSafeArea: true,
-    builder: (context) => _PinEntrySheet(isSetup: !securityState.isPinSet),
+    builder: (context) => _PinEntrySheet(
+      isSetup: forceSetup || !securityState.isPinSet,
+      canUseBio: canUseBio,
+    ),
   );
 }
 
 class _PinEntrySheet extends ConsumerStatefulWidget {
   final bool isSetup;
-  const _PinEntrySheet({required this.isSetup});
+  final bool canUseBio;
+  const _PinEntrySheet({required this.isSetup, this.canUseBio = false});
 
   @override
   ConsumerState<_PinEntrySheet> createState() => _PinEntrySheetState();
@@ -204,22 +223,53 @@ class _PinEntrySheetState extends ConsumerState<_PinEntrySheet> {
 
           const SizedBox(height: 8),
 
-          // ── Cancel Button ──────────────────────
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          // ── Actions ──────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+              if (widget.canUseBio) ...[
+                const SizedBox(width: 16),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: AppColors.border,
+                ),
+                const SizedBox(width: 16),
+                TextButton.icon(
+                  onPressed: () async {
+                    final success = await ref.read(securityProvider.notifier).authenticateWithDevice('Please authenticate to view sensitive data');
+                    if (success) {
+                      ref.read(sensitiveDataVisibleProvider.notifier).state = true;
+                      if (mounted) Navigator.pop(context);
+                    }
+                  },
+                  icon: Icon(Icons.fingerprint_rounded, color: AppColors.gold),
+                  label: Text('Use Device Lock', style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ]
+            ],
           ).animate().fadeIn(delay: 300.ms),
         ],
       ),

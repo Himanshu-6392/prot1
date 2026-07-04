@@ -9,6 +9,7 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/lender_model.dart';
+import '../../../core/providers/firebase_providers.dart';
 
 class LenderProfileScreen extends ConsumerWidget {
   final String lenderId;
@@ -146,7 +147,31 @@ class _LenderProfileBody extends StatelessWidget {
                 // CTA
                 AppButton(
                   label:    'Send Loan Request',
-                  onPressed: () => context.push('/match?lenderId=${lender.id}'),
+                  onPressed: () {
+                    final currentUser = ref.read(currentUserProvider).valueOrNull;
+                    if (currentUser?.isVerified != true) {
+                      showDialog(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          backgroundColor: AppColors.surfaceAlt,
+                          title: Text('Verification Required', style: AppTextStyles.h3),
+                          content: Text('You must complete KYC verification before sending a loan request.', style: AppTextStyles.bodyMedium),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(c), child: Text('Cancel', style: AppTextStyles.bodyMedium)),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(c);
+                                context.push('/profile/kyc');
+                              },
+                              child: Text('Verify Now', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.gold, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      context.push('/match?lenderId=${lender.id}');
+                    }
+                  },
                   icon:     Icon(Icons.send_rounded, size: 18),
                 ).animate().fadeIn(delay: 300.ms),
 

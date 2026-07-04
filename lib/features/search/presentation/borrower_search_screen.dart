@@ -103,8 +103,12 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
                   final req = LoanRequestModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
-                  return _BorrowerRequestCard(request: req, lenderId: ref.read(currentUserProvider).valueOrNull?.uid ?? '')
-                      .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideY(begin: 0.1, end: 0);
+                  final currentUser = ref.read(currentUserProvider).valueOrNull;
+                  return _BorrowerRequestCard(
+                    request: req,
+                    lenderId: currentUser?.uid ?? '',
+                    isVerified: currentUser?.isVerified == true,
+                  ).animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideY(begin: 0.1, end: 0);
                 },
               );
             },
@@ -178,7 +182,8 @@ class _FilterChip extends StatelessWidget {
 class _BorrowerRequestCard extends StatelessWidget {
   final LoanRequestModel request;
   final String lenderId;
-  const _BorrowerRequestCard({required this.request, required this.lenderId});
+  final bool isVerified;
+  const _BorrowerRequestCard({required this.request, required this.lenderId, required this.isVerified});
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +239,28 @@ class _BorrowerRequestCard extends StatelessWidget {
   }
 
   Future<void> _sendOffer(BuildContext context, LoanRequestModel request) async {
+    if (!isVerified) {
+      showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          backgroundColor: AppColors.surfaceAlt,
+          title: Text('Verification Required', style: AppTextStyles.h3),
+          content: Text('You must complete KYC verification before sending lending offers.', style: AppTextStyles.bodyMedium),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: Text('Cancel', style: AppTextStyles.bodyMedium)),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(c);
+                context.push('/profile/kyc');
+              },
+              child: Text('Verify Now', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.gold, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final now = DateTime.now();
     await FirebaseFirestore.instance.collection(AppConstants.colMatches).add({
       'borrowerId': request.borrowerId,

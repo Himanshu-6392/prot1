@@ -35,11 +35,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey:            'YOUR_ANDROID_API_KEY',
-    appId:             'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId:         'YOUR_PROJECT_ID',
-    storageBucket:     'YOUR_PROJECT_ID.appspot.com',
+    apiKey:            'AIzaSyDAXLCgv4t7hHn7O9-R8DLX8HBOXNm_LM4',
+    appId:             '1:1087182064858:android:0403bc78a492a7255629e3',
+    messagingSenderId: '1087182064858',
+    projectId:         'preelend',
+    storageBucket:     'preelend.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

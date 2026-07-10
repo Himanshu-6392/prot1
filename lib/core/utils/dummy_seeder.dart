@@ -4,7 +4,8 @@ import 'constants.dart';
 class DummySeeder {
   static Future<void> seedLenders() async {
     final firestore = FirebaseFirestore.instance;
-    final snap = await firestore.collection(AppConstants.colLenders).limit(1).get();
+    final snap =
+        await firestore.collection(AppConstants.colLenders).limit(1).get();
     if (snap.docs.isNotEmpty) return; // Already seeded
 
     final lenders = [
@@ -76,7 +77,9 @@ class DummySeeder {
 
     final batch = firestore.batch();
     for (var lender in lenders) {
-      final doc = firestore.collection(AppConstants.colLenders).doc(lender['id'] as String);
+      final doc = firestore
+          .collection(AppConstants.colLenders)
+          .doc(lender['id'] as String);
       batch.set(doc, lender);
     }
     await batch.commit();

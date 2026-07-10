@@ -7,7 +7,8 @@ class AppValidators {
   }
 
   static String? phone(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Phone number is required';
+    if (value == null || value.trim().isEmpty)
+      return 'Phone number is required';
     final clean = value.replaceAll(RegExp(r'\D'), '');
     if (clean.length != 10) return 'Enter a valid 10-digit mobile number';
     return null;
@@ -27,7 +28,8 @@ class AppValidators {
   }
 
   static String? aadhaar(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Aadhaar number is required';
+    if (value == null || value.trim().isEmpty)
+      return 'Aadhaar number is required';
     final clean = value.replaceAll(RegExp(r'\s'), '');
     if (clean.length != 12 || !RegExp(r'^\d{12}$').hasMatch(clean)) {
       return 'Enter a valid 12-digit Aadhaar number';
@@ -53,7 +55,8 @@ class AppValidators {
   }
 
   static String? interestRate(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Interest rate is required';
+    if (value == null || value.trim().isEmpty)
+      return 'Interest rate is required';
     final d = double.tryParse(value);
     if (d == null) return 'Enter a valid interest rate';
     if (d < 0.5) return 'Minimum interest rate is 0.5%';

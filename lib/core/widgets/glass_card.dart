@@ -38,15 +38,16 @@ class GlassCard extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
-            width:   width,
-            height:  height,
+            width: width,
+            height: height,
             padding: padding,
             decoration: BoxDecoration(
-              gradient: gradient ?? LinearGradient(
-                colors: [Color(0x22FFFFFF), Color(0x0AFFFFFF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: gradient ??
+                  LinearGradient(
+                    colors: [Color(0x22FFFFFF), Color(0x0AFFFFFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
                 color: borderColor ?? AppColors.glassBorder,

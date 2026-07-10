@@ -29,9 +29,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void initState() {
     super.initState();
     final user = ref.read(currentUserProvider).valueOrNull;
-    nameCtr = TextEditingController(text: user?.name == 'User' ? '' : user?.name);
+    nameCtr =
+        TextEditingController(text: user?.name == 'User' ? '' : user?.name);
     displayIdCtr = TextEditingController(text: user?.displayId);
-    cityCtr = TextEditingController(text: user?.city == 'India' ? '' : (user?.city ?? ''));
+    cityCtr = TextEditingController(
+        text: user?.city == 'India' ? '' : (user?.city ?? ''));
     phoneCtr = TextEditingController(text: user?.phone);
     selectedGender = user?.gender;
   }
@@ -49,8 +51,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
 
-
-    final memberSince = user != null ? DateFormat.yMMMMd().format(user.createdAt) : 'Unknown';
+    final memberSince =
+        user != null ? DateFormat.yMMMMd().format(user.createdAt) : 'Unknown';
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -77,12 +79,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_month_rounded, color: AppColors.gold, size: 20),
+                  Icon(Icons.calendar_month_rounded,
+                      color: AppColors.gold, size: 20),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Member Since', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textMuted)),
+                      Text('Member Since',
+                          style: AppTextStyles.labelSmall
+                              .copyWith(color: AppColors.textMuted)),
                       Text(memberSince, style: AppTextStyles.bodyMedium),
                     ],
                   ),
@@ -90,19 +95,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ).animate().fadeIn(delay: 50.ms).slideX(begin: 0.05),
             const SizedBox(height: 16),
-            
+
             // Email Field (Read Only)
             TextField(
               controller: TextEditingController(text: user?.email ?? ''),
               readOnly: true,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.textSecondary),
               decoration: InputDecoration(
                 labelText: 'Email Address',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+                prefixIcon:
+                    Icon(Icons.email_outlined, color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.surfaceAlt.withValues(alpha: 0.5),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.05),
@@ -114,33 +124,41 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               style: AppTextStyles.bodyMedium,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.gold),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+                prefixIcon:
+                    Icon(Icons.person_outline_rounded, color: AppColors.gold),
                 filled: true,
                 fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
               textCapitalization: TextCapitalization.words,
             ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.05),
             const SizedBox(height: 16),
-            
+
             // User ID Field
             TextField(
               controller: displayIdCtr,
               style: AppTextStyles.bodyMedium,
               decoration: InputDecoration(
                 labelText: 'User ID (Unique)',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                prefixIcon: Icon(Icons.alternate_email_rounded, color: AppColors.info),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+                prefixIcon:
+                    Icon(Icons.alternate_email_rounded, color: AppColors.info),
                 filled: true,
                 fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ).animate().fadeIn(delay: 175.ms).slideX(begin: 0.05),
             const SizedBox(height: 16),
-            
+
             // Phone Field
             TextField(
               controller: phoneCtr,
@@ -148,11 +166,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 labelText: 'Phone Number',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                prefixIcon: Icon(Icons.phone_outlined, color: AppColors.emerald),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+                prefixIcon:
+                    Icon(Icons.phone_outlined, color: AppColors.emerald),
                 filled: true,
                 fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.05),
@@ -163,21 +185,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               value: selectedGender,
               dropdownColor: AppColors.surfaceAlt,
               style: AppTextStyles.bodyMedium,
-              icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.textMuted),
+              icon: Icon(Icons.arrow_drop_down_rounded,
+                  color: AppColors.textMuted),
               decoration: InputDecoration(
                 labelText: 'Gender',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
                 prefixIcon: Icon(Icons.wc_rounded, color: AppColors.gold),
                 filled: true,
                 fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
               ),
               items: const [
                 DropdownMenuItem(value: 'Male', child: Text('Male')),
                 DropdownMenuItem(value: 'Female', child: Text('Female')),
                 DropdownMenuItem(value: 'Other', child: Text('Other')),
-                DropdownMenuItem(value: 'Prefer not to say', child: Text('Prefer not to say')),
+                DropdownMenuItem(
+                    value: 'Prefer not to say',
+                    child: Text('Prefer not to say')),
               ],
               onChanged: (val) {
                 if (val != null) setState(() => selectedGender = val);
@@ -191,98 +220,127 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               style: AppTextStyles.bodyMedium,
               decoration: InputDecoration(
                 labelText: 'City',
-                labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                prefixIcon: Icon(Icons.location_on_outlined, color: AppColors.info),
+                labelStyle: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+                prefixIcon:
+                    Icon(Icons.location_on_outlined, color: AppColors.info),
                 filled: true,
                 fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
               textCapitalization: TextCapitalization.words,
             ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
-            
+
             if (errorMsg != null) ...[
               const SizedBox(height: 16),
-              Text(errorMsg!, style: AppTextStyles.labelSmall.copyWith(color: AppColors.error), textAlign: TextAlign.center)
-                  .animate().fadeIn(),
+              Text(errorMsg!,
+                      style: AppTextStyles.labelSmall
+                          .copyWith(color: AppColors.error),
+                      textAlign: TextAlign.center)
+                  .animate()
+                  .fadeIn(),
             ],
-            
+
             const SizedBox(height: 48),
-            
+
             // Save Button
             GestureDetector(
-              onTap: isLoading ? null : () async {
-                final newName = nameCtr.text.trim();
-                final newDisplayId = displayIdCtr.text.trim();
-                final newCity = cityCtr.text.trim();
-                final newPhone = phoneCtr.text.trim();
-                if (newName.isEmpty) return;
-                
-                setState(() { isLoading = true; errorMsg = null; });
-                
-                final uid = FirebaseAuth.instance.currentUser?.uid;
-                if (uid != null) {
-                  try {
-                    // Check if UserID is taken
-                    if (newDisplayId.isNotEmpty && newDisplayId != user?.displayId) {
-                      try {
-                        final snap = await FirebaseFirestore.instance
-                            .collection('users')
-                            .where('displayId', isEqualTo: newDisplayId)
-                            .limit(1)
-                            .get();
-                        
-                        if (snap.docs.isNotEmpty) {
+              onTap: isLoading
+                  ? null
+                  : () async {
+                      final newName = nameCtr.text.trim();
+                      final newDisplayId = displayIdCtr.text.trim();
+                      final newCity = cityCtr.text.trim();
+                      final newPhone = phoneCtr.text.trim();
+                      if (newName.isEmpty) return;
+
+                      setState(() {
+                        isLoading = true;
+                        errorMsg = null;
+                      });
+
+                      final uid = FirebaseAuth.instance.currentUser?.uid;
+                      if (uid != null) {
+                        try {
+                          // Check if UserID is taken
+                          if (newDisplayId.isNotEmpty &&
+                              newDisplayId != user?.displayId) {
+                            try {
+                              final snap = await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .where('displayId', isEqualTo: newDisplayId)
+                                  .limit(1)
+                                  .get();
+
+                              if (snap.docs.isNotEmpty) {
+                                setState(() {
+                                  isLoading = false;
+                                  errorMsg =
+                                      'This UserID is already taken. Please choose another one.';
+                                });
+                                return;
+                              }
+                            } catch (e) {
+                              // If rules prevent this query, just skip the validation and try to save
+                              print('Validation check error: $e');
+                            }
+                          }
+
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(uid)
+                              .set({
+                            'name': newName,
+                            'displayId':
+                                newDisplayId.isEmpty ? null : newDisplayId,
+                            'city': newCity.isEmpty ? 'India' : newCity,
+                            'phone': newPhone,
+                            if (selectedGender != null)
+                              'gender': selectedGender,
+                          }, SetOptions(merge: true));
+
+                          if (context.mounted) {
+                            context.pop();
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('Profile updated! 🎉'),
+                              backgroundColor: AppColors.success,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                          }
+                        } catch (e) {
+                          print('Update error: $e');
                           setState(() {
                             isLoading = false;
-                            errorMsg = 'This UserID is already taken. Please choose another one.';
+                            errorMsg =
+                                'Failed: ${e.toString().replaceAll('FirebaseException', '').trim()}';
                           });
-                          return;
                         }
-                      } catch (e) {
-                        // If rules prevent this query, just skip the validation and try to save
-                        print('Validation check error: $e');
                       }
-                    }
-
-                    await FirebaseFirestore.instance.collection('users').doc(uid).set({
-                      'name': newName,
-                      'displayId': newDisplayId.isEmpty ? null : newDisplayId,
-                      'city': newCity.isEmpty ? 'India' : newCity,
-                      'phone': newPhone,
-                      if (selectedGender != null) 'gender': selectedGender,
-                    }, SetOptions(merge: true));
-                    
-                    if (context.mounted) {
-                      context.pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text('Profile updated! 🎉'),
-                        backgroundColor: AppColors.success,
-                        behavior: SnackBarBehavior.floating,
-                      ));
-                    }
-                  } catch (e) {
-                    print('Update error: $e');
-                    setState(() {
-                      isLoading = false;
-                      errorMsg = 'Failed: ${e.toString().replaceAll('FirebaseException', '').trim()}';
-                    });
-                  }
-                }
-              },
+                    },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
                   gradient: AppColors.goldGradient,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))
+                    BoxShadow(
+                        color: AppColors.gold.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4))
                   ],
                 ),
                 alignment: Alignment.center,
                 child: isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text('Save Changes', style: AppTextStyles.h4.copyWith(color: Colors.white)),
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text('Save Changes',
+                        style: AppTextStyles.h4.copyWith(color: Colors.white)),
               ),
             ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
           ],

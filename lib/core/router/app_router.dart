@@ -58,9 +58,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
-      final isAuthRoute = loc.startsWith('/auth') ||
-          loc == '/splash' ||
-          loc == '/onboarding';
+      final isAuthRoute =
+          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
@@ -75,45 +74,64 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ─── Splash & Onboarding ──────────────
-      GoRoute(path: '/splash',      builder: (c, s) => const SplashScreen()),
-      GoRoute(path: '/onboarding',  builder: (c, s) => const OnboardingScreen()),
+      GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
+      GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
 
       // ─── Auth Routes ──────────────────────
-      GoRoute(path: '/auth/login',          builder: (c, s) => const LoginScreen()),
-      GoRoute(path: '/auth/signup',         builder: (c, s) => const SignupScreen()),
-      GoRoute(path: '/auth/role-selection', builder: (c, s) => const RoleSelectionScreen()),
-      GoRoute(path: '/auth/kyc-borrower',   builder: (c, s) => const KycBorrowerScreen()),
-      GoRoute(path: '/auth/kyc-lender',     builder: (c, s) => const KycLenderScreen()),
+      GoRoute(path: '/auth/login', builder: (c, s) => const LoginScreen()),
+      GoRoute(path: '/auth/signup', builder: (c, s) => const SignupScreen()),
+      GoRoute(
+          path: '/auth/role-selection',
+          builder: (c, s) => const RoleSelectionScreen()),
+      GoRoute(
+          path: '/auth/kyc-borrower',
+          builder: (c, s) => const KycBorrowerScreen()),
+      GoRoute(
+          path: '/auth/kyc-lender', builder: (c, s) => const KycLenderScreen()),
 
       // ─── Main Shell (Bottom Nav) ──────────
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
-          GoRoute(path: '/',              builder: (c, s) => const DashboardRouter()),
-          GoRoute(path: '/lender',        builder: (c, s) => const LenderDashboard()), // Kept for direct linking if needed
-          GoRoute(path: '/search',        builder: (c, s) => const LenderSearchScreen()),
-          GoRoute(path: '/chat',          builder: (c, s) => const ChatListScreen()),
-          GoRoute(path: '/notifications', builder: (c, s) => const NotificationsScreen()),
+          GoRoute(path: '/', builder: (c, s) => const DashboardRouter()),
+          GoRoute(
+              path: '/lender',
+              builder: (c, s) =>
+                  const LenderDashboard()), // Kept for direct linking if needed
+          GoRoute(
+              path: '/search', builder: (c, s) => const LenderSearchScreen()),
+          GoRoute(path: '/chat', builder: (c, s) => const ChatListScreen()),
+          GoRoute(
+              path: '/notifications',
+              builder: (c, s) => const NotificationsScreen()),
         ],
       ),
 
       // ─── Borrower ─────────────────────────
-      GoRoute(path: '/post-request',      builder: (c, s) => const PostRequestScreen()),
-      GoRoute(path: '/saved-lenders',     builder: (c, s) => const SavedLendersScreen()),
-      GoRoute(path: '/borrower-search',   builder: (c, s) => const BorrowerSearchScreen()),
+      GoRoute(
+          path: '/post-request', builder: (c, s) => const PostRequestScreen()),
+      GoRoute(
+          path: '/saved-lenders',
+          builder: (c, s) => const SavedLendersScreen()),
+      GoRoute(
+          path: '/borrower-search',
+          builder: (c, s) => const BorrowerSearchScreen()),
 
       // ─── Lender ───────────────────────────
-      GoRoute(path: '/create-offer',      builder: (c, s) => const CreateOfferScreen()),
+      GoRoute(
+          path: '/create-offer', builder: (c, s) => const CreateOfferScreen()),
       GoRoute(
         path: '/lender-profile/:id',
-        builder: (c, s) => LenderProfileScreen(lenderId: s.pathParameters['id']!),
+        builder: (c, s) =>
+            LenderProfileScreen(lenderId: s.pathParameters['id']!),
       ),
 
       // ─── Match ────────────────────────────
-      GoRoute(path: '/match',             builder: (c, s) => const MatchScreen()),
+      GoRoute(path: '/match', builder: (c, s) => const MatchScreen()),
       GoRoute(
         path: '/request/:id',
-        builder: (c, s) => RequestDetailScreen(requestId: s.pathParameters['id']!),
+        builder: (c, s) =>
+            RequestDetailScreen(requestId: s.pathParameters['id']!),
       ),
 
       // ─── Chat ─────────────────────────────
@@ -123,24 +141,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ─── Collateral ───────────────────────
-      GoRoute(path: '/upload-collateral', builder: (c, s) => const UploadCollateralScreen()),
+      GoRoute(
+          path: '/upload-collateral',
+          builder: (c, s) => const UploadCollateralScreen()),
       GoRoute(
         path: '/collateral/:id',
-        builder: (c, s) => CollateralDetailScreen(requestId: s.pathParameters['id']!),
+        builder: (c, s) =>
+            CollateralDetailScreen(requestId: s.pathParameters['id']!),
       ),
 
       // ─── Subscription ─────────────────────
-      GoRoute(path: '/plans',             builder: (c, s) => const PlansScreen()),
+      GoRoute(path: '/plans', builder: (c, s) => const PlansScreen()),
       GoRoute(
         path: '/unlock-contact/:matchId',
-        builder: (c, s) => ContactUnlockScreen(matchId: s.pathParameters['matchId']!),
+        builder: (c, s) =>
+            ContactUnlockScreen(matchId: s.pathParameters['matchId']!),
       ),
 
       // ─── Admin ────────────────────────────
-      GoRoute(path: '/admin',             builder: (c, s) => const AdminDashboardScreen()),
-      GoRoute(path: '/profile',           builder: (c, s) => const ProfileScreen()),
+      GoRoute(path: '/admin', builder: (c, s) => const AdminDashboardScreen()),
+      GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
     ],
-
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
       body: Center(

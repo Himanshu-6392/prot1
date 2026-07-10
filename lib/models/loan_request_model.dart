@@ -1,6 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum LoanRequestStatus { open, matched, accepted, completed, cancelled, expired }
+enum LoanRequestStatus {
+  open,
+  matched,
+  accepted,
+  completed,
+  cancelled,
+  expired
+}
 
 class LoanRequestModel {
   final String id;
@@ -43,44 +50,45 @@ class LoanRequestModel {
 
   factory LoanRequestModel.fromMap(Map<String, dynamic> map, String id) {
     return LoanRequestModel(
-      id:                      id,
-      borrowerId:              map['borrowerId'] ?? '',
-      borrowerName:            map['borrowerName'] ?? '',
-      borrowerCity:            map['borrowerCity'] ?? '',
-      loanAmount:              (map['loanAmount'] ?? 0).toDouble(),
-      collateralType:          map['collateralType'] ?? '',
-      collateralValue:         (map['collateralValue'] ?? 0).toDouble(),
+      id: id,
+      borrowerId: map['borrowerId'] ?? '',
+      borrowerName: map['borrowerName'] ?? '',
+      borrowerCity: map['borrowerCity'] ?? '',
+      loanAmount: (map['loanAmount'] ?? 0).toDouble(),
+      collateralType: map['collateralType'] ?? '',
+      collateralValue: (map['collateralValue'] ?? 0).toDouble(),
       maxInterestRatePerMonth: (map['maxInterestRatePerMonth'] ?? 0).toDouble(),
-      tenureMonths:            map['tenureMonths'] ?? 1,
-      description:             map['description'] ?? '',
-      isVerified:              map['isVerified'] ?? false,
-      status:                  LoanRequestStatus.values.firstWhere(
-                                 (e) => e.name == map['status'],
-                                 orElse: () => LoanRequestStatus.open),
-      collateralPhotoUrls:     List<String>.from(map['collateralPhotoUrls'] ?? []),
-      savedByLenderIds:        List<String>.from(map['savedByLenderIds'] ?? []),
-      borrowerRating:          (map['borrowerRating'] as num?)?.toDouble(),
-      createdAt:               (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      expiresAt:               (map['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(days: 30)),
+      tenureMonths: map['tenureMonths'] ?? 1,
+      description: map['description'] ?? '',
+      isVerified: map['isVerified'] ?? false,
+      status: LoanRequestStatus.values.firstWhere(
+          (e) => e.name == map['status'],
+          orElse: () => LoanRequestStatus.open),
+      collateralPhotoUrls: List<String>.from(map['collateralPhotoUrls'] ?? []),
+      savedByLenderIds: List<String>.from(map['savedByLenderIds'] ?? []),
+      borrowerRating: (map['borrowerRating'] as num?)?.toDouble(),
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      expiresAt: (map['expiresAt'] as Timestamp?)?.toDate() ??
+          DateTime.now().add(const Duration(days: 30)),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'borrowerId':              borrowerId,
-    'borrowerName':            borrowerName,
-    'borrowerCity':            borrowerCity,
-    'loanAmount':              loanAmount,
-    'collateralType':          collateralType,
-    'collateralValue':         collateralValue,
-    'maxInterestRatePerMonth': maxInterestRatePerMonth,
-    'tenureMonths':            tenureMonths,
-    'description':             description,
-    'isVerified':              isVerified,
-    'status':                  status.name,
-    'collateralPhotoUrls':     collateralPhotoUrls,
-    'savedByLenderIds':        savedByLenderIds,
-    'borrowerRating':          borrowerRating,
-    'createdAt':               Timestamp.fromDate(createdAt),
-    'expiresAt':               Timestamp.fromDate(expiresAt),
-  };
+        'borrowerId': borrowerId,
+        'borrowerName': borrowerName,
+        'borrowerCity': borrowerCity,
+        'loanAmount': loanAmount,
+        'collateralType': collateralType,
+        'collateralValue': collateralValue,
+        'maxInterestRatePerMonth': maxInterestRatePerMonth,
+        'tenureMonths': tenureMonths,
+        'description': description,
+        'isVerified': isVerified,
+        'status': status.name,
+        'collateralPhotoUrls': collateralPhotoUrls,
+        'savedByLenderIds': savedByLenderIds,
+        'borrowerRating': borrowerRating,
+        'createdAt': Timestamp.fromDate(createdAt),
+        'expiresAt': Timestamp.fromDate(expiresAt),
+      };
 }

@@ -20,8 +20,12 @@ class _RoleCard extends StatelessWidget {
   final Color color;
 
   const _RoleCard({
-    required this.icon, required this.title, required this.description,
-    required this.isSelected, required this.onTap, required this.color,
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.isSelected,
+    required this.onTap,
+    required this.color,
   });
 
   @override
@@ -30,40 +34,51 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        curve:    Curves.easeInOut,
-        padding:  const EdgeInsets.all(24),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color:        isSelected ? color.withOpacity(0.1) : AppColors.surface,
+          color: isSelected ? color.withOpacity(0.1) : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(
-            color:  isSelected ? color : AppColors.border,
-            width:  isSelected ? 2 : 1,
+          border: Border.all(
+            color: isSelected ? color : AppColors.border,
+            width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(color: color.withOpacity(0.2), blurRadius: 20, spreadRadius: 1),
-          ] : [],
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                      color: color.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 1),
+                ]
+              : [],
         ),
         child: Row(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              width: 60, height: 60,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color:        isSelected ? color.withOpacity(0.15) : AppColors.surfaceAlt,
+                color:
+                    isSelected ? color.withOpacity(0.15) : AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: isSelected ? color : AppColors.textMuted, size: 28),
+              child: Icon(icon,
+                  color: isSelected ? color : AppColors.textMuted, size: 28),
             ),
             SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.h3.copyWith(
-                    color: isSelected ? color : AppColors.textPrimary,
-                  )),
+                  Text(title,
+                      style: AppTextStyles.h3.copyWith(
+                        color: isSelected ? color : AppColors.textPrimary,
+                      )),
                   SizedBox(height: 4),
-                  Text(description, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+                  Text(description,
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -71,7 +86,8 @@ class _RoleCard extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: isSelected
                   ? Icon(Icons.check_circle_rounded, color: color, size: 24)
-                  : Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textMuted, size: 24),
+                  : Icon(Icons.radio_button_unchecked_rounded,
+                      color: AppColors.textMuted, size: 24),
             ),
           ],
         ),
@@ -103,11 +119,13 @@ class _RoleSelectionState extends ConsumerState<RoleSelectionScreen> {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) return;
 
-    final role = _roles.contains(UserRole.lender) && _roles.contains(UserRole.borrower)
-        ? UserRole.both
-        : _roles.first;
+    final role =
+        _roles.contains(UserRole.lender) && _roles.contains(UserRole.borrower)
+            ? UserRole.both
+            : _roles.first;
 
-    await ref.read(firestoreProvider)
+    await ref
+        .read(firestoreProvider)
         .collection(AppConstants.colUsers)
         .doc(user.uid)
         .update({'role': role.name, 'updatedAt': FieldValue.serverTimestamp()});
@@ -124,90 +142,95 @@ class _RoleSelectionState extends ConsumerState<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(gradient: AppColors.bgGradient),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Choose Your Role', style: AppTextStyles.displaySmall)
-                    .animate().fadeIn(duration: 400.ms),
-                SizedBox(height: 8),
-                Text('You can switch between roles any time from settings.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary))
-                    .animate().fadeIn(delay: 100.ms),
-
-                SizedBox(height: 40),
-
-                _RoleCard(
-                  icon:        Icons.account_balance_wallet_rounded,
-                  title:       'Borrower',
-                  description: 'Post loan requests and connect with verified lenders.',
-                  isSelected:  _roles.contains(UserRole.borrower),
-                  color:       AppColors.gold,
-                  onTap: () {
-                    setState(() {
-                      if (_roles.contains(UserRole.borrower)) {
-                        _roles.remove(UserRole.borrower);
-                      } else {
-                        _roles.add(UserRole.borrower);
-                      }
-                    });
-                    HapticFeedback.selectionClick();
-                  },
-                ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1, end: 0),
-
-                SizedBox(height: 16),
-
-                _RoleCard(
-                  icon:        Icons.savings_rounded,
-                  title:       'Lender',
-                  description: 'List your available capital and earn interest on secured loans.',
-                  isSelected:  _roles.contains(UserRole.lender),
-                  color:       AppColors.emerald,
-                  onTap: () {
-                    setState(() {
-                      if (_roles.contains(UserRole.lender)) {
-                        _roles.remove(UserRole.lender);
-                      } else {
-                        _roles.add(UserRole.lender);
-                      }
-                    });
-                    HapticFeedback.selectionClick();
-                  },
-                ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
-
-                SizedBox(height: 12),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color:        AppColors.gold.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border:       Border.all(color: AppColors.gold.withOpacity(0.15)),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.info_rounded, color: AppColors.gold, size: 16),
-                    SizedBox(width: 10),
-                    Expanded(child: Text(
-                      'You can select both roles and switch between dashboards anytime.',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                    )),
-                  ]),
-                ).animate().fadeIn(delay: 400.ms),
-
-                Spacer(),
-
-                AppButton(
-                  label:     'Continue',
-                  onPressed: _save,
-                  isLoading: _loading,
-                  icon:      Icon(Icons.arrow_forward_rounded, size: 18),
-                ).animate().fadeIn(delay: 450.ms),
-              ],
-            ),
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text('Choose Your Role', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'How will you use PeerLend?',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textMuted),
+              ).animate().fadeIn(delay: 100.ms),
+              const SizedBox(height: 28),
+              _RoleCard(
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'Borrower',
+                description:
+                    'Post loan requests and connect with verified lenders.',
+                isSelected: _roles.contains(UserRole.borrower),
+                color: AppColors.gold,
+                onTap: () {
+                  setState(() {
+                    if (_roles.contains(UserRole.borrower)) {
+                      _roles.remove(UserRole.borrower);
+                    } else {
+                      _roles.add(UserRole.borrower);
+                    }
+                  });
+                  HapticFeedback.selectionClick();
+                },
+              ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1, end: 0),
+              const SizedBox(height: 16),
+              _RoleCard(
+                icon: Icons.savings_rounded,
+                title: 'Lender',
+                description:
+                    'List your available capital and earn interest on secured loans.',
+                isSelected: _roles.contains(UserRole.lender),
+                color: AppColors.emerald,
+                onTap: () {
+                  setState(() {
+                    if (_roles.contains(UserRole.lender)) {
+                      _roles.remove(UserRole.lender);
+                    } else {
+                      _roles.add(UserRole.lender);
+                    }
+                  });
+                  HapticFeedback.selectionClick();
+                },
+              ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+                ),
+                child: Row(children: [
+                  Icon(Icons.info_outline_rounded,
+                      color: AppColors.gold, size: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(
+                    'You can select both roles and switch between dashboards anytime.',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
+                  )),
+                ]),
+              ).animate().fadeIn(delay: 400.ms),
+              const Spacer(),
+              AppButton(
+                label: 'Continue',
+                onPressed: _save,
+                isLoading: _loading,
+                color: AppColors.gold,
+              ).animate().fadeIn(delay: 450.ms),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ),

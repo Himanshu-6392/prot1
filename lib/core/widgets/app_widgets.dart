@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 
-/// Primary gold gradient button with optional loading state
+/// Primary Indigo button with optional loading state
 class AppButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -23,73 +24,77 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.width,
     this.height = 52,
-    this.borderRadius = 12,
+    this.borderRadius = 14,
     this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = color ?? AppColors.gold;
+
     if (isOutlined) {
       return SizedBox(
-        width:  width ?? double.infinity,
+        width: width ?? double.infinity,
         height: height,
-        child: OutlinedButton.icon(
+        child: OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            side: BorderSide(color: color ?? AppColors.gold, width: 1.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
+            side: BorderSide(color: AppColors.border, width: 1.5),
+            foregroundColor: AppColors.textPrimary,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(borderRadius)),
           ),
-          icon: isLoading
-              ? _loader(color ?? AppColors.gold)
-              : (icon ?? const SizedBox.shrink()),
-          label: Text(label, style: AppTextStyles.button.copyWith(color: color ?? AppColors.gold)),
+          child: isLoading
+              ? _loader(bgColor)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                    Text(label,
+                        style: AppTextStyles.button
+                            .copyWith(color: AppColors.textPrimary)),
+                  ],
+                ),
         ),
       );
     }
 
-    return Container(
-      width:  width ?? double.infinity,
+    final isDisabled = isLoading || onPressed == null;
+    return SizedBox(
+      width: width ?? double.infinity,
       height: height,
-      decoration: BoxDecoration(
-        gradient: isLoading || onPressed == null
-            ? LinearGradient(colors: [Color(0x88F5A623), Color(0x88FFD166)])
-            : AppColors.goldGradient,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: onPressed != null ? [
-          BoxShadow(
-            color: AppColors.gold.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ] : null,
-      ),
-      child: Material(
-        color:         Colors.transparent,
-        child: InkWell(
-          onTap:          isLoading ? null : onPressed,
-          borderRadius:   BorderRadius.circular(borderRadius),
-          splashColor:    Colors.white12,
-          highlightColor: Colors.white10,
-          child: Center(
-            child: isLoading
-                ? _loader(AppColors.textInverse)
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (icon != null) ...[icon!, SizedBox(width: 8)],
-                      Text(label, style: AppTextStyles.button.copyWith(color: AppColors.textInverse)),
-                    ],
-                  ),
-          ),
+      child: ElevatedButton(
+        onPressed: isDisabled ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDisabled ? bgColor.withOpacity(0.5) : bgColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius)),
+          padding: EdgeInsets.zero,
         ),
+        child: isLoading
+            ? _loader(Colors.white)
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                  Text(label,
+                      style:
+                          AppTextStyles.button.copyWith(color: Colors.white)),
+                ],
+              ),
       ),
     );
   }
 
   Widget _loader(Color color) => SizedBox(
-    width: 20, height: 20,
-    child: CircularProgressIndicator(strokeWidth: 2.5, color: color),
-  );
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2.5, color: color),
+      );
 }
 
 /// Icon-only circular button
@@ -112,15 +117,16 @@ class AppIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color:  bgColor ?? AppColors.surfaceAlt,
+      color: bgColor ?? AppColors.surfaceAlt,
       borderRadius: BorderRadius.circular(size / 2),
       child: InkWell(
-        onTap:        onPressed,
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(size / 2),
         child: SizedBox(
-          width:  size,
+          width: size,
           height: size,
-          child:  Icon(icon, color: color ?? AppColors.textPrimary, size: 20),
+          child: Icon(icon,
+              color: color ?? AppColors.textPrimary, size: size * 0.45),
         ),
       ),
     );
@@ -134,7 +140,7 @@ class TagChip extends StatelessWidget {
   final Color? bgColor;
   final IconData? icon;
 
-  TagChip({
+  const TagChip({
     super.key,
     required this.label,
     this.color,
@@ -145,51 +151,66 @@ class TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = color ?? AppColors.gold;
-    final bg = bgColor ?? fg.withOpacity(0.12);
+    final bg = bgColor ?? fg.withOpacity(0.1);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color:        bg,
+        color: bg,
         borderRadius: BorderRadius.circular(6),
-        border:       Border.all(color: fg.withOpacity(0.3), width: 0.8),
+        border: Border.all(color: fg.withOpacity(0.25), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, color: fg, size: 12),
-            SizedBox(width: 4),
+            Icon(icon, color: fg, size: 11),
+            const SizedBox(width: 4),
           ],
-          Text(label, style: AppTextStyles.tag.copyWith(color: fg)),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: fg,
+              letterSpacing: 0.3,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Verified badge
+/// Verified badge — Emerald
 class VerifiedBadge extends StatelessWidget {
   final bool small;
-  VerifiedBadge({super.key, this.small = false});
+  const VerifiedBadge({super.key, this.small = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: small ? 6 : 8, vertical: small ? 2 : 4),
+      padding: EdgeInsets.symmetric(
+          horizontal: small ? 6 : 8, vertical: small ? 2 : 4),
       decoration: BoxDecoration(
-        color:        AppColors.emerald.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(4),
-        border:       Border.all(color: AppColors.emerald.withOpacity(0.3)),
+        color: AppColors.emerald.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.emerald.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_rounded, color: AppColors.emerald, size: small ? 10 : 12),
+          Icon(Icons.verified_rounded,
+              color: AppColors.emerald, size: small ? 10 : 12),
           SizedBox(width: small ? 3 : 4),
-          Text('Verified', style: AppTextStyles.tag.copyWith(
-            color: AppColors.emerald,
-            fontSize: small ? 9 : 11,
-          )),
+          Text(
+            'Verified',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: small ? 9 : 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.emerald,
+              letterSpacing: 0.3,
+            ),
+          ),
         ],
       ),
     );
@@ -214,14 +235,16 @@ class StarRating extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.star_rounded, color: AppColors.gold, size: compact ? 14 : 16),
-        SizedBox(width: 3),
+        Icon(Icons.star_rounded,
+            color: const Color(0xFFF59E0B), size: compact ? 14 : 16),
+        const SizedBox(width: 3),
         Text(
           rating.toStringAsFixed(1),
-          style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold),
+          style:
+              AppTextStyles.labelMedium.copyWith(color: AppColors.textPrimary),
         ),
         if (count > 0 && !compact) ...[
-          SizedBox(width: 4),
+          const SizedBox(width: 4),
           Text('($count)', style: AppTextStyles.caption),
         ],
       ],
@@ -229,7 +252,7 @@ class StarRating extends StatelessWidget {
   }
 }
 
-/// Empty state widget
+/// Empty state widget — light-themed
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -255,18 +278,28 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color:        AppColors.surfaceAlt,
+                color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.border),
               ),
-              child: Icon(icon, size: 48, color: AppColors.textMuted),
+              child: Icon(icon, size: 44, color: AppColors.textMuted),
             ),
-            SizedBox(height: 20),
-            Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.textSecondary), textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: AppTextStyles.h3.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
             if (subtitle != null) ...[
-              SizedBox(height: 8),
-              Text(subtitle!, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted), textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              Text(
+                subtitle!,
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textMuted),
+                textAlign: TextAlign.center,
+              ),
             ],
-            if (action != null) ...[SizedBox(height: 24), action!],
+            if (action != null) ...[const SizedBox(height: 24), action!],
           ],
         ),
       ),
@@ -274,7 +307,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Section header with optional "See all" button or Expand toggle
+/// Section header with optional "See all" button
 class SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback? onSeeAll;
@@ -294,25 +327,153 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
       child: Row(
         children: [
           Text(title, style: AppTextStyles.h3),
-          Spacer(),
+          const Spacer(),
           if (isExpandable)
             IconButton(
               onPressed: onToggle,
               icon: AnimatedRotation(
                 turns: isExpanded ? 0 : 0.5,
                 duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.keyboard_arrow_up_rounded, color: AppColors.gold),
+                child: Icon(Icons.keyboard_arrow_up_rounded,
+                    color: AppColors.gold),
               ),
             )
           else if (onSeeAll != null)
             TextButton(
               onPressed: onSeeAll,
-              child: Text('See all', style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
+              child: Text(
+                'See all',
+                style:
+                    AppTextStyles.labelMedium.copyWith(color: AppColors.gold),
+              ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Stat card — white with soft border
+class StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color iconColor;
+
+  const StatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: AppTextStyles.h3),
+          const SizedBox(height: 2),
+          Text(label, style: AppTextStyles.caption),
+        ],
+      ),
+    );
+  }
+}
+
+/// Activity row item for recent transactions
+class ActivityRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String amount;
+  final String time;
+  final bool isDebit;
+
+  const ActivityRow({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.time,
+    required this.isDebit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDebit
+                  ? const Color(0xFFFEF3C7) // Amber 100
+                  : const Color(0xFFD1FAE5), // Emerald 100
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isDebit
+                  ? Icons.arrow_outward_rounded
+                  : Icons.arrow_downward_rounded,
+              color: isDebit
+                  ? const Color(0xFFD97706) // Amber 600
+                  : AppColors.emerald,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.labelLarge),
+                const SizedBox(height: 2),
+                Text(subtitle, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                amount,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: isDebit ? const Color(0xFFDC2626) : AppColors.emerald,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(time, style: AppTextStyles.caption),
+            ],
+          ),
         ],
       ),
     );

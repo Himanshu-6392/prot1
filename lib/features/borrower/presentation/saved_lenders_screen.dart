@@ -11,13 +11,22 @@ class SavedLendersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text('Saved Lenders')),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text('Saved Lenders', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
       body: EmptyState(
         icon: Icons.bookmark_border_rounded,
         title: 'No saved lenders yet',
         subtitle: 'Bookmark lenders from search to find them here.',
         action: AppButton(
-          label: 'Browse Lenders', width: 180,
+          label: 'Browse Lenders',
+          width: 180,
           onPressed: () => context.go('/search'),
           icon: Icon(Icons.search_rounded, size: 18),
         ),

@@ -35,38 +35,37 @@ class MatchModel {
 
   factory MatchModel.fromMap(Map<String, dynamic> map, String id) {
     return MatchModel(
-      id:                        id,
-      borrowerId:                map['borrowerId'] ?? '',
-      lenderId:                  map['lenderId'] ?? '',
-      requestId:                 map['requestId'] ?? '',
-      status:                    MatchStatus.values.firstWhere(
-                                   (e) => e.name == map['status'],
-                                   orElse: () => MatchStatus.pending),
-      contactUnlockedByLender:   map['contactUnlockedByLender'] ?? false,
+      id: id,
+      borrowerId: map['borrowerId'] ?? '',
+      lenderId: map['lenderId'] ?? '',
+      requestId: map['requestId'] ?? '',
+      status: MatchStatus.values.firstWhere((e) => e.name == map['status'],
+          orElse: () => MatchStatus.pending),
+      contactUnlockedByLender: map['contactUnlockedByLender'] ?? false,
       contactUnlockedByBorrower: map['contactUnlockedByBorrower'] ?? false,
-      chatRoomId:                map['chatRoomId'],
-      offeredAmount:             (map['offeredAmount'] as num?)?.toDouble(),
-      offeredInterestRate:       (map['offeredInterestRate'] as num?)?.toDouble(),
-      offerMessage:              map['offerMessage'],
-      createdAt:                 (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt:                 (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      chatRoomId: map['chatRoomId'],
+      offeredAmount: (map['offeredAmount'] as num?)?.toDouble(),
+      offeredInterestRate: (map['offeredInterestRate'] as num?)?.toDouble(),
+      offerMessage: map['offerMessage'],
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'borrowerId':                borrowerId,
-    'lenderId':                  lenderId,
-    'requestId':                 requestId,
-    'status':                    status.name,
-    'contactUnlockedByLender':   contactUnlockedByLender,
-    'contactUnlockedByBorrower': contactUnlockedByBorrower,
-    'chatRoomId':                chatRoomId,
-    'offeredAmount':             offeredAmount,
-    'offeredInterestRate':       offeredInterestRate,
-    'offerMessage':              offerMessage,
-    'createdAt':                 Timestamp.fromDate(createdAt),
-    'updatedAt':                 Timestamp.fromDate(updatedAt),
-  };
+        'borrowerId': borrowerId,
+        'lenderId': lenderId,
+        'requestId': requestId,
+        'status': status.name,
+        'contactUnlockedByLender': contactUnlockedByLender,
+        'contactUnlockedByBorrower': contactUnlockedByBorrower,
+        'chatRoomId': chatRoomId,
+        'offeredAmount': offeredAmount,
+        'offeredInterestRate': offeredInterestRate,
+        'offerMessage': offerMessage,
+        'createdAt': Timestamp.fromDate(createdAt),
+        'updatedAt': Timestamp.fromDate(updatedAt),
+      };
 }
 
 // ──────────────────────────────────────────────────
@@ -97,28 +96,27 @@ class ChatMessage {
 
   factory ChatMessage.fromMap(Map<String, dynamic> map, String id) {
     return ChatMessage(
-      id:       id,
+      id: id,
       senderId: map['senderId'] ?? '',
-      content:  map['content'] ?? '',
-      type:     MessageType.values.firstWhere(
-                  (e) => e.name == map['type'],
-                  orElse: () => MessageType.text),
+      content: map['content'] ?? '',
+      type: MessageType.values.firstWhere((e) => e.name == map['type'],
+          orElse: () => MessageType.text),
       mediaUrl: map['mediaUrl'],
       fileName: map['fileName'],
-      isRead:   map['isRead'] ?? false,
-      sentAt:   (map['sentAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isRead: map['isRead'] ?? false,
+      sentAt: (map['sentAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'senderId': senderId,
-    'content':  content,
-    'type':     type.name,
-    'mediaUrl': mediaUrl,
-    'fileName': fileName,
-    'isRead':   isRead,
-    'sentAt':   Timestamp.fromDate(sentAt),
-  };
+        'senderId': senderId,
+        'content': content,
+        'type': type.name,
+        'mediaUrl': mediaUrl,
+        'fileName': fileName,
+        'isRead': isRead,
+        'sentAt': Timestamp.fromDate(sentAt),
+      };
 }
 
 // ──────────────────────────────────────────────────
@@ -147,24 +145,24 @@ class ReviewModel {
 
   factory ReviewModel.fromMap(Map<String, dynamic> map, String id) {
     return ReviewModel(
-      id:            id,
-      reviewerId:    map['reviewerId'] ?? '',
-      reviewerName:  map['reviewerName'] ?? '',
+      id: id,
+      reviewerId: map['reviewerId'] ?? '',
+      reviewerName: map['reviewerName'] ?? '',
       reviewerPhoto: map['reviewerPhoto'],
-      targetId:      map['targetId'] ?? '',
-      rating:        (map['rating'] ?? 0).toDouble(),
-      comment:       map['comment'] ?? '',
-      createdAt:     (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      targetId: map['targetId'] ?? '',
+      rating: (map['rating'] ?? 0).toDouble(),
+      comment: map['comment'] ?? '',
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'reviewerId':    reviewerId,
-    'reviewerName':  reviewerName,
-    'reviewerPhoto': reviewerPhoto,
-    'targetId':      targetId,
-    'rating':        rating,
-    'comment':       comment,
-    'createdAt':     Timestamp.fromDate(createdAt),
-  };
+        'reviewerId': reviewerId,
+        'reviewerName': reviewerName,
+        'reviewerPhoto': reviewerPhoto,
+        'targetId': targetId,
+        'rating': rating,
+        'comment': comment,
+        'createdAt': Timestamp.fromDate(createdAt),
+      };
 }

@@ -20,7 +20,9 @@ class NotificationsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Notifications'),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text('Notifications', style: AppTextStyles.h3),
         actions: [
           if (user != null)
             TextButton(
@@ -32,16 +34,22 @@ class NotificationsScreen extends ConsumerWidget {
                     .collection('notifications')
                     .where('isRead', isEqualTo: false)
                     .get();
-                
+
                 final batch = FirebaseFirestore.instance.batch();
                 for (var doc in query.docs) {
                   batch.update(doc.reference, {'isRead': true});
                 }
                 await batch.commit();
               },
-              child: Text('Mark all read', style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
+              child: Text('Mark all read',
+                  style: AppTextStyles.labelMedium
+                      .copyWith(color: AppColors.gold)),
             ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
@@ -58,16 +66,19 @@ class NotificationsScreen extends ConsumerWidget {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error loading notifications', style: AppTextStyles.bodyMedium));
+                  return Center(
+                      child: Text('Error loading notifications',
+                          style: AppTextStyles.bodyMedium));
                 }
 
                 final docs = snapshot.data?.docs ?? [];
-                
+
                 if (docs.isEmpty) {
                   return const EmptyState(
                     icon: Icons.notifications_none_rounded,
                     title: 'No notifications yet',
-                    subtitle: 'We\'ll notify you of matches, messages, and updates.',
+                    subtitle:
+                        'We\'ll notify you of matches, messages, and updates.',
                   );
                 }
 
@@ -75,13 +86,17 @@ class NotificationsScreen extends ConsumerWidget {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: docs.length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.border),
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: AppColors.border),
                   itemBuilder: (context, i) {
                     final notifMap = docs[i].data() as Map<String, dynamic>;
-                    final notif = NotificationModel.fromMap(notifMap, docs[i].id);
+                    final notif =
+                        NotificationModel.fromMap(notifMap, docs[i].id);
 
                     return _NotifTile(notif: notif)
-                        .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideX(begin: 0.05, end: 0);
+                        .animate(delay: Duration(milliseconds: i * 50))
+                        .fadeIn()
+                        .slideX(begin: 0.05, end: 0);
                   },
                 );
               },
@@ -97,11 +112,14 @@ class _NotifTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: notif.isRead ? Colors.transparent : AppColors.gold.withOpacity(0.04),
+      color:
+          notif.isRead ? Colors.transparent : AppColors.gold.withOpacity(0.04),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         leading: Container(
-          width: 44, height: 44,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: notif.color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
@@ -110,18 +128,25 @@ class _NotifTile extends StatelessWidget {
         ),
         title: Row(children: [
           Expanded(child: Text(notif.title, style: AppTextStyles.labelLarge)),
-          if (!notif.isRead) Container(
-            width: 8, height: 8,
-            decoration: BoxDecoration(color: AppColors.gold, shape: BoxShape.circle),
-          ),
+          if (!notif.isRead)
+            Container(
+              width: 8,
+              height: 8,
+              decoration:
+                  BoxDecoration(color: AppColors.gold, shape: BoxShape.circle),
+            ),
         ]),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 3),
-            Text(notif.body, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary), maxLines: 2),
+            Text(notif.body,
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+                maxLines: 2),
             const SizedBox(height: 4),
-            Text(AppFormatters.formatRelative(notif.createdAt), style: AppTextStyles.caption),
+            Text(AppFormatters.formatRelative(notif.createdAt),
+                style: AppTextStyles.caption),
           ],
         ),
         isThreeLine: true,

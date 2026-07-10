@@ -12,8 +12,10 @@ class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) return web;
     switch (defaultTargetPlatform) {
-      case TargetPlatform.android:  return android;
-      case TargetPlatform.iOS:      return ios;
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -25,29 +27,29 @@ class DefaultFirebaseOptions {
   // REPLACE ALL VALUES BELOW with your actual Firebase project config
   // ──────────────────────────────────────────────────────────────
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey:            'AIzaSyDAXLCgv4t7hHn7O9-R8DLX8HBOXNm_LM4',
-    appId:             '1:1087182064858:web:b5ebcfcb082dc9d25629e3',
+    apiKey: 'AIzaSyDAXLCgv4t7hHn7O9-R8DLX8HBOXNm_LM4',
+    appId: '1:1087182064858:web:b5ebcfcb082dc9d25629e3',
     messagingSenderId: '1087182064858',
-    projectId:         'preelend',
-    authDomain:        'preelend.firebaseapp.com',
-    storageBucket:     'preelend.firebasestorage.app',
-    measurementId:     'G-2VRH7QFD2P',
+    projectId: 'preelend',
+    authDomain: 'preelend.firebaseapp.com',
+    storageBucket: 'preelend.firebasestorage.app',
+    measurementId: 'G-2VRH7QFD2P',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey:            'AIzaSyDAXLCgv4t7hHn7O9-R8DLX8HBOXNm_LM4',
-    appId:             '1:1087182064858:android:0403bc78a492a7255629e3',
+    apiKey: 'AIzaSyDAXLCgv4t7hHn7O9-R8DLX8HBOXNm_LM4',
+    appId: '1:1087182064858:android:0403bc78a492a7255629e3',
     messagingSenderId: '1087182064858',
-    projectId:         'preelend',
-    storageBucket:     'preelend.firebasestorage.app',
+    projectId: 'preelend',
+    storageBucket: 'preelend.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey:            'YOUR_IOS_API_KEY',
-    appId:             'YOUR_IOS_APP_ID',
+    apiKey: 'YOUR_IOS_API_KEY',
+    appId: 'YOUR_IOS_APP_ID',
     messagingSenderId: 'YOUR_SENDER_ID',
-    projectId:         'YOUR_PROJECT_ID',
-    storageBucket:     'YOUR_PROJECT_ID.appspot.com',
-    iosBundleId:       'com.peerlend.peerlend',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    iosBundleId: 'com.peerlend.peerlend',
   );
 }

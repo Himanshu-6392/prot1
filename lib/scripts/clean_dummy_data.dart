@@ -10,7 +10,12 @@ void main() async {
   final firestore = FirebaseFirestore.instance;
 
   final dummies = ['dummy_1', 'dummy_2', 'dummy_3', 'dummy_4'];
-  final dummyUsers = ['dummy_user_1', 'dummy_user_2', 'dummy_user_3', 'dummy_user_4'];
+  final dummyUsers = [
+    'dummy_user_1',
+    'dummy_user_2',
+    'dummy_user_3',
+    'dummy_user_4'
+  ];
 
   for (final id in dummies) {
     try {
@@ -28,16 +33,22 @@ void main() async {
     } catch (e) {
       print('Error deleting user $uid: $e');
     }
-    
+
     // Also delete any matches sent by or to these dummy users
     try {
-      final snapLender = await firestore.collection('matches').where('lenderId', isEqualTo: uid).get();
+      final snapLender = await firestore
+          .collection('matches')
+          .where('lenderId', isEqualTo: uid)
+          .get();
       for (final doc in snapLender.docs) {
         await doc.reference.delete();
         print('Deleted match by dummy lender $uid');
       }
-      
-      final snapBorrower = await firestore.collection('matches').where('borrowerId', isEqualTo: uid).get();
+
+      final snapBorrower = await firestore
+          .collection('matches')
+          .where('borrowerId', isEqualTo: uid)
+          .get();
       for (final doc in snapBorrower.docs) {
         await doc.reference.delete();
         print('Deleted match by dummy borrower $uid');

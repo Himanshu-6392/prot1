@@ -7,7 +7,8 @@ import 'firebase_providers.dart';
 
 final sensitiveDataVisibleProvider = StateProvider<bool>((ref) => false);
 
-final securityProvider = StateNotifierProvider<SecurityNotifier, SecurityState>((ref) {
+final securityProvider =
+    StateNotifierProvider<SecurityNotifier, SecurityState>((ref) {
   return SecurityNotifier(ref);
 });
 

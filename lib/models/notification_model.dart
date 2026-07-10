@@ -43,22 +43,32 @@ class NotificationModel {
   /// Helper to get an icon based on notification type
   IconData get icon {
     switch (type) {
-      case 'match': return Icons.handshake_rounded;
-      case 'message': return Icons.chat_bubble_rounded;
-      case 'kyc': return Icons.verified_rounded;
-      case 'review': return Icons.star_rounded;
-      default: return Icons.info_rounded;
+      case 'match':
+        return Icons.handshake_rounded;
+      case 'message':
+        return Icons.chat_bubble_rounded;
+      case 'kyc':
+        return Icons.verified_rounded;
+      case 'review':
+        return Icons.star_rounded;
+      default:
+        return Icons.info_rounded;
     }
   }
 
   /// Helper to get a color based on notification type
   Color get color {
     switch (type) {
-      case 'match': return AppColors.gold;
-      case 'message': return AppColors.info;
-      case 'kyc': return AppColors.emerald;
-      case 'review': return AppColors.warning;
-      default: return AppColors.textMuted;
+      case 'match':
+        return AppColors.gold;
+      case 'message':
+        return AppColors.info;
+      case 'kyc':
+        return AppColors.emerald;
+      case 'review':
+        return AppColors.warning;
+      default:
+        return AppColors.textMuted;
     }
   }
 }

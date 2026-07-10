@@ -21,22 +21,24 @@ class KycBorrowerScreen extends ConsumerStatefulWidget {
 }
 
 class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
-  final _formKey    = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _aadhaarCtr = TextEditingController();
-  final _panCtr     = TextEditingController();
+  final _panCtr = TextEditingController();
   final _addressCtr = TextEditingController();
   File? _selfieFile;
   File? _aadhaarFile;
-  bool _loading     = false;
-  int _step         = 0;
+  bool _loading = false;
+  int _step = 0;
 
   Future<void> _pickSelfie() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 70);
+    final img = await ImagePicker()
+        .pickImage(source: ImageSource.camera, imageQuality: 70);
     if (img != null) setState(() => _selfieFile = File(img.path));
   }
 
   Future<void> _pickAadhaar() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final img = await ImagePicker()
+        .pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (img != null) setState(() => _aadhaarFile = File(img.path));
   }
 
@@ -49,34 +51,38 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selfieFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please take a selfie')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please take a selfie')));
       return;
     }
     setState(() => _loading = true);
 
     final user = ref.read(firebaseAuthProvider).currentUser;
-    if (user == null) { setState(() => _loading = false); return; }
+    if (user == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     String? selfieUrl;
     if (_selfieFile != null) {
       selfieUrl = await _uploadFile(_selfieFile!, 'kyc/${user.uid}/selfie.jpg');
     }
 
-    await ref.read(firestoreProvider)
+    await ref
+        .read(firestoreProvider)
         .collection(AppConstants.colUsers)
         .doc(user.uid)
         .update({
-          'kycStatus':    KycStatus.submitted.name,
-          'kyc':          {
-            'aadhaar':    _aadhaarCtr.text.trim(),
-            'pan':        _panCtr.text.toUpperCase().trim(),
-            'address':    _addressCtr.text.trim(),
-            'selfieUrl':  selfieUrl,
-            'submittedAt': FieldValue.serverTimestamp(),
-          },
-          'updatedAt':    FieldValue.serverTimestamp(),
-        });
+      'kycStatus': KycStatus.submitted.name,
+      'kyc': {
+        'aadhaar': _aadhaarCtr.text.trim(),
+        'pan': _panCtr.text.toUpperCase().trim(),
+        'address': _addressCtr.text.trim(),
+        'selfieUrl': selfieUrl,
+        'submittedAt': FieldValue.serverTimestamp(),
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
 
     if (mounted) context.go('/');
   }
@@ -92,7 +98,8 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
               _buildHeader(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -120,11 +127,16 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        AppIconButton(icon: Icons.arrow_back_rounded, onPressed: () => context.pop(), bgColor: AppColors.surfaceAlt),
+        AppIconButton(
+            icon: Icons.arrow_back_rounded,
+            onPressed: () => context.pop(),
+            bgColor: AppColors.surfaceAlt),
         SizedBox(height: 16),
         Text('Borrower KYC', style: AppTextStyles.h1),
         SizedBox(height: 4),
-        Text('Complete verification to unlock full access', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+        Text('Complete verification to unlock full access',
+            style: AppTextStyles.bodyMedium
+                .copyWith(color: AppColors.textSecondary)),
       ]),
     );
   }
@@ -133,9 +145,9 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
     final steps = ['Identity', 'Documents', 'Selfie'];
     return Row(
       children: steps.asMap().entries.map((e) {
-        final i      = e.key;
+        final i = e.key;
         final active = i == _step;
-        final done   = i < _step;
+        final done = i < _step;
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -145,15 +157,20 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
                 height: 4,
                 decoration: BoxDecoration(
                   gradient: done || active ? AppColors.goldGradient : null,
-                  color:    done || active ? null : AppColors.border,
+                  color: done || active ? null : AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               SizedBox(height: 6),
-              Text(e.value, style: AppTextStyles.caption.copyWith(
-                color: active ? AppColors.gold : done ? AppColors.emerald : AppColors.textMuted,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-              )),
+              Text(e.value,
+                  style: AppTextStyles.caption.copyWith(
+                    color: active
+                        ? AppColors.gold
+                        : done
+                            ? AppColors.emerald
+                            : AppColors.textMuted,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  )),
             ]),
           ),
         );
@@ -164,23 +181,31 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
   Widget _buildStep0() {
     return Column(children: [
       TextFormField(
-        controller: _aadhaarCtr, keyboardType: TextInputType.number,
+        controller: _aadhaarCtr,
+        keyboardType: TextInputType.number,
         style: AppTextStyles.bodyLarge,
-        decoration: InputDecoration(labelText: 'Aadhaar Number', prefixIcon: Icon(Icons.badge_rounded)),
+        decoration: InputDecoration(
+            labelText: 'Aadhaar Number', prefixIcon: Icon(Icons.badge_rounded)),
         validator: AppValidators.aadhaar,
       ).animate().fadeIn().slideY(begin: 0.15, end: 0),
       SizedBox(height: 16),
       TextFormField(
-        controller: _panCtr, textCapitalization: TextCapitalization.characters,
+        controller: _panCtr,
+        textCapitalization: TextCapitalization.characters,
         style: AppTextStyles.bodyLarge,
-        decoration: InputDecoration(labelText: 'PAN Number', prefixIcon: Icon(Icons.credit_card_rounded)),
+        decoration: InputDecoration(
+            labelText: 'PAN Number',
+            prefixIcon: Icon(Icons.credit_card_rounded)),
         validator: AppValidators.pan,
       ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.15, end: 0),
       SizedBox(height: 16),
       TextFormField(
-        controller: _addressCtr, maxLines: 3,
+        controller: _addressCtr,
+        maxLines: 3,
         style: AppTextStyles.bodyLarge,
-        decoration: InputDecoration(labelText: 'Residential Address', prefixIcon: Icon(Icons.home_rounded)),
+        decoration: InputDecoration(
+            labelText: 'Residential Address',
+            prefixIcon: Icon(Icons.home_rounded)),
         validator: (v) => AppValidators.required(v, 'Address'),
       ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.15, end: 0),
     ]);
@@ -189,11 +214,11 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
   Widget _buildStep1() {
     return Column(children: [
       _DocUploadCard(
-        title:    'Aadhaar Card',
+        title: 'Aadhaar Card',
         subtitle: 'Front side of your Aadhaar card',
-        icon:     Icons.badge_rounded,
-        file:     _aadhaarFile,
-        onPick:   _pickAadhaar,
+        icon: Icons.badge_rounded,
+        file: _aadhaarFile,
+        onPick: _pickAadhaar,
       ).animate().fadeIn().slideY(begin: 0.15, end: 0),
     ]);
   }
@@ -203,31 +228,41 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
       Container(
         height: 280,
         decoration: BoxDecoration(
-          color:        AppColors.surfaceAlt,
+          color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: _selfieFile != null
             ? Stack(fit: StackFit.expand, children: [
-                ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_selfieFile!, fit: BoxFit.cover)),
+                ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.file(_selfieFile!, fit: BoxFit.cover)),
                 Positioned(
-                  bottom: 12, right: 12,
+                  bottom: 12,
+                  right: 12,
                   child: IconButton.filled(
                     onPressed: _pickSelfie,
                     icon: Icon(Icons.refresh_rounded),
-                    style: IconButton.styleFrom(backgroundColor: AppColors.gold),
+                    style:
+                        IconButton.styleFrom(backgroundColor: AppColors.gold),
                   ),
                 ),
               ])
             : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.camera_alt_rounded, color: AppColors.textMuted, size: 48),
+                Icon(Icons.camera_alt_rounded,
+                    color: AppColors.textMuted, size: 48),
                 SizedBox(height: 12),
-                Text('Take a clear selfie', style: AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary)),
+                Text('Take a clear selfie',
+                    style: AppTextStyles.labelLarge
+                        .copyWith(color: AppColors.textSecondary)),
                 SizedBox(height: 4),
                 Text('Ensure good lighting and look directly at the camera',
                     style: AppTextStyles.caption, textAlign: TextAlign.center),
                 SizedBox(height: 20),
-                AppButton(label: 'Open Camera', onPressed: _pickSelfie, width: 160,
+                AppButton(
+                    label: 'Open Camera',
+                    onPressed: _pickSelfie,
+                    width: 160,
                     icon: Icon(Icons.camera_alt_rounded, size: 18)),
               ]),
       ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
@@ -238,22 +273,22 @@ class _KycBorrowerScreenState extends ConsumerState<KycBorrowerScreen> {
     return Column(children: [
       if (_step < 2)
         AppButton(
-          label:     'Next Step',
+          label: 'Next Step',
           onPressed: () => setState(() => _step++),
-          icon:      Icon(Icons.arrow_forward_rounded, size: 18),
+          icon: Icon(Icons.arrow_forward_rounded, size: 18),
         )
       else
         AppButton(
-          label:     'Submit KYC',
+          label: 'Submit KYC',
           onPressed: _submit,
           isLoading: _loading,
-          icon:      Icon(Icons.verified_rounded, size: 18),
+          icon: Icon(Icons.verified_rounded, size: 18),
         ),
       if (_step > 0) ...[
         SizedBox(height: 12),
         AppButton(
-          label:      'Back',
-          onPressed:  () => setState(() => _step--),
+          label: 'Back',
+          onPressed: () => setState(() => _step--),
           isOutlined: true,
         ),
       ],
@@ -269,8 +304,11 @@ class _DocUploadCard extends StatelessWidget {
   final VoidCallback onPick;
 
   const _DocUploadCard({
-    required this.title, required this.subtitle, required this.icon,
-    required this.file, required this.onPick,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.file,
+    required this.onPick,
   });
 
   @override
@@ -280,10 +318,14 @@ class _DocUploadCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color:        file != null ? AppColors.emerald.withOpacity(0.08) : AppColors.surfaceAlt,
+          color: file != null
+              ? AppColors.emerald.withOpacity(0.08)
+              : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(16),
-          border:       Border.all(
-            color: file != null ? AppColors.emerald.withOpacity(0.4) : AppColors.border,
+          border: Border.all(
+            color: file != null
+                ? AppColors.emerald.withOpacity(0.4)
+                : AppColors.border,
             width: file != null ? 1.5 : 1,
           ),
         ),
@@ -291,27 +333,40 @@ class _DocUploadCard extends StatelessWidget {
             ? Row(children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(file!, width: 72, height: 52, fit: BoxFit.cover),
+                  child: Image.file(file!,
+                      width: 72, height: 52, fit: BoxFit.cover),
                 ),
                 SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: AppTextStyles.labelLarge.copyWith(color: AppColors.emerald)),
-                  Text('Tap to change', style: AppTextStyles.caption),
-                ])),
-                Icon(Icons.check_circle_rounded, color: AppColors.emerald, size: 24),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(title,
+                          style: AppTextStyles.labelLarge
+                              .copyWith(color: AppColors.emerald)),
+                      Text('Tap to change', style: AppTextStyles.caption),
+                    ])),
+                Icon(Icons.check_circle_rounded,
+                    color: AppColors.emerald, size: 24),
               ])
             : Row(children: [
                 Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Icon(icon, color: AppColors.textMuted, size: 24),
                 ),
                 SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: AppTextStyles.labelLarge),
-                  SizedBox(height: 2),
-                  Text(subtitle, style: AppTextStyles.caption),
-                ])),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(title, style: AppTextStyles.labelLarge),
+                      SizedBox(height: 2),
+                      Text(subtitle, style: AppTextStyles.caption),
+                    ])),
                 Icon(Icons.upload_rounded, color: AppColors.gold, size: 22),
               ]),
       ),

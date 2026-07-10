@@ -21,13 +21,15 @@ class AppFormatters {
   static String formatINR(num amount) => _inrFormat.format(amount);
 
   /// ₹25,000.50
-  static String formatINRDecimal(num amount) => _inrFormatDecimal.format(amount);
+  static String formatINRDecimal(num amount) =>
+      _inrFormatDecimal.format(amount);
 
   /// ₹25K or ₹2.5L or ₹1Cr
   static String formatINRCompact(num amount) => '₹${_compact.format(amount)}';
 
   /// 5.5% per month
-  static String formatInterestRate(double rate) => '${rate.toStringAsFixed(1)}% / month';
+  static String formatInterestRate(double rate) =>
+      '${rate.toStringAsFixed(1)}% / month';
 
   /// 3 months or 1 year 3 months
   static String formatTenure(int months) {

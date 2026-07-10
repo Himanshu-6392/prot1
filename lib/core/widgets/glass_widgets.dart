@@ -39,7 +39,8 @@ class GlassContainer extends StatelessWidget {
             (color ?? AppColors.glassBg).withOpacity(0.02),
           ],
         ),
-        border: Border.all(color: borderColor ?? AppColors.glassBorder, width: 1.0),
+        border:
+            Border.all(color: borderColor ?? AppColors.glassBorder, width: 1.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -103,4 +104,3 @@ class NeumorphicContainer extends StatelessWidget {
     );
   }
 }
-

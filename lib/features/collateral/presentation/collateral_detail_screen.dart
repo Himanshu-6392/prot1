@@ -10,8 +10,18 @@ class CollateralDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text('Collateral Details')),
-      body: Center(child: Text('Collateral for request: $requestId', style: AppTextStyles.bodyLarge)),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text('Collateral Details', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
+      body: Center(
+          child: Text('Collateral for request: $requestId',
+              style: AppTextStyles.bodyLarge)),
     );
   }
 }

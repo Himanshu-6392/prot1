@@ -39,9 +39,9 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
           .doc(user.uid)
           .snapshots()
           .map((snap) {
-            if (!snap.exists) return null;
-            return UserModel.fromMap(snap.data()!, snap.id);
-          });
+        if (!snap.exists) return null;
+        return UserModel.fromMap(snap.data()!, snap.id);
+      });
     },
     loading: () => const Stream.empty(),
     error: (_, __) => const Stream.empty(),

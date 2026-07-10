@@ -131,7 +131,9 @@ class _PinEntrySheetState extends ConsumerState<_PinEntrySheet> {
   @override
   Widget build(BuildContext context) {
     return _PinSheetScaffold(
-      icon: widget.isSetup ? Icons.lock_outline_rounded : Icons.fingerprint_rounded,
+      icon: widget.isSetup
+          ? Icons.lock_outline_rounded
+          : Icons.fingerprint_rounded,
       title: widget.isSetup ? 'Set Security PIN' : 'Enter Security PIN',
       subtitle: widget.isSetup
           ? 'Create a 4-digit PIN to secure your sensitive financial details.'
@@ -143,7 +145,11 @@ class _PinEntrySheetState extends ConsumerState<_PinEntrySheet> {
       loading: _loading,
       canDismiss: widget.canDismiss,
       onChanged: (v) {
-        if (_hasError) setState(() { _hasError = false; _errorMessage = ''; });
+        if (_hasError)
+          setState(() {
+            _hasError = false;
+            _errorMessage = '';
+          });
       },
       onCompleted: _onCompleted,
     );
@@ -204,7 +210,8 @@ class _VerifyOldPinSheetState extends ConsumerState<_VerifyOldPinSheet> {
     return _PinSheetScaffold(
       icon: Icons.history_rounded,
       title: 'Verify Your PIN',
-      subtitle: 'Enter any PIN you have previously used.\nThis protects your account from unauthorized changes.',
+      subtitle:
+          'Enter any PIN you have previously used.\nThis protects your account from unauthorized changes.',
       ctrl: _ctrl,
       pinFieldKey: _fieldKey,
       hasError: _hasError,
@@ -212,7 +219,11 @@ class _VerifyOldPinSheetState extends ConsumerState<_VerifyOldPinSheet> {
       loading: _loading,
       canDismiss: true,
       onChanged: (v) {
-        if (_hasError) setState(() { _hasError = false; _errorMessage = ''; });
+        if (_hasError)
+          setState(() {
+            _hasError = false;
+            _errorMessage = '';
+          });
       },
       onCompleted: _onCompleted,
     );
@@ -250,7 +261,8 @@ class _SetNewPinSheetState extends ConsumerState<_SetNewPinSheet> {
     return _PinSheetScaffold(
       icon: Icons.lock_reset_rounded,
       title: 'Set New PIN',
-      subtitle: 'Choose a new 4-digit PIN. Make it something only you will remember.',
+      subtitle:
+          'Choose a new 4-digit PIN. Make it something only you will remember.',
       ctrl: _ctrl,
       hasError: false,
       errorMessage: '',
@@ -271,7 +283,7 @@ class _PinSheetScaffold extends StatelessWidget {
   final String title;
   final String subtitle;
   final TextEditingController ctrl;
-  final int pinFieldKey;       // incremented to force full PIN field reset
+  final int pinFieldKey; // incremented to force full PIN field reset
   final bool hasError;
   final String errorMessage;
   final bool loading;
@@ -317,7 +329,8 @@ class _PinSheetScaffold extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 24),
             child: Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.border,
                 borderRadius: BorderRadius.circular(2),
@@ -327,7 +340,8 @@ class _PinSheetScaffold extends StatelessWidget {
 
           // Icon
           Container(
-            width: 72, height: 72,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               gradient: AppColors.goldGradient,
               borderRadius: BorderRadius.circular(22),
@@ -342,7 +356,8 @@ class _PinSheetScaffold extends StatelessWidget {
             child: loading
                 ? const Padding(
                     padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
                   )
                 : Icon(icon, color: Colors.white, size: 34),
           )
@@ -352,8 +367,10 @@ class _PinSheetScaffold extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          Text(title,
-            style: AppTextStyles.h2.copyWith(fontSize: 22, fontWeight: FontWeight.w700),
+          Text(
+            title,
+            style: AppTextStyles.h2
+                .copyWith(fontSize: 22, fontWeight: FontWeight.w700),
           ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
 
           const SizedBox(height: 8),
@@ -418,12 +435,14 @@ class _PinSheetScaffold extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline_rounded, size: 16, color: AppColors.error),
+                        Icon(Icons.error_outline_rounded,
+                            size: 16, color: AppColors.error),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             errorMessage,
-                            style: AppTextStyles.caption.copyWith(color: AppColors.error),
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.error),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -441,11 +460,14 @@ class _PinSheetScaffold extends StatelessWidget {
               onPressed: () => Navigator.pop(context, false),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.textSecondary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: Text('Cancel',
-                style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary)),
+                  style: AppTextStyles.labelMedium
+                      .copyWith(color: AppColors.textSecondary)),
             ).animate().fadeIn(delay: 300.ms),
         ],
       ),

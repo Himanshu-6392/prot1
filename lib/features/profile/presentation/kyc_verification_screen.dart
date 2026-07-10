@@ -15,16 +15,17 @@ class KycVerificationScreen extends ConsumerStatefulWidget {
   const KycVerificationScreen({super.key});
 
   @override
-  ConsumerState<KycVerificationScreen> createState() => _KycVerificationScreenState();
+  ConsumerState<KycVerificationScreen> createState() =>
+      _KycVerificationScreenState();
 }
 
 class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
   final ImagePicker _picker = ImagePicker();
-  
+
   File? _aadhaarFront;
   File? _aadhaarBack;
   File? _panCard;
-  
+
   bool _isUploading = false;
   double _uploadProgress = 0;
 
@@ -72,8 +73,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
     });
 
     try {
-      final storageRef = FirebaseStorage.instance.ref().child('kyc_documents/$uid');
-      
+      final storageRef =
+          FirebaseStorage.instance.ref().child('kyc_documents/$uid');
+
       // Upload Aadhaar Front
       final aadhaarFrontRef = storageRef.child('aadhaar_front.jpg');
       await aadhaarFrontRef.putFile(_aadhaarFront!);
@@ -103,7 +105,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           'submittedAt': Timestamp.now(),
         }
       });
-      
+
       setState(() => _uploadProgress = 1.0);
 
       if (mounted) {
@@ -139,7 +141,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+          Text(title,
+              style: AppTextStyles.bodyMedium
+                  .copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           DottedBorder(
             color: AppColors.gold,
@@ -157,14 +161,18 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
               child: file != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.file(file, fit: BoxFit.cover, width: double.infinity),
+                      child: Image.file(file,
+                          fit: BoxFit.cover, width: double.infinity),
                     )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cloud_upload_rounded, color: AppColors.gold, size: 32),
+                        Icon(Icons.cloud_upload_rounded,
+                            color: AppColors.gold, size: 32),
                         const SizedBox(height: 8),
-                        Text('Tap to upload', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+                        Text('Tap to upload',
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.textMuted)),
                       ],
                     ),
             ),
@@ -197,39 +205,41 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                 shape: BoxShape.circle,
                 color: AppColors.gold.withValues(alpha: 0.1),
               ),
-              child: Icon(Icons.verified_user_rounded, size: 48, color: AppColors.gold),
-            ).animate().scale(delay: 50.ms, duration: 400.ms, curve: Curves.easeOutBack),
+              child: Icon(Icons.verified_user_rounded,
+                  size: 48, color: AppColors.gold),
+            ).animate().scale(
+                delay: 50.ms, duration: 400.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 16),
-            Text('Upload Documents', style: AppTextStyles.h2, textAlign: TextAlign.center)
-                .animate().fadeIn(delay: 100.ms),
+            Text('Upload Documents',
+                    style: AppTextStyles.h2, textAlign: TextAlign.center)
+                .animate()
+                .fadeIn(delay: 100.ms),
             const SizedBox(height: 8),
             Text('Please upload clear images of your Aadhaar and PAN card to verify your identity.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
-                textAlign: TextAlign.center)
-                .animate().fadeIn(delay: 150.ms),
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.textMuted),
+                    textAlign: TextAlign.center)
+                .animate()
+                .fadeIn(delay: 150.ms),
             const SizedBox(height: 32),
-
             _buildUploadBox(
               title: 'Aadhaar Card (Front)',
               file: _aadhaarFront,
               onTap: () => _pickImage('aadhaar_front'),
             ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.05),
             const SizedBox(height: 24),
-
             _buildUploadBox(
               title: 'Aadhaar Card (Back)',
               file: _aadhaarBack,
               onTap: () => _pickImage('aadhaar_back'),
             ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05),
             const SizedBox(height: 24),
-
             _buildUploadBox(
               title: 'PAN Card',
               file: _panCard,
               onTap: () => _pickImage('pan'),
             ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
             const SizedBox(height: 48),
-
             if (_isUploading) ...[
               LinearProgressIndicator(
                 value: _uploadProgress,
@@ -238,12 +248,11 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               const SizedBox(height: 16),
-              Text('Uploading documents... ${( _uploadProgress * 100).toInt()}%',
+              Text('Uploading documents... ${(_uploadProgress * 100).toInt()}%',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.caption.copyWith(color: AppColors.gold)),
               const SizedBox(height: 32),
             ],
-
             GestureDetector(
               onTap: _isUploading ? null : _submitKyc,
               child: Container(
@@ -252,11 +261,15 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                   gradient: AppColors.goldGradient,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))
+                    BoxShadow(
+                        color: AppColors.gold.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4))
                   ],
                 ),
                 alignment: Alignment.center,
-                child: Text('Submit for Verification', style: AppTextStyles.h4.copyWith(color: Colors.white)),
+                child: Text('Submit for Verification',
+                    style: AppTextStyles.h4.copyWith(color: Colors.white)),
               ),
             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
           ],

@@ -12,10 +12,13 @@ class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(icon: Icons.home_rounded,       label: 'Home',    path: '/'),
-    _TabItem(icon: Icons.search_rounded,     label: 'Search',  path: '/search'),
-    _TabItem(icon: Icons.chat_bubble_rounded,label: 'Chat',    path: '/chat'),
-    _TabItem(icon: Icons.notifications_rounded, label: 'Alerts', path: '/notifications'),
+    _TabItem(icon: Icons.home_rounded, label: 'Home', path: '/'),
+    _TabItem(icon: Icons.search_rounded, label: 'Search', path: '/search'),
+    _TabItem(icon: Icons.chat_bubble_rounded, label: 'Chat', path: '/chat'),
+    _TabItem(
+        icon: Icons.notifications_rounded,
+        label: 'Alerts',
+        path: '/notifications'),
   ];
 
   int _currentIndex(BuildContext context) {
@@ -29,11 +32,11 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final idx     = _currentIndex(context);
+    final idx = _currentIndex(context);
     final userAsync = ref.watch(currentUserProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark, // dark icons on light bg
       child: Scaffold(
         backgroundColor: AppColors.bg,
         extendBody: false,
@@ -49,12 +52,14 @@ class MainShell extends ConsumerWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 8),
+          padding:
+              const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 8),
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border.withValues(alpha: 0.6), width: 1),
+              border: Border.all(
+                  color: AppColors.border.withValues(alpha: 0.6), width: 1),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.gold.withValues(alpha: 0.06),

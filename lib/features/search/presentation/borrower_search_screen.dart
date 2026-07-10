@@ -17,7 +17,8 @@ import '../../match/presentation/match_screen.dart';
 class BorrowerSearchScreen extends ConsumerStatefulWidget {
   const BorrowerSearchScreen({super.key});
   @override
-  ConsumerState<BorrowerSearchScreen> createState() => _BorrowerSearchScreenState();
+  ConsumerState<BorrowerSearchScreen> createState() =>
+      _BorrowerSearchScreenState();
 }
 
 class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
@@ -30,7 +31,15 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text('Browse Borrowers')),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text('Browse Borrowers', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
       body: Column(children: [
         // Filter Chips
         SingleChildScrollView(
@@ -57,18 +66,27 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
               isActive: _verifiedOnly,
               onTap: () => setState(() => _verifiedOnly = !_verifiedOnly),
             ),
-            if (_filterCity != null || _filterCollateral != null || _verifiedOnly) ...[
+            if (_filterCity != null ||
+                _filterCollateral != null ||
+                _verifiedOnly) ...[
               SizedBox(width: 8),
               GestureDetector(
-                onTap: () => setState(() { _filterCity = null; _filterCollateral = null; _verifiedOnly = false; }),
+                onTap: () => setState(() {
+                  _filterCity = null;
+                  _filterCollateral = null;
+                  _verifiedOnly = false;
+                }),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: AppColors.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.error.withOpacity(0.3)),
                   ),
-                  child: Text('Clear', style: AppTextStyles.labelSmall.copyWith(color: AppColors.error)),
+                  child: Text('Clear',
+                      style: AppTextStyles.labelSmall
+                          .copyWith(color: AppColors.error)),
                 ),
               ),
             ],
@@ -80,7 +98,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
             stream: _buildQuery(),
             builder: (context, snap) {
               if (!snap.hasData) {
-                return ListView.builder(itemCount: 5, itemBuilder: (_, __) => RequestCardShimmer());
+                return ListView.builder(
+                    itemCount: 5, itemBuilder: (_, __) => RequestCardShimmer());
               }
               var docs = snap.data!.docs;
 
@@ -89,9 +108,11 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                 final data = d.data() as Map<String, dynamic>;
                 final status = data['status'] ?? LoanRequestStatus.open.name;
                 if (status != LoanRequestStatus.open.name) return false;
-                if (_filterCity != null && data['borrowerCity'] != _filterCity) return false;
+                if (_filterCity != null && data['borrowerCity'] != _filterCity)
+                  return false;
                 if (_verifiedOnly && data['isVerified'] != true) return false;
-                if (_filterCollateral != null && data['collateralType'] != _filterCollateral) return false;
+                if (_filterCollateral != null &&
+                    data['collateralType'] != _filterCollateral) return false;
                 return true;
               }).toList();
 
@@ -107,9 +128,16 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                 physics: const BouncingScrollPhysics(),
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
-                  final req = LoanRequestModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
-                  return _BorrowerRequestCard(request: req, lenderId: ref.read(currentUserProvider).valueOrNull?.uid ?? '')
-                      .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideY(begin: 0.1, end: 0);
+                  final req = LoanRequestModel.fromMap(
+                      docs[i].data() as Map<String, dynamic>, docs[i].id);
+                  return _BorrowerRequestCard(
+                          request: req,
+                          lenderId:
+                              ref.read(currentUserProvider).valueOrNull?.uid ??
+                                  '')
+                      .animate(delay: Duration(milliseconds: i * 50))
+                      .fadeIn()
+                      .slideY(begin: 0.1, end: 0);
                 },
               );
             },
@@ -120,9 +148,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
   }
 
   Stream<QuerySnapshot> _buildQuery() {
-    Query<Map<String, dynamic>> q = FirebaseFirestore.instance
-        .collection(AppConstants.colRequests);
-        
+    Query<Map<String, dynamic>> q =
+        FirebaseFirestore.instance.collection(AppConstants.colRequests);
+
     return q.orderBy('createdAt', descending: true).limit(50).snapshots();
   }
 
@@ -133,7 +161,10 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
         title: 'Select City',
         items: ['All', ...AppConstants.popularCities],
         selected: _filterCity,
-        onSelect: (v) { setState(() => _filterCity = v == 'All' ? null : v); Navigator.pop(context); },
+        onSelect: (v) {
+          setState(() => _filterCity = v == 'All' ? null : v);
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -145,15 +176,25 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
         title: 'Collateral Type',
         items: ['All', ...AppConstants.collateralTypes],
         selected: _filterCollateral,
-        onSelect: (v) { setState(() => _filterCollateral = v == 'All' ? null : v); Navigator.pop(context); },
+        onSelect: (v) {
+          setState(() => _filterCollateral = v == 'All' ? null : v);
+          Navigator.pop(context);
+        },
       ),
     );
   }
 }
 
 class _FilterChip extends StatelessWidget {
-  final String label; final IconData icon; final bool isActive; final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.icon, required this.isActive, required this.onTap});
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+  const _FilterChip(
+      {required this.label,
+      required this.icon,
+      required this.isActive,
+      required this.onTap});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -162,14 +203,20 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.gold.withOpacity(0.15) : AppColors.surfaceAlt,
+          color: isActive
+              ? AppColors.gold.withOpacity(0.15)
+              : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isActive ? AppColors.gold : AppColors.border),
+          border:
+              Border.all(color: isActive ? AppColors.gold : AppColors.border),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: isActive ? AppColors.gold : AppColors.textMuted),
+          Icon(icon,
+              size: 14, color: isActive ? AppColors.gold : AppColors.textMuted),
           SizedBox(width: 5),
-          Text(label, style: AppTextStyles.labelSmall.copyWith(color: isActive ? AppColors.gold : AppColors.textSecondary)),
+          Text(label,
+              style: AppTextStyles.labelSmall.copyWith(
+                  color: isActive ? AppColors.gold : AppColors.textSecondary)),
         ]),
       ),
     );
@@ -189,39 +236,62 @@ class _BorrowerRequestCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.surface, borderRadius: BorderRadius.circular(16),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(width: 38, height: 38, decoration: BoxDecoration(
-              color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(10)),
-              child: Center(child: Text(request.borrowerName.isNotEmpty ? request.borrowerName[0].toUpperCase() : 'B',
-                  style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary)))),
+            Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Center(
+                    child: Text(
+                        request.borrowerName.isNotEmpty
+                            ? request.borrowerName[0].toUpperCase()
+                            : 'B',
+                        style: AppTextStyles.labelLarge
+                            .copyWith(color: AppColors.textPrimary)))),
             SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(request.borrowerName, style: AppTextStyles.labelLarge),
-              Row(children: [
-                Icon(Icons.location_on_rounded, color: AppColors.textMuted, size: 12),
-                Text(request.borrowerCity, style: AppTextStyles.caption),
-              ]),
-            ])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(request.borrowerName, style: AppTextStyles.labelLarge),
+                  Row(children: [
+                    Icon(Icons.location_on_rounded,
+                        color: AppColors.textMuted, size: 12),
+                    Text(request.borrowerCity, style: AppTextStyles.caption),
+                  ]),
+                ])),
             if (request.isVerified) VerifiedBadge(small: true),
           ]),
           SizedBox(height: 14),
           Row(children: [
-            Expanded(child: Text(AppFormatters.formatINR(request.loanAmount), style: AppTextStyles.amountMedium)),
+            Expanded(
+                child: Text(AppFormatters.formatINR(request.loanAmount),
+                    style: AppTextStyles.amountMedium)),
             TagChip(label: request.collateralType, color: AppColors.info),
           ]),
           SizedBox(height: 8),
           Row(children: [
-            TagChip(label: 'Max ${request.maxInterestRatePerMonth}%/mo', color: AppColors.warning),
+            TagChip(
+                label: 'Max ${request.maxInterestRatePerMonth}%/mo',
+                color: AppColors.warning),
             SizedBox(width: 8),
-            TagChip(label: AppFormatters.formatTenure(request.tenureMonths), color: AppColors.textSecondary),
+            TagChip(
+                label: AppFormatters.formatTenure(request.tenureMonths),
+                color: AppColors.textSecondary),
           ]),
           SizedBox(height: 10),
-          Text(request.description, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-              maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(request.description,
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
           SizedBox(height: 12),
           AppButton(
             label: 'Send Offer',
@@ -234,15 +304,22 @@ class _BorrowerRequestCard extends StatelessWidget {
     );
   }
 
-  Future<void> _sendOffer(BuildContext context, LoanRequestModel request) async {
+  Future<void> _sendOffer(
+      BuildContext context, LoanRequestModel request) async {
     showMakeOfferSheet(context, lenderId, request.toMap(), request.id);
   }
 }
 
 class _PickerSheet extends StatelessWidget {
-  final String title; final List<String> items; final String? selected;
+  final String title;
+  final List<String> items;
+  final String? selected;
   final ValueChanged<String> onSelect;
-  const _PickerSheet({required this.title, required this.items, this.selected, required this.onSelect});
+  const _PickerSheet(
+      {required this.title,
+      required this.items,
+      this.selected,
+      required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -253,16 +330,24 @@ class _PickerSheet extends StatelessWidget {
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         SizedBox(height: 8),
-        Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+        Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2))),
         SizedBox(height: 16),
         Text(title, style: AppTextStyles.h3),
         SizedBox(height: 8),
-        Flexible(child: ListView.builder(
+        Flexible(
+            child: ListView.builder(
           shrinkWrap: true,
           itemCount: items.length,
           itemBuilder: (context, i) => ListTile(
             title: Text(items[i], style: AppTextStyles.bodyMedium),
-            trailing: selected == items[i] ? Icon(Icons.check_rounded, color: AppColors.gold) : null,
+            trailing: selected == items[i]
+                ? Icon(Icons.check_rounded, color: AppColors.gold)
+                : null,
             onTap: () => onSelect(items[i]),
           ),
         )),

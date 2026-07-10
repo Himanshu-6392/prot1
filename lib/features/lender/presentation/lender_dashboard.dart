@@ -23,7 +23,6 @@ class LenderDashboard extends ConsumerStatefulWidget {
 }
 
 class _LenderDashboardState extends ConsumerState<LenderDashboard> {
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -49,12 +48,16 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(child: _LenderHeader(user: user)),
-            SliverToBoxAdapter(child: _LenderStatsRow(userId: user?.uid ?? '')),
+            SliverToBoxAdapter(
+                child: _LenderPortfolioCard(userId: user?.uid ?? '')),
             SliverToBoxAdapter(child: _ManageSection(userId: user?.uid ?? '')),
             SliverToBoxAdapter(
-              child: SectionHeader(
-                title: 'Incoming Requests',
-                onSeeAll: () => context.push('/borrower-search'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                child: SectionHeader(
+                  title: 'Incoming Requests',
+                  onSeeAll: () => context.push('/borrower-search'),
+                ),
               ),
             ),
             _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
@@ -64,44 +67,207 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/create-offer'),
-        icon:      Icon(Icons.edit_rounded),
-        label:     Text('Manage Offer'),
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text('Manage Offer'),
         backgroundColor: AppColors.emerald,
-        foregroundColor: AppColors.textInverse,
+        foregroundColor: Colors.white,
       ),
     );
   }
 }
 
-class _LenderHeader extends StatelessWidget {
+class _LenderHeader extends ConsumerWidget {
   final UserModel? user;
   const _LenderHeader({this.user});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      child: Row(children: [
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Lender Dashboard', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-            Text(user?.name.isNotEmpty == true ? user!.name.split(' ').first : 'User', style: AppTextStyles.h1),
-          ],
-        )),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            gradient:     AppColors.emeraldGradient,
-            borderRadius: BorderRadius.circular(10),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+    final firstName =
+        user?.name.isNotEmpty == true ? user!.name.split(' ').first : 'Lender';
+    final initial =
+        (user?.name.isNotEmpty == true ? user!.name[0] : 'L').toUpperCase();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(greeting,
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textMuted)),
+                Text(firstName,
+                    style: AppTextStyles.labelLarge
+                        .copyWith(color: AppColors.textPrimary)),
+              ],
+            ),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.savings_rounded, color: Colors.white, size: 16),
-            SizedBox(width: 6),
-            Text('Lender', style: AppTextStyles.labelMedium.copyWith(color: Colors.white)),
-          ]),
-        ),
-      ]),
+
+          IconButton(
+            onPressed: () => AppColors.toggleTheme(context),
+            icon: Icon(
+              AppColors.isDarkMode
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.emerald,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(initial,
+                    style:
+                        AppTextStyles.labelLarge.copyWith(color: Colors.white)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LenderPortfolioCard extends ConsumerWidget {
+  final String userId;
+  const _LenderPortfolioCard({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (userId.isEmpty) return const SizedBox(height: 170);
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection(AppConstants.colLenders)
+            .where('userId', isEqualTo: userId)
+            .snapshots(),
+        builder: (context, snap) {
+          int activeOffers = 0;
+          double availableCapital = 0;
+          int totalMatches = 0;
+
+          if (snap.hasData) {
+            for (var doc in snap.data!.docs) {
+              final d = doc.data() as Map<String, dynamic>;
+              if (d['isActive'] == true) {
+                activeOffers++;
+                availableCapital += (d['availableCapital'] ?? 0).toDouble();
+              }
+              totalMatches += ((d['matchedBorrowerIds'] as List?)?.length ?? 0);
+            }
+          }
+
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: AppColors.emeraldGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.emerald.withOpacity(0.2),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AVAILABLE CAPITAL',
+                  style: AppTextStyles.tag.copyWith(
+                    color: Colors.white.withOpacity(0.7),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  snap.hasData
+                      ? AppFormatters.formatINR(availableCapital)
+                      : '...',
+                  style: AppTextStyles.displaySmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _CardStat('Active Offers', '$activeOffers', Colors.white),
+                    _CardStat('Matches', '$totalMatches', Colors.white),
+                    ElevatedButton(
+                      onPressed: () => context.push('/create-offer'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.emerald,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        minimumSize: Size.zero,
+                      ),
+                      child: Text(
+                        'NEW OFFER',
+                        style: AppTextStyles.button
+                            .copyWith(color: AppColors.emerald, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+        },
+      ),
+    );
+  }
+}
+
+class _CardStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _CardStat(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTextStyles.tag
+                .copyWith(color: color.withOpacity(0.7), letterSpacing: 0.8)),
+        const SizedBox(height: 4),
+        Text(value, style: AppTextStyles.h2.copyWith(color: color)),
+      ],
     );
   }
 }
@@ -146,19 +312,27 @@ class _LenderStatsRow extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 24, right: 12),
             children: [
               _StatCard2(
-                label: 'Available Capital', 
-                value: snap.hasData ? AppFormatters.formatINR(availableCapital) : '...', 
-                icon: Icons.account_balance_wallet_rounded, 
-                color: AppColors.gold
-              ),
+                  label: 'Available Capital',
+                  value: snap.hasData
+                      ? AppFormatters.formatINR(availableCapital)
+                      : '...',
+                  icon: Icons.account_balance_wallet_rounded,
+                  color: AppColors.gold),
               _StatCard2(
-                label: 'Active Offers', 
-                value: snap.hasData ? '$activeOffers' : '...', 
-                icon: Icons.receipt_long_rounded, 
-                color: AppColors.emerald
-              ),
-              _StatCard2(label: 'Pending Requests', value: '0', icon: Icons.inbox_rounded, color: AppColors.info),
-              _StatCard2(label: 'Accepted Deals', value: '0', icon: Icons.handshake_rounded, color: AppColors.success),
+                  label: 'Active Offers',
+                  value: snap.hasData ? '$activeOffers' : '...',
+                  icon: Icons.receipt_long_rounded,
+                  color: AppColors.emerald),
+              _StatCard2(
+                  label: 'Pending Requests',
+                  value: '0',
+                  icon: Icons.inbox_rounded,
+                  color: AppColors.info),
+              _StatCard2(
+                  label: 'Accepted Deals',
+                  value: '0',
+                  icon: Icons.handshake_rounded,
+                  color: AppColors.success),
             ],
           ),
         );
@@ -171,12 +345,17 @@ class _StatCard2 extends StatelessWidget {
   final String label, value;
   final IconData icon;
   final Color color;
-  const _StatCard2({required this.label, required this.value, required this.icon, required this.color});
+  const _StatCard2(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
     return NeumorphicContainer(
-      width: 140, margin: const EdgeInsets.only(right: 12),
+      width: 140,
+      margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       borderRadius: 24,
       child: Column(
@@ -185,14 +364,22 @@ class _StatCard2 extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: AppTextStyles.amountSmall.copyWith(color: color, fontSize: 20, height: 1)),
+            Text(value,
+                style: AppTextStyles.amountSmall
+                    .copyWith(color: color, fontSize: 20, height: 1)),
             const SizedBox(height: 4),
-            Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(label,
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
           ]),
         ],
       ),
@@ -209,18 +396,27 @@ class _ManageSection extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(children: [
-        Expanded(child: _ActionTile(
-          icon: Icons.person_search_rounded, label: 'Browse Borrowers', color: AppColors.gold,
+        Expanded(
+            child: _ActionTile(
+          icon: Icons.person_search_rounded,
+          label: 'Browse Borrowers',
+          color: AppColors.gold,
           onTap: () => context.push('/borrower-search'),
         )),
         SizedBox(width: 12),
-        Expanded(child: _ActionTile(
-          icon: Icons.edit_note_rounded, label: 'Edit Offer', color: AppColors.emerald,
+        Expanded(
+            child: _ActionTile(
+          icon: Icons.edit_note_rounded,
+          label: 'Edit Offer',
+          color: AppColors.emerald,
           onTap: () => context.push('/create-offer'),
         )),
         SizedBox(width: 12),
-        Expanded(child: _ActionTile(
-          icon: Icons.receipt_long_rounded, label: 'My Offers', color: AppColors.info,
+        Expanded(
+            child: _ActionTile(
+          icon: Icons.receipt_long_rounded,
+          label: 'My Offers',
+          color: AppColors.info,
           onTap: () => context.push('/match'),
         )),
       ]),
@@ -229,8 +425,15 @@ class _ManageSection extends ConsumerWidget {
 }
 
 class _ActionTile extends StatelessWidget {
-  final IconData icon; final String label; final Color color; final VoidCallback onTap;
-  const _ActionTile({required this.icon, required this.label, required this.color, required this.onTap});
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionTile(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -239,18 +442,24 @@ class _ActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface, borderRadius: BorderRadius.circular(14),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border),
         ),
         child: Column(children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 22),
           ),
           SizedBox(height: 8),
-          Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center, maxLines: 2),
+          Text(label,
+              style: AppTextStyles.caption
+                  .copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+              maxLines: 2),
         ]),
       ),
     );
@@ -273,15 +482,19 @@ class _IncomingRequestsSliver extends ConsumerWidget {
         builder: (context, snap) {
           if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
           if (!snap.hasData) {
-            return Column(children: [RequestCardShimmer(), RequestCardShimmer()]);
+            return Column(
+                children: [RequestCardShimmer(), RequestCardShimmer()]);
           }
           final allDocs = snap.data!.docs;
-          final docs = allDocs.where((d) {
-            final data = d.data() as Map<String, dynamic>;
-            final status = data['status'] ?? 'open';
-            return status == 'open';
-          }).take(10).toList();
-          
+          final docs = allDocs
+              .where((d) {
+                final data = d.data() as Map<String, dynamic>;
+                final status = data['status'] ?? 'open';
+                return status == 'open';
+              })
+              .take(10)
+              .toList();
+
           if (docs.isEmpty) {
             return EmptyState(
               icon: Icons.inbox_outlined,
@@ -314,29 +527,36 @@ class _IncomingCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.surface, borderRadius: BorderRadius.circular(16),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Expanded(child: Text(
+            Expanded(
+                child: Text(
               AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
               style: AppTextStyles.amountMedium,
             )),
             TagChip(label: data['collateralType'] ?? '', color: AppColors.info),
           ]),
           SizedBox(height: 8),
-          Text(data['description'] ?? '', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-              maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(data['description'] ?? '',
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
           SizedBox(height: 10),
           Row(children: [
-            Icon(Icons.location_on_rounded, color: AppColors.textMuted, size: 13),
+            Icon(Icons.location_on_rounded,
+                color: AppColors.textMuted, size: 13),
             SizedBox(width: 4),
             Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
             SizedBox(width: 12),
             Icon(Icons.percent_rounded, color: AppColors.textMuted, size: 13),
             SizedBox(width: 4),
-            Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo', style: AppTextStyles.caption),
+            Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo',
+                style: AppTextStyles.caption),
             Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -344,7 +564,9 @@ class _IncomingCard extends StatelessWidget {
                 gradient: AppColors.goldGradient,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text('Respond', style: AppTextStyles.labelSmall.copyWith(color: Colors.white)),
+              child: Text('Respond',
+                  style:
+                      AppTextStyles.labelSmall.copyWith(color: Colors.white)),
             ),
           ]),
         ]),

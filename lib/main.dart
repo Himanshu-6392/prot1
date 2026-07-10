@@ -8,9 +8,9 @@ import 'core/router/app_router.dart';
 import 'core/providers/security_provider.dart';
 import 'core/providers/firebase_providers.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/colors.dart';
 import 'firebase_options.dart';
 import 'package:device_preview/device_preview.dart';
-import 'scripts/fix_user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,16 +23,19 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
-  // System UI overlay
+  // Set light theme palette by default
+  AppColors.setLight();
+
+  // System UI overlay — light status bar for light theme
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor:          Colors.transparent,
-    statusBarBrightness:     Brightness.dark,
-    statusBarIconBrightness: Brightness.light,
+    statusBarColor: Colors.transparent,
+    statusBarBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
   ));
 
   // Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Hive local cache
   await Hive.initFlutter();
   await Hive.openBox('settings');
@@ -51,7 +54,8 @@ class PeerLendApp extends ConsumerStatefulWidget {
   ConsumerState<PeerLendApp> createState() => _PeerLendAppState();
 }
 
-class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingObserver {
+class _PeerLendAppState extends ConsumerState<PeerLendApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -93,8 +97,8 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
     if (isLoggedIn) {
       // Assuming authenticateWithDevice handles its own UI (native overlay)
       await ref.read(securityProvider.notifier).authenticateWithDevice(
-        'Please authenticate to unlock PeerLend',
-      );
+            'Please authenticate to unlock PeerLend',
+          );
     }
   }
 
@@ -103,11 +107,13 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title:              'PeerLend',
+      title: 'PeerLend',
       debugShowCheckedModeBanner: false,
-      theme:              AppTheme.dark,
-      routerConfig:       router,
-      locale:             DevicePreview.locale(context),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
+      routerConfig: router,
+      locale: DevicePreview.locale(context),
       builder: (context, child) {
         final dpChild = DevicePreview.appBuilder(context, child);
         // Global text scale constraint — prevents huge text on accessibility settings

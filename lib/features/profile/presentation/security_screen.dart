@@ -34,15 +34,20 @@ class SecurityScreen extends ConsumerWidget {
           // Header Icon
           Center(
             child: Container(
-              width: 80, height: 80,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 gradient: AppColors.goldGradient,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8)),
+                  BoxShadow(
+                      color: AppColors.gold.withOpacity(0.3),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8)),
                 ],
               ),
-              child: const Icon(Icons.shield_rounded, color: Colors.white, size: 36),
+              child: const Icon(Icons.shield_rounded,
+                  color: Colors.white, size: 36),
             ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
           ),
           const SizedBox(height: 32),
@@ -62,11 +67,11 @@ class SecurityScreen extends ConsumerWidget {
               },
             ),
           ),
-          
+
           const SizedBox(height: 32),
           Text('Data Privacy', style: AppTextStyles.h4),
           const SizedBox(height: 16),
-          
+
           _buildOptionTile(
             icon: Icons.pin_rounded,
             title: isPinSet ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN',
@@ -75,7 +80,8 @@ class SecurityScreen extends ConsumerWidget {
             onTap: () {
               showPinDialog(context, ref, forceSetup: true);
             },
-            trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            trailing: Icon(Icons.chevron_right_rounded,
+                color: AppColors.textSecondary),
           ),
         ],
       ).animate().fadeIn(duration: 400.ms),
@@ -117,7 +123,9 @@ class SecurityScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                    Text(title,
+                        style: AppTextStyles.bodyLarge
+                            .copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(subtitle, style: AppTextStyles.bodySmall),
                   ],

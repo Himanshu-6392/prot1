@@ -19,13 +19,22 @@ class MatchScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final isLender = user.role == UserRole.lender;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text(isLender ? 'My Offers' : 'Match Requests')),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text(isLender ? 'My Offers' : 'Match Requests', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection(AppConstants.colMatches)
@@ -33,22 +42,32 @@ class MatchScreen extends ConsumerWidget {
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snap) {
-          if (!snap.hasData) return Center(child: CircularProgressIndicator(color: AppColors.gold));
+          if (!snap.hasData)
+            return Center(
+                child: CircularProgressIndicator(color: AppColors.gold));
           final docs = snap.data!.docs;
-          if (docs.isEmpty) return EmptyState(
-            icon: isLender ? Icons.receipt_long_rounded : Icons.handshake_outlined,
-            title: isLender ? 'No active offers' : 'No matches yet',
-            subtitle: isLender ? 'Your outgoing loan offers will appear here.' : 'When lenders respond to your requests, they\'ll appear here.',
-          );
+          if (docs.isEmpty)
+            return EmptyState(
+              icon: isLender
+                  ? Icons.receipt_long_rounded
+                  : Icons.handshake_outlined,
+              title: isLender ? 'No active offers' : 'No matches yet',
+              subtitle: isLender
+                  ? 'Your outgoing loan offers will appear here.'
+                  : 'When lenders respond to your requests, they\'ll appear here.',
+            );
 
           return ListView.builder(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: docs.length,
             itemBuilder: (context, i) {
-              final match = MatchModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
+              final match = MatchModel.fromMap(
+                  docs[i].data() as Map<String, dynamic>, docs[i].id);
               return _MatchCard(match: match, isLender: isLender)
-                  .animate(delay: Duration(milliseconds: i * 60)).fadeIn().slideY(begin: 0.1, end: 0);
+                  .animate(delay: Duration(milliseconds: i * 60))
+                  .fadeIn()
+                  .slideY(begin: 0.1, end: 0);
             },
           );
         },
@@ -65,17 +84,23 @@ class _MatchCard extends ConsumerWidget {
   Future<void> _accept(BuildContext context) async {
     HapticFeedback.mediumImpact();
     final chatRoomId = '${match.id}_chat';
-    await FirebaseFirestore.instance.collection(AppConstants.colMatches).doc(match.id).update({
-      'status':     MatchStatus.accepted.name,
+    await FirebaseFirestore.instance
+        .collection(AppConstants.colMatches)
+        .doc(match.id)
+        .update({
+      'status': MatchStatus.accepted.name,
       'chatRoomId': chatRoomId,
-      'updatedAt':  DateTime.now(),
+      'updatedAt': DateTime.now(),
     });
     if (context.mounted) context.push('/chat/$chatRoomId');
   }
 
   Future<void> _decline(BuildContext context) async {
-    await FirebaseFirestore.instance.collection(AppConstants.colMatches).doc(match.id).update({
-      'status':    MatchStatus.declined.name,
+    await FirebaseFirestore.instance
+        .collection(AppConstants.colMatches)
+        .doc(match.id)
+        .update({
+      'status': MatchStatus.declined.name,
       'updatedAt': DateTime.now(),
     });
   }
@@ -90,7 +115,10 @@ class _MatchCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: match.status == MatchStatus.pending ? AppColors.gold.withOpacity(0.4) : AppColors.border,
+        border: Border.all(
+            color: match.status == MatchStatus.pending
+                ? AppColors.gold.withOpacity(0.4)
+                : AppColors.border,
             width: match.status == MatchStatus.pending ? 1.5 : 1),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -106,16 +134,20 @@ class _MatchCard extends ConsumerWidget {
                 style: AppTextStyles.tag.copyWith(color: statusColor)),
           ),
           Spacer(),
-          Text(AppFormatters.formatRelative(match.createdAt), style: AppTextStyles.caption),
+          Text(AppFormatters.formatRelative(match.createdAt),
+              style: AppTextStyles.caption),
         ]),
         SizedBox(height: 14),
-        Text(isLender ? 'Borrower: ${match.borrowerId.substring(0, 8)}...' : 'Lender: ${match.lenderId.substring(0, 8)}...',
+        Text(
+            isLender
+                ? 'Borrower: ${match.borrowerId.substring(0, 8)}...'
+                : 'Lender: ${match.lenderId.substring(0, 8)}...',
             style: AppTextStyles.labelLarge),
         SizedBox(height: 4),
         Text('Request: ${match.requestId.substring(0, 8)}...',
             style: AppTextStyles.caption),
-            
-        if (match.offeredAmount != null && match.offeredInterestRate != null) ...[
+        if (match.offeredAmount != null &&
+            match.offeredInterestRate != null) ...[
           SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -127,36 +159,51 @@ class _MatchCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isLender ? 'Your Offer' : 'Lender\'s Offer', style: AppTextStyles.labelSmall.copyWith(color: AppColors.gold)),
+                Text(isLender ? 'Your Offer' : 'Lender\'s Offer',
+                    style: AppTextStyles.labelSmall
+                        .copyWith(color: AppColors.gold)),
                 SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Amount: ${AppFormatters.formatINR(match.offeredAmount!)}', style: AppTextStyles.labelMedium),
-                    Text('Rate: ${match.offeredInterestRate}%/mo', style: AppTextStyles.labelMedium),
+                    Text(
+                        'Amount: ${AppFormatters.formatINR(match.offeredAmount!)}',
+                        style: AppTextStyles.labelMedium),
+                    Text('Rate: ${match.offeredInterestRate}%/mo',
+                        style: AppTextStyles.labelMedium),
                   ],
                 ),
-                if (match.offerMessage != null && match.offerMessage!.isNotEmpty) ...[
+                if (match.offerMessage != null &&
+                    match.offerMessage!.isNotEmpty) ...[
                   SizedBox(height: 8),
-                  Text('"${match.offerMessage}"', style: AppTextStyles.caption.copyWith(fontStyle: FontStyle.italic)),
+                  Text('"${match.offerMessage}"',
+                      style: AppTextStyles.caption
+                          .copyWith(fontStyle: FontStyle.italic)),
                 ],
               ],
             ),
           ),
         ],
-
         if (match.status == MatchStatus.pending && !isLender) ...[
           SizedBox(height: 16),
           Row(children: [
-            Expanded(child: AppButton(label: 'Accept', onPressed: () => _accept(context),
-                icon: Icon(Icons.check_rounded, size: 16), color: AppColors.emerald)),
+            Expanded(
+                child: AppButton(
+                    label: 'Accept',
+                    onPressed: () => _accept(context),
+                    icon: Icon(Icons.check_rounded, size: 16),
+                    color: AppColors.emerald)),
             SizedBox(width: 10),
-            Expanded(child: AppButton(label: 'Decline', onPressed: () => _decline(context),
-                isOutlined: true, color: AppColors.error)),
+            Expanded(
+                child: AppButton(
+                    label: 'Decline',
+                    onPressed: () => _decline(context),
+                    isOutlined: true,
+                    color: AppColors.error)),
           ]),
         ],
-
-        if ((match.status == MatchStatus.accepted) || (isLender && match.status == MatchStatus.pending)) ...[
+        if ((match.status == MatchStatus.accepted) ||
+            (isLender && match.status == MatchStatus.pending)) ...[
           SizedBox(height: 14),
           AppButton(
             label: 'Open Chat',
@@ -169,11 +216,11 @@ class _MatchCard extends ConsumerWidget {
   }
 
   Color _statusColor(MatchStatus s) => switch (s) {
-    MatchStatus.pending   => AppColors.gold,
-    MatchStatus.accepted  => AppColors.emerald,
-    MatchStatus.declined  => AppColors.error,
-    MatchStatus.completed => AppColors.success,
-  };
+        MatchStatus.pending => AppColors.gold,
+        MatchStatus.accepted => AppColors.emerald,
+        MatchStatus.declined => AppColors.error,
+        MatchStatus.completed => AppColors.success,
+      };
 }
 
 // ─────────────────────────────────────────────────────
@@ -187,17 +234,33 @@ class RequestDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text('Loan Request Detail')),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Text('Loan Request Detail', style: AppTextStyles.h3),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(requestId).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection(AppConstants.colRequests)
+            .doc(requestId)
+            .snapshots(),
         builder: (context, snap) {
-          if (!snap.hasData) return Center(child: CircularProgressIndicator(color: AppColors.gold));
-          if (!snap.data!.exists) return Center(child: Text('Request not found', style: AppTextStyles.h3));
+          if (!snap.hasData)
+            return Center(
+                child: CircularProgressIndicator(color: AppColors.gold));
+          if (!snap.data!.exists)
+            return Center(
+                child: Text('Request not found', style: AppTextStyles.h3));
           final data = snap.data!.data() as Map<String, dynamic>;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Amount
               Container(
                 width: double.infinity,
@@ -208,16 +271,25 @@ class RequestDetailScreen extends ConsumerWidget {
                   border: Border.all(color: AppColors.borderGlow),
                 ),
                 child: Column(children: [
-                  Text(AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
+                  Text(
+                      AppFormatters.formatINR(
+                          (data['loanAmount'] ?? 0).toDouble()),
                       style: AppTextStyles.amountLarge),
                   SizedBox(height: 4),
                   Text('Loan Amount', style: AppTextStyles.caption),
                   SizedBox(height: 16),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                    _DetailStat('Collateral', data['collateralType'] ?? '—'),
-                    _DetailStat('Max Rate', '${data['maxInterestRatePerMonth'] ?? '-'}%/mo'),
-                    _DetailStat('Tenure', AppFormatters.formatTenure(data['tenureMonths'] ?? 1)),
-                  ]),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _DetailStat(
+                            'Collateral', data['collateralType'] ?? '—'),
+                        _DetailStat('Max Rate',
+                            '${data['maxInterestRatePerMonth'] ?? '-'}%/mo'),
+                        _DetailStat(
+                            'Tenure',
+                            AppFormatters.formatTenure(
+                                data['tenureMonths'] ?? 1)),
+                      ]),
                 ]),
               ).animate().fadeIn(),
 
@@ -225,16 +297,25 @@ class RequestDetailScreen extends ConsumerWidget {
               Text('Borrower', style: AppTextStyles.h3),
               SizedBox(height: 12),
               Row(children: [
-                Container(width: 42, height: 42,
-                  decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Text((data['borrowerName'] ?? 'B')[0].toUpperCase(),
-                      style: AppTextStyles.labelLarge))),
+                Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Center(
+                        child: Text(
+                            (data['borrowerName'] ?? 'B')[0].toUpperCase(),
+                            style: AppTextStyles.labelLarge))),
                 SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(data['borrowerName'] ?? '', style: AppTextStyles.labelLarge),
+                  Text(data['borrowerName'] ?? '',
+                      style: AppTextStyles.labelLarge),
                   Row(children: [
-                    Icon(Icons.location_on_rounded, size: 12, color: AppColors.textMuted),
-                    Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
+                    Icon(Icons.location_on_rounded,
+                        size: 12, color: AppColors.textMuted),
+                    Text(data['borrowerCity'] ?? '',
+                        style: AppTextStyles.caption),
                   ]),
                 ]),
                 Spacer(),
@@ -244,13 +325,18 @@ class RequestDetailScreen extends ConsumerWidget {
               SizedBox(height: 20),
               Text('Description', style: AppTextStyles.h3),
               SizedBox(height: 8),
-              Text(data['description'] ?? '', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              Text(data['description'] ?? '',
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: AppColors.textSecondary)),
 
               SizedBox(height: 20),
               Text('Collateral Details', style: AppTextStyles.h3),
               SizedBox(height: 12),
-              _DetailRow2('Type',  data['collateralType'] ?? '—'),
-              _DetailRow2('Value', AppFormatters.formatINR((data['collateralValue'] ?? 0).toDouble())),
+              _DetailRow2('Type', data['collateralType'] ?? '—'),
+              _DetailRow2(
+                  'Value',
+                  AppFormatters.formatINR(
+                      (data['collateralValue'] ?? 0).toDouble())),
 
               SizedBox(height: 28),
               AppButton(
@@ -269,7 +355,8 @@ class RequestDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showMakeOfferSheet(BuildContext context, String lenderId, Map<String, dynamic> requestData, String requestId) {
+  void _showMakeOfferSheet(BuildContext context, String lenderId,
+      Map<String, dynamic> requestData, String requestId) {
     showMakeOfferSheet(context, lenderId, requestData, requestId);
   }
 }
@@ -279,9 +366,10 @@ class _DetailStat extends StatelessWidget {
   const _DetailStat(this.label, this.value);
   @override
   Widget build(BuildContext context) => Column(children: [
-    Text(value, style: AppTextStyles.labelLarge.copyWith(color: AppColors.gold)),
-    Text(label, style: AppTextStyles.caption),
-  ]);
+        Text(value,
+            style: AppTextStyles.labelLarge.copyWith(color: AppColors.gold)),
+        Text(label, style: AppTextStyles.caption),
+      ]);
 }
 
 class _DetailRow2 extends StatelessWidget {
@@ -289,19 +377,22 @@ class _DetailRow2 extends StatelessWidget {
   const _DetailRow2(this.label, this.value);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(children: [
-      Text(label, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-      Spacer(),
-      Text(value, style: AppTextStyles.labelMedium),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Text(label,
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.textSecondary)),
+          Spacer(),
+          Text(value, style: AppTextStyles.labelMedium),
+        ]),
+      );
 }
 
 // ─────────────────────────────────────────────────────
 // Make Offer Sheet
 // ─────────────────────────────────────────────────────
-void showMakeOfferSheet(BuildContext context, String lenderId, Map<String, dynamic> requestData, String requestId) {
+void showMakeOfferSheet(BuildContext context, String lenderId,
+    Map<String, dynamic> requestData, String requestId) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -340,7 +431,8 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
     super.initState();
     // Default to what the borrower requested
     _amountCtr.text = (widget.requestData['loanAmount'] ?? '').toString();
-    _rateCtr.text = (widget.requestData['maxInterestRatePerMonth'] ?? '').toString();
+    _rateCtr.text =
+        (widget.requestData['maxInterestRatePerMonth'] ?? '').toString();
   }
 
   @override
@@ -366,7 +458,8 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final matchRef = FirebaseFirestore.instance.collection(AppConstants.colMatches).doc();
+      final matchRef =
+          FirebaseFirestore.instance.collection(AppConstants.colMatches).doc();
       final chatRoomId = '${matchRef.id}_chat';
 
       final match = MatchModel(
@@ -393,12 +486,12 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
             .doc(chatRoomId)
             .collection(AppConstants.colMessages)
             .add({
-              'senderId': widget.lenderId,
-              'content':  msg,
-              'type':     MessageType.text.name,
-              'isRead':   false,
-              'sentAt':   DateTime.now(),
-            });
+          'senderId': widget.lenderId,
+          'content': msg,
+          'type': MessageType.text.name,
+          'isRead': false,
+          'sentAt': DateTime.now(),
+        });
       }
 
       if (!mounted) return;
@@ -418,7 +511,9 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        left: 24, right: 24, top: 24,
+        left: 24,
+        right: 24,
+        top: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
@@ -442,7 +537,8 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
           const SizedBox(height: 16),
           Text(
             'Propose your terms to the borrower. Once sent, a chat will open so you can negotiate directly.',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodyMedium
+                .copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           TextField(
@@ -455,7 +551,9 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
               prefixIcon: Icon(Icons.currency_rupee_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 16),
@@ -469,7 +567,9 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
               prefixIcon: Icon(Icons.percent_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 16),
@@ -483,7 +583,9 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
               prefixIcon: Icon(Icons.message_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 24),

@@ -23,7 +23,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       // Check the Hive box (it is already initialized in main)
       final box = Hive.box('settings');
-      final hasSeenOnboarding = box.get('hasSeenOnboarding', defaultValue: false) as bool;
+      final hasSeenOnboarding =
+          box.get('hasSeenOnboarding', defaultValue: false) as bool;
 
       // Check if the user is already logged in
       final isLoggedIn = ref.read(authStateProvider).valueOrNull != null;
@@ -57,7 +58,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color:      AppColors.gold.withOpacity(0.45),
+                      color: AppColors.gold.withOpacity(0.45),
                       blurRadius: 40,
                       spreadRadius: 2,
                     ),
@@ -72,12 +73,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
               SizedBox(height: 28),
 
-              Text('PeerLend', style: AppTextStyles.displaySmall.copyWith(
-                foreground: Paint()
-                  ..shader = AppColors.goldGradient.createShader(
-                    const Rect.fromLTWH(0, 0, 200, 60),
-                  ),
-              ))
+              Text('PeerLend',
+                      style: AppTextStyles.displaySmall.copyWith(
+                        foreground: Paint()
+                          ..shader = AppColors.goldGradient.createShader(
+                            const Rect.fromLTWH(0, 0, 200, 60),
+                          ),
+                      ))
                   .animate(delay: 300.ms)
                   .fadeIn(duration: 500.ms)
                   .slideY(begin: 0.3, end: 0),
@@ -85,7 +87,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               SizedBox(height: 8),
 
               Text('Secure Lending, Peer to Peer',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary))
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textSecondary))
                   .animate(delay: 500.ms)
                   .fadeIn(duration: 400.ms),
 
@@ -98,9 +101,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   strokeWidth: 2.5,
                   color: AppColors.gold.withOpacity(0.6),
                 ),
-              )
-                  .animate(delay: 800.ms)
-                  .fadeIn(duration: 300.ms),
+              ).animate(delay: 800.ms).fadeIn(duration: 300.ms),
             ],
           ),
         ),

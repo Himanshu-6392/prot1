@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_providers.dart';
 
 // ─── PIN & Blur State ─────────────────────────────
@@ -8,92 +8,96 @@ import 'firebase_providers.dart';
 final sensitiveDataVisibleProvider = StateProvider<bool>((ref) => false);
 
 final securityProvider = StateNotifierProvider<SecurityNotifier, SecurityState>((ref) {
-  final user = ref.watch(authStateProvider).valueOrNull;
-  return SecurityNotifier(ref, user?.uid ?? 'guest');
+  return SecurityNotifier(ref);
 });
 
 class SecurityState {
   final bool isPinSet;
   final bool isLoading;
-  final bool useBiometrics;
-  final bool appLocked;
 
-  SecurityState({
-    this.isPinSet = false, 
-    this.isLoading = true,
-    this.useBiometrics = false,
-    this.appLocked = false,
-  });
+  SecurityState({this.isPinSet = false, this.isLoading = true});
 
-  SecurityState copyWith({bool? isPinSet, bool? isLoading, bool? useBiometrics, bool? appLocked}) {
+  SecurityState copyWith({bool? isPinSet, bool? isLoading}) {
     return SecurityState(
       isPinSet: isPinSet ?? this.isPinSet,
       isLoading: isLoading ?? this.isLoading,
-      useBiometrics: useBiometrics ?? this.useBiometrics,
-      appLocked: appLocked ?? this.appLocked,
     );
   }
 }
 
 class SecurityNotifier extends StateNotifier<SecurityState> {
   final Ref ref;
-  final String uid;
-  final _storage = const FlutterSecureStorage();
   final _localAuth = LocalAuthentication();
+  // Sentinel: guaranteed to differ from any real UID (including null on logout)
+  static const _sentinel = '__uninitialized__';
+  String? _lastUid = _sentinel;
 
-  SecurityNotifier(this.ref, this.uid) : super(SecurityState()) {
-    _init();
-  }
+  SecurityNotifier(this.ref) : super(SecurityState()) {
+    // ref.listen must be called synchronously in the constructor
+    ref.listen(currentUserProvider, (previous, next) {
+      final user = next.valueOrNull;
+      final uid = user?.uid; // null when logged out
 
-  String get _pinKey => 'user_secure_pin_$uid';
-  String get _bioKey => 'use_biometrics_$uid';
+      // Any uid change from the sentinel OR from a different user → re-lock
+      if (uid != _lastUid) {
+        _lastUid = uid;
+        if (mounted) {
+          // Always blur when user changes (login, logout, account switch)
+          ref.read(sensitiveDataVisibleProvider.notifier).state = false;
+        }
+      }
 
-  Future<void> _init() async {
-    final pin = await _storage.read(key: _pinKey);
-    final bio = await _storage.read(key: _bioKey);
-    final useBio = bio != 'false'; // Default to true unless explicitly disabled
-    
-    if (!mounted) return;
-
-    state = state.copyWith(
-      isPinSet: pin != null && pin.isNotEmpty,
-      useBiometrics: useBio,
-      isLoading: false,
-    );
+      if (user != null) {
+        final hasPin = user.securityPin != null && user.securityPin!.isNotEmpty;
+        if (mounted) state = state.copyWith(isPinSet: hasPin, isLoading: false);
+      } else if (next.hasValue) {
+        if (mounted) state = state.copyWith(isPinSet: false, isLoading: false);
+      }
+    }, fireImmediately: true);
   }
 
   Future<void> setPin(String pin) async {
-    await _storage.write(key: _pinKey, value: pin);
-    state = state.copyWith(isPinSet: true);
-    // Unblur automatically when setting a new PIN
-    ref.read(sensitiveDataVisibleProvider.notifier).state = true;
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'securityPin': pin});
+      if (mounted) state = state.copyWith(isPinSet: true);
+      // After setting PIN, unblur so user can see their data right away
+      // (they just proved identity by going through the change-PIN flow)
+      ref.read(sensitiveDataVisibleProvider.notifier).state = true;
+    }
   }
 
   Future<bool> verifyPin(String pin) async {
-    final savedPin = await _storage.read(key: _pinKey);
-    if (savedPin == pin) {
+    // Always fetch fresh from Firestore to avoid stale cache issues
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) return false;
+
+    // Try cached value first
+    if (user.securityPin != null && user.securityPin == pin) {
       ref.read(sensitiveDataVisibleProvider.notifier).state = true;
       return true;
     }
-    return false;
-  }
 
-  Future<void> setUseBiometrics(bool value) async {
-    await _storage.write(key: _bioKey, value: value.toString());
-    state = state.copyWith(useBiometrics: value);
+    // Fallback: fetch directly from Firestore
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final freshPin = doc.data()?['securityPin'] as String?;
+      if (freshPin != null && freshPin == pin) {
+        ref.read(sensitiveDataVisibleProvider.notifier).state = true;
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   void lockSensitiveData() {
     ref.read(sensitiveDataVisibleProvider.notifier).state = false;
-  }
-
-  void lockApp() {
-    state = state.copyWith(appLocked: true);
-    lockSensitiveData();
-  }
-  
-  void unlockApp() {
-    state = state.copyWith(appLocked: false);
   }
 
   // ─── Device Lock ──────────────────────────────────
@@ -101,27 +105,20 @@ class SecurityNotifier extends StateNotifier<SecurityState> {
   Future<bool> authenticateWithDevice(String reason) async {
     try {
       final canAuthenticateWithBiometrics = await _localAuth.canCheckBiometrics;
-      final canAuthenticate = canAuthenticateWithBiometrics || await _localAuth.isDeviceSupported();
+      final canAuthenticate =
+          canAuthenticateWithBiometrics || await _localAuth.isDeviceSupported();
 
-      if (!canAuthenticate) {
-        return true; // If device has no lock screen, just allow
-      }
-
-      // Small delay to ensure the activity is fully resumed/in foreground before calling native auth
-      await Future.delayed(const Duration(milliseconds: 300));
+      if (!canAuthenticate) return true;
 
       return await _localAuth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: false, // fallback to device PIN/Pattern
+          biometricOnly: false,
         ),
       );
     } catch (e) {
-      print('Biometric Error: $e');
-      // In case of error (e.g. no hardware), return false to keep it locked, or prompt PIN?
-      // Wait, if it fails due to no activity, it will just skip. Let's return false to enforce security if it crashes.
-      return false;
+      return true;
     }
   }
 }

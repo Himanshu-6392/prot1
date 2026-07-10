@@ -11,6 +11,7 @@ import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/match_model.dart';
+import '../../../models/user_model.dart';
 
 class MatchScreen extends ConsumerWidget {
   const MatchScreen({super.key});
@@ -20,22 +21,24 @@ class MatchScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).valueOrNull;
     if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+    final isLender = user.role == UserRole.lender;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text('Match Requests')),
+      appBar: AppBar(title: Text(isLender ? 'My Offers' : 'Match Requests')),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection(AppConstants.colMatches)
-            .where('borrowerId', isEqualTo: user.uid)
+            .where(isLender ? 'lenderId' : 'borrowerId', isEqualTo: user.uid)
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snap) {
           if (!snap.hasData) return Center(child: CircularProgressIndicator(color: AppColors.gold));
           final docs = snap.data!.docs;
           if (docs.isEmpty) return EmptyState(
-            icon: Icons.handshake_outlined,
-            title: 'No matches yet',
-            subtitle: 'When lenders respond to your requests, they\'ll appear here.',
+            icon: isLender ? Icons.receipt_long_rounded : Icons.handshake_outlined,
+            title: isLender ? 'No active offers' : 'No matches yet',
+            subtitle: isLender ? 'Your outgoing loan offers will appear here.' : 'When lenders respond to your requests, they\'ll appear here.',
           );
 
           return ListView.builder(
@@ -44,7 +47,7 @@ class MatchScreen extends ConsumerWidget {
             itemCount: docs.length,
             itemBuilder: (context, i) {
               final match = MatchModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
-              return _MatchCard(match: match, isLender: false)
+              return _MatchCard(match: match, isLender: isLender)
                   .animate(delay: Duration(milliseconds: i * 60)).fadeIn().slideY(begin: 0.1, end: 0);
             },
           );
@@ -106,11 +109,41 @@ class _MatchCard extends ConsumerWidget {
           Text(AppFormatters.formatRelative(match.createdAt), style: AppTextStyles.caption),
         ]),
         SizedBox(height: 14),
-        Text('Lender: ${match.lenderId.substring(0, 8)}...',
+        Text(isLender ? 'Borrower: ${match.borrowerId.substring(0, 8)}...' : 'Lender: ${match.lenderId.substring(0, 8)}...',
             style: AppTextStyles.labelLarge),
         SizedBox(height: 4),
         Text('Request: ${match.requestId.substring(0, 8)}...',
             style: AppTextStyles.caption),
+            
+        if (match.offeredAmount != null && match.offeredInterestRate != null) ...[
+          SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isLender ? 'Your Offer' : 'Lender\'s Offer', style: AppTextStyles.labelSmall.copyWith(color: AppColors.gold)),
+                SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Amount: ${AppFormatters.formatINR(match.offeredAmount!)}', style: AppTextStyles.labelMedium),
+                    Text('Rate: ${match.offeredInterestRate}%/mo', style: AppTextStyles.labelMedium),
+                  ],
+                ),
+                if (match.offerMessage != null && match.offerMessage!.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  Text('"${match.offerMessage}"', style: AppTextStyles.caption.copyWith(fontStyle: FontStyle.italic)),
+                ],
+              ],
+            ),
+          ),
+        ],
 
         if (match.status == MatchStatus.pending && !isLender) ...[
           SizedBox(height: 16),
@@ -123,7 +156,7 @@ class _MatchCard extends ConsumerWidget {
           ]),
         ],
 
-        if (match.status == MatchStatus.accepted) ...[
+        if ((match.status == MatchStatus.accepted) || (isLender && match.status == MatchStatus.pending)) ...[
           SizedBox(height: 14),
           AppButton(
             label: 'Open Chat',
@@ -222,7 +255,11 @@ class RequestDetailScreen extends ConsumerWidget {
               SizedBox(height: 28),
               AppButton(
                 label: 'Send Offer to Borrower',
-                onPressed: () {},
+                onPressed: () {
+                  final user = ref.read(currentUserProvider).valueOrNull;
+                  if (user == null) return;
+                  _showMakeOfferSheet(context, user.uid, data, requestId);
+                },
                 icon: Icon(Icons.send_rounded, size: 18),
               ),
             ]),
@@ -230,6 +267,10 @@ class RequestDetailScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  void _showMakeOfferSheet(BuildContext context, String lenderId, Map<String, dynamic> requestData, String requestId) {
+    showMakeOfferSheet(context, lenderId, requestData, requestId);
   }
 }
 
@@ -255,4 +296,204 @@ class _DetailRow2 extends StatelessWidget {
       Text(value, style: AppTextStyles.labelMedium),
     ]),
   );
+}
+
+// ─────────────────────────────────────────────────────
+// Make Offer Sheet
+// ─────────────────────────────────────────────────────
+void showMakeOfferSheet(BuildContext context, String lenderId, Map<String, dynamic> requestData, String requestId) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => MakeOfferSheet(
+      lenderId: lenderId,
+      requestData: requestData,
+      requestId: requestId,
+    ),
+  );
+}
+
+class MakeOfferSheet extends StatefulWidget {
+  final String lenderId;
+  final String requestId;
+  final Map<String, dynamic> requestData;
+
+  const MakeOfferSheet({
+    required this.lenderId,
+    required this.requestId,
+    required this.requestData,
+  });
+
+  @override
+  State<MakeOfferSheet> createState() => _MakeOfferSheetState();
+}
+
+class _MakeOfferSheetState extends State<MakeOfferSheet> {
+  final _amountCtr = TextEditingController();
+  final _rateCtr = TextEditingController();
+  final _messageCtr = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default to what the borrower requested
+    _amountCtr.text = (widget.requestData['loanAmount'] ?? '').toString();
+    _rateCtr.text = (widget.requestData['maxInterestRatePerMonth'] ?? '').toString();
+  }
+
+  @override
+  void dispose() {
+    _amountCtr.dispose();
+    _rateCtr.dispose();
+    _messageCtr.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitOffer() async {
+    final amount = double.tryParse(_amountCtr.text) ?? 0;
+    final rate = double.tryParse(_rateCtr.text) ?? 0;
+    final msg = _messageCtr.text.trim();
+
+    if (amount <= 0 || rate <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter valid amount and rate')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final matchRef = FirebaseFirestore.instance.collection(AppConstants.colMatches).doc();
+      final chatRoomId = '${matchRef.id}_chat';
+
+      final match = MatchModel(
+        id: matchRef.id,
+        borrowerId: widget.requestData['borrowerId'],
+        lenderId: widget.lenderId,
+        requestId: widget.requestId,
+        status: MatchStatus.pending,
+        chatRoomId: chatRoomId,
+        offeredAmount: amount,
+        offeredInterestRate: rate,
+        offerMessage: msg.isNotEmpty ? msg : null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Create the match document
+      await matchRef.set(match.toMap());
+
+      // If there is an introductory message, insert it into the chat immediately
+      if (msg.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection(AppConstants.colChats)
+            .doc(chatRoomId)
+            .collection(AppConstants.colMessages)
+            .add({
+              'senderId': widget.lenderId,
+              'content':  msg,
+              'type':     MessageType.text.name,
+              'isRead':   false,
+              'sentAt':   DateTime.now(),
+            });
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close sheet
+      // Navigate to chat
+      context.push('/chat/$chatRoomId');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24, right: 24, top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Make an Offer', style: AppTextStyles.h2),
+              IconButton(
+                icon: Icon(Icons.close, color: AppColors.textSecondary),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Propose your terms to the borrower. Once sent, a chat will open so you can negotiate directly.',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _amountCtr,
+            keyboardType: TextInputType.number,
+            style: AppTextStyles.bodyLarge,
+            decoration: InputDecoration(
+              labelText: 'Offered Amount (₹)',
+              hintText: 'e.g. 15000',
+              prefixIcon: Icon(Icons.currency_rupee_rounded),
+              filled: true,
+              fillColor: AppColors.surfaceAlt,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _rateCtr,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            style: AppTextStyles.bodyLarge,
+            decoration: InputDecoration(
+              labelText: 'Interest Rate (% per month)',
+              hintText: 'e.g. 5',
+              prefixIcon: Icon(Icons.percent_rounded),
+              filled: true,
+              fillColor: AppColors.surfaceAlt,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _messageCtr,
+            maxLines: 3,
+            style: AppTextStyles.bodyLarge,
+            decoration: InputDecoration(
+              labelText: 'Message (Optional)',
+              hintText: 'Hi, I can fund this if...',
+              prefixIcon: Icon(Icons.message_rounded),
+              filled: true,
+              fillColor: AppColors.surfaceAlt,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 24),
+          AppButton(
+            label: _isLoading ? 'Sending...' : 'Send Offer',
+            onPressed: _isLoading ? () {} : _submitOffer,
+            icon: _isLoading ? null : Icon(Icons.send_rounded, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
 }

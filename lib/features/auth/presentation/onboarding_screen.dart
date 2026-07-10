@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
+void _markOnboardingDone(BuildContext context, String destination) {
+  Hive.box('settings').put('hasSeenOnboarding', true);
+  context.go(destination);
+}
 
 class _Slide {
   final IconData icon;
@@ -46,11 +51,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _current = 0;
 
-  void _finishOnboarding() {
-    Hive.box('settings').put('hasSeenOnboarding', true);
-    context.go('/auth/login');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 12, right: 20),
                   child: TextButton(
-                    onPressed: _finishOnboarding,
+                    onPressed: () => _markOnboardingDone(context, '/auth/login'),
                     child: Text('Skip', style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary)),
                   ),
                 ),
@@ -111,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       )
                     : AppButton(
                         label:     'Get Started',
-                        onPressed: _finishOnboarding,
+                        onPressed: () => _markOnboardingDone(context, '/auth/login'),
                         icon: Icon(Icons.rocket_launch_rounded, size: 18),
                       ),
               ),
@@ -120,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               if (_current < _slides.length - 1)
                 TextButton(
-                  onPressed: _finishOnboarding,
+                  onPressed: () => _markOnboardingDone(context, '/auth/login'),
                   child: Text('Already have an account? Sign in',
                       style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary)),
                 ),

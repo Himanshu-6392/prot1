@@ -22,6 +22,7 @@ class UserModel {
   final String? fcmToken;
   final String? city;
   final String? gender;
+  final String? securityPin;
 
   const UserModel({
     required this.uid,
@@ -42,6 +43,7 @@ class UserModel {
     this.fcmToken,
     this.city,
     this.gender,
+    this.securityPin,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -68,6 +70,7 @@ class UserModel {
       fcmToken:          map['fcmToken'],
       city:              map['city'],
       gender:            map['gender'],
+      securityPin:       map['securityPin'],
     );
   }
 
@@ -91,13 +94,14 @@ class UserModel {
     'fcmToken':          fcmToken,
     'city':              city,
     'gender':            gender,
+    'securityPin':       securityPin,
   };
 
   UserModel copyWith({
     String? name, String? displayId, String? email, String? phone, String? photoUrl,
     UserRole? role, KycStatus? kycStatus, bool? isVerified, bool? isBlocked,
     bool? isPremium, String? subscriptionPlan, DateTime? subscriptionExpiry,
-    String? fcmToken, String? city, String? gender,
+    String? fcmToken, String? city, String? gender, String? securityPin,
   }) => UserModel(
     uid:               uid,
     name:              name              ?? this.name,
@@ -112,10 +116,11 @@ class UserModel {
     isPremium:         isPremium         ?? this.isPremium,
     subscriptionPlan:  subscriptionPlan  ?? this.subscriptionPlan,
     subscriptionExpiry: subscriptionExpiry ?? this.subscriptionExpiry,
-    createdAt:         createdAt,
+    createdAt:         this.createdAt,
     updatedAt:         DateTime.now(),
     fcmToken:          fcmToken          ?? this.fcmToken,
     city:              city              ?? this.city,
     gender:            gender            ?? this.gender,
+    securityPin:       securityPin       ?? this.securityPin,
   );
 }

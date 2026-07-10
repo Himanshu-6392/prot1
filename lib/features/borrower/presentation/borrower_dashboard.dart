@@ -29,6 +29,21 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
   bool _requestsExpanded = true;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check once after the first frame whether the user needs to set a PIN
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPinSetup());
+  }
+
+  void _checkPinSetup() {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    final security = ref.read(securityProvider);
+    if (user != null && !security.isLoading && !security.isPinSet && mounted) {
+      showPinDialog(context, ref, forceSetup: true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
     final uid = user?.uid ?? FirebaseAuth.instance.currentUser?.uid ?? '';

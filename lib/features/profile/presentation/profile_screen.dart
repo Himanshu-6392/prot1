@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -21,6 +20,8 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
+import '../../../core/widgets/pin_entry_dialog.dart';
+import '../../../core/providers/security_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -77,9 +78,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       if (result == null || result.files.isEmpty) return;
       bytes = result.files.first.bytes;
     } else {
-      // ── Native Android/iOS: use image_picker ──
-      // image_picker automatically handles necessary permissions or uses system pickers
-      // that don't require permissions (like Android Photo Picker).
+      // ── Native Android/iOS: use image_picker + permissions ──
+      if (source == ImageSource.camera) {
+        final status = await Permission.camera.request();
+        if (!status.isGranted) {
+          if (mounted) _showSnack('Camera permission denied', isError: true);
+          return;
+        }
+      } else {
+        final status = await Permission.photos.request();
+        if (!status.isGranted) {
+          final storage = await Permission.storage.request();
+          if (!storage.isGranted) {
+            if (mounted) _showSnack('Storage permission denied', isError: true);
+            return;
+          }
+        }
+      }
       final picked = await ImagePicker().pickImage(
         source: source,
         imageQuality: 80,
@@ -97,21 +112,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    setState(() { _isUploading = true; _uploadProgress = 0.5; });
+    setState(() { _isUploading = true; _uploadProgress = 0; });
 
     try {
-      // Compress slightly to ensure it fits in Firestore document
-      // (ImagePicker already limits to 800px, but base64 can be large)
-      final base64String = base64Encode(bytes);
-      final photoUrl = 'data:image/jpeg;base64,$base64String';
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos/$uid.jpg');
+
+      final uploadTask = storageRef.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      uploadTask.snapshotEvents.listen((snap) {
+        if (!mounted) return;
+        setState(() {
+          _uploadProgress = snap.bytesTransferred / snap.totalBytes;
+        });
+      });
+
+      await uploadTask;
+      final downloadUrl = await storageRef.getDownloadURL();
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .set({'photoUrl': photoUrl}, SetOptions(merge: true));
+          .update({'photoUrl': downloadUrl});
 
       if (mounted) {
-        setState(() { _isUploading = false; _uploadProgress = 1.0; });
+        setState(() { _isUploading = false; });
         _showSnack('Profile photo updated! ✓', isError: false);
       }
     } catch (e) {
@@ -304,7 +333,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildAvatarContent(UserModel? user, String initials) {
-    final safeInitials = initials.isNotEmpty ? initials : 'U';
     if (_isUploading) {
       return Container(
         color: AppColors.gold.withOpacity(0.2),
@@ -318,29 +346,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
 
     if (user?.photoUrl != null && user!.photoUrl!.isNotEmpty) {
-      if (user.photoUrl!.startsWith('data:image')) {
-        final base64Str = user.photoUrl!.split(',').last;
-        return Image.memory(
-          base64Decode(base64Str),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _initialsWidget(safeInitials),
-        );
-      } else {
-        return CachedNetworkImage(
-          imageUrl: user.photoUrl!,
-          fit: BoxFit.cover,
-          placeholder: (_, __) => Container(
-            color: AppColors.surfaceAlt,
-            child: Center(child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.gold,
-            )),
-          ),
-          errorWidget: (_, __, ___) => _initialsWidget(safeInitials),
-        );
-      }
+      return CachedNetworkImage(
+        imageUrl: user.photoUrl!,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+          color: AppColors.surfaceAlt,
+          child: Center(child: CircularProgressIndicator(
+            strokeWidth: 2, color: AppColors.gold,
+          )),
+        ),
+        errorWidget: (_, __, ___) => _initialsWidget(initials),
+      );
     }
 
-    return _initialsWidget(safeInitials);
+    return _initialsWidget(initials);
   }
 
   Widget _initialsWidget(String initials) {
@@ -582,7 +601,68 @@ class _StatsRowState extends State<_StatsRow> {
     }
   }
 
+  Future<void> _showEditRoleDialog(BuildContext context, String uid, UserRole? currentRole) async {
+    UserRole selectedRole = currentRole ?? UserRole.borrower;
 
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Change Role', style: AppTextStyles.h3),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<UserRole>(
+                  title: Text('Borrower', style: AppTextStyles.bodyMedium),
+                  activeColor: AppColors.gold,
+                  value: UserRole.borrower,
+                  groupValue: selectedRole,
+                  onChanged: (val) => setState(() => selectedRole = val!),
+                ),
+                RadioListTile<UserRole>(
+                  title: Text('Lender', style: AppTextStyles.bodyMedium),
+                  activeColor: AppColors.emerald,
+                  value: UserRole.lender,
+                  groupValue: selectedRole,
+                  onChanged: (val) => setState(() => selectedRole = val!),
+                ),
+                RadioListTile<UserRole>(
+                  title: Text('Both', style: AppTextStyles.bodyMedium),
+                  activeColor: AppColors.gold,
+                  value: UserRole.both,
+                  groupValue: selectedRole,
+                  onChanged: (val) => setState(() => selectedRole = val!),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                    'role': selectedRole.name,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -592,16 +672,8 @@ class _StatsRowState extends State<_StatsRow> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => context.push('/profile/edit'),
-            child: Column(
-              children: [
-                Text(displayName, style: AppTextStyles.h1, textAlign: TextAlign.center),
-                if (widget.user?.displayId != null && widget.user!.displayId!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text('@${widget.user!.displayId}', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.gold)),
-                ],
-              ],
-            ),
+            onTap: widget.user != null ? () => showGlobalEditProfileDialog(context, widget.user!) : null,
+            child: Text(displayName, style: AppTextStyles.h1, textAlign: TextAlign.center),
           ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: 6),
           Row(
@@ -642,7 +714,7 @@ class _StatsRowState extends State<_StatsRow> {
                 label: 'Role',
                 icon: Icons.badge_rounded, 
                 color: AppColors.gold,
-                onTap: () => context.push('/profile/role'),
+                onTap: widget.user != null ? () => _showEditRoleDialog(context, widget.user!.uid, widget.user!.role) : null,
               ),
               const SizedBox(width: 12),
               _MiniStat(
@@ -650,11 +722,7 @@ class _StatsRowState extends State<_StatsRow> {
                 label: 'KYC',
                 icon: Icons.verified_user_rounded, 
                 color: _kycColor(widget.user?.kycStatus),
-                onTap: () {
-                  if (widget.user?.kycStatus != KycStatus.verified) {
-                    context.push('/profile/kyc');
-                  }
-                },
+                onTap: () {},
               ),
               const SizedBox(width: 12),
               _MiniStat(
@@ -821,36 +889,28 @@ class _KycStatusCard extends StatelessWidget {
         : 'Complete KYC to unlock full platform access.';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (!isVerified) {
-            context.push('/profile/kyc');
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.25)),
-          ),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(isVerified ? 'KYC Verified' : 'KYC Pending',
-                style: AppTextStyles.h4.copyWith(color: color)),
-              const SizedBox(height: 3),
-              Text(msg, style: AppTextStyles.bodySmall),
-            ])),
-            if (!isVerified) Icon(Icons.chevron_right_rounded, color: color),
-          ]),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.25)),
         ),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(isVerified ? 'KYC Verified' : 'KYC Pending',
+              style: AppTextStyles.h4.copyWith(color: color)),
+            const SizedBox(height: 3),
+            Text(msg, style: AppTextStyles.bodySmall),
+          ])),
+          if (!isVerified) Icon(Icons.chevron_right_rounded, color: color),
+        ]),
       ).animate().fadeIn(delay: 350.ms).slideX(begin: 0.1, end: 0),
     );
   }
@@ -858,26 +918,34 @@ class _KycStatusCard extends StatelessWidget {
 
 // ─── Menu Section ────────────────────────────────────────────────────────────
 
-class _MenuSection extends StatelessWidget {
+class _MenuSection extends ConsumerWidget {
   final UserModel? user;
   const _MenuSection({this.user});
   @override
-  Widget build(BuildContext context) {
-    final initials = (user?.name != null && user!.name.trim().isNotEmpty) ? user!.name.trim()[0].toUpperCase() : 'U';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final displayName = (user?.name != null && user!.name.trim().isNotEmpty) ? user!.name.trim() : 'User';
     final items = [
       _MenuItem(
         icon: Icons.person_rounded, 
         label: 'Edit Profile',
         subtitle: 'Update your info', 
         color: AppColors.gold, 
-        onTap: () => context.push('/profile/edit'),
+        onTap: () {
+          if (user != null) {
+            showGlobalEditProfileDialog(context, user!);
+          }
+        },
       ),
       _MenuItem(
         icon: Icons.account_balance_rounded, 
         label: 'My Bank Details',
         subtitle: 'Manage bank accounts', 
         color: AppColors.info, 
-        onTap: () => context.push('/profile/bank'),
+        onTap: () {
+          if (user != null) {
+            showBankDetailsDialog(context, user!);
+          }
+        },
       ),
       _MenuItem(icon: Icons.workspace_premium_rounded, label: 'Subscription Plan',
         subtitle: user?.isPremium == true ? 'Premium active' : 'Upgrade to premium',
@@ -885,7 +953,24 @@ class _MenuSection extends StatelessWidget {
       _MenuItem(icon: Icons.notifications_rounded, label: 'Notifications',
         subtitle: 'Manage alerts', color: AppColors.emerald, onTap: () => context.go('/notifications')),
       _MenuItem(icon: Icons.security_rounded, label: 'Security & Privacy',
-        subtitle: 'PIN, biometrics & privacy', color: AppColors.goldLight, onTap: () => context.push('/profile/security')),
+        subtitle: 'Change PIN & privacy settings', color: AppColors.goldLight, onTap: () async {
+          final changed = await showChangePinFlow(context, ref);
+          if (changed && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text('PIN updated successfully'),
+                ]),
+                backgroundColor: AppColors.emerald,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+          }
+        }),
       _MenuItem(icon: Icons.help_outline_rounded, label: 'Help & Support',
         subtitle: 'FAQs and contact us', color: AppColors.textSecondary, onTap: () {}),
     ];
@@ -952,16 +1037,20 @@ class _MenuItem extends StatelessWidget {
 
 // ─── Logout Button ────────────────────────────────────────────────────────────
 
-class _LogoutButton extends StatelessWidget {
+class _LogoutButton extends ConsumerWidget {
   const _LogoutButton();
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () async => await FirebaseAuth.instance.signOut(),
+          onTap: () async {
+            // Explicitly lock sensitive data before logging out to ensure it's blurred on next login
+            ref.read(sensitiveDataVisibleProvider.notifier).state = false;
+            await FirebaseAuth.instance.signOut();
+          },
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -991,3 +1080,502 @@ class _LogoutButton extends StatelessWidget {
   }
 }
 
+Future<void> showGlobalEditProfileDialog(BuildContext context, UserModel user) async {
+  final nameCtr = TextEditingController(text: user.name == 'User' ? '' : user.name);
+  final cityCtr = TextEditingController(text: user.city == 'India' ? '' : (user.city ?? ''));
+  final phoneCtr = TextEditingController(text: user.phone);
+  
+  String? selectedGender = user.gender;
+  final memberSince = DateFormat.yMMMMd().format(user.createdAt);
+  
+  bool isLoading = false;
+
+  await showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 40, offset: const Offset(0, 10))
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Edit Profile', style: AppTextStyles.h2),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Member Since (Read Only)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceAlt.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_month_rounded, color: AppColors.gold, size: 20),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Member Since', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textMuted)),
+                            Text(memberSince, style: AppTextStyles.bodyMedium),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 50.ms).slideX(begin: 0.05),
+                  const SizedBox(height: 16),
+                  
+                  // Email Field (Read Only)
+                  TextField(
+                    controller: TextEditingController(text: user.email),
+                    readOnly: true,
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    decoration: InputDecoration(
+                      labelText: 'Email Address',
+                      labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt.withOpacity(0.5),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.05),
+                  const SizedBox(height: 16),
+
+                  // Name Field
+                  TextField(
+                    controller: nameCtr,
+                    style: AppTextStyles.bodyMedium,
+                    decoration: InputDecoration(
+                      labelText: 'Full Name',
+                      labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.gold),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.05),
+                  const SizedBox(height: 16),
+                  
+                  // Phone Field
+                  TextField(
+                    controller: phoneCtr,
+                    style: AppTextStyles.bodyMedium,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                      prefixIcon: Icon(Icons.phone_outlined, color: AppColors.emerald),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.05),
+                  const SizedBox(height: 16),
+
+                  // Gender Dropdown
+                  DropdownButtonFormField<String>(
+                    value: selectedGender,
+                    dropdownColor: AppColors.surfaceAlt,
+                    style: AppTextStyles.bodyMedium,
+                    icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.textMuted),
+                    decoration: InputDecoration(
+                      labelText: 'Gender',
+                      labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                      prefixIcon: Icon(Icons.wc_rounded, color: AppColors.gold),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Male', child: Text('Male')),
+                      DropdownMenuItem(value: 'Female', child: Text('Female')),
+                      DropdownMenuItem(value: 'Other', child: Text('Other')),
+                      DropdownMenuItem(value: 'Prefer not to say', child: Text('Prefer not to say')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedGender = val);
+                    },
+                  ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05),
+                  const SizedBox(height: 16),
+
+                  // City Field
+                  TextField(
+                    controller: cityCtr,
+                    style: AppTextStyles.bodyMedium,
+                    decoration: InputDecoration(
+                      labelText: 'City',
+                      labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                      prefixIcon: Icon(Icons.location_on_outlined, color: AppColors.info),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Save Button
+                  GestureDetector(
+                    onTap: isLoading ? null : () async {
+                      final newName = nameCtr.text.trim();
+                      final newCity = cityCtr.text.trim();
+                      final newPhone = phoneCtr.text.trim();
+                      if (newName.isEmpty) return;
+                      
+                      setState(() => isLoading = true);
+                      try {
+                        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                          'name': newName,
+                          'city': newCity.isEmpty ? 'India' : newCity,
+                          'phone': newPhone,
+                          if (selectedGender != null) 'gender': selectedGender,
+                        });
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: const Text('Profile updated successfully! 🎉'),
+                            backgroundColor: AppColors.success,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        }
+                      } catch (e) {
+                        setState(() => isLoading = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.goldGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text('Save Changes', style: AppTextStyles.h4.copyWith(color: Colors.white)),
+                    ),
+                  ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
+  final nameCtr = TextEditingController();
+  final bankCtr = TextEditingController();
+  final accCtr = TextEditingController();
+  final ifscCtr = TextEditingController();
+  bool isLoading = true;
+  bool isSaving = false;
+
+  await showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        
+        // Load existing bank details once
+        if (isLoading) {
+          FirebaseFirestore.instance.collection('users').doc(user.uid).get().then((doc) {
+            if (doc.exists && doc.data()!.containsKey('bankDetails')) {
+              final bankData = doc.data()!['bankDetails'] as Map<String, dynamic>;
+              nameCtr.text = bankData['accountName'] ?? '';
+              bankCtr.text = bankData['bankName'] ?? '';
+              accCtr.text = bankData['accountNumber'] ?? '';
+              ifscCtr.text = bankData['ifsc'] ?? '';
+            }
+            if (ctx.mounted) {
+              setState(() => isLoading = false);
+            }
+          });
+        }
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 40, offset: const Offset(0, 10))
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 32), // Spacer
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.gold.withOpacity(0.1),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.gold.withOpacity(0.2), blurRadius: 20, spreadRadius: 2)
+                          ],
+                        ),
+                        child: Icon(Icons.account_balance_rounded, size: 32, color: AppColors.gold),
+                      ).animate().scale(delay: 50.ms, duration: 400.ms, curve: Curves.easeOutBack),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Secure Bank Details', style: AppTextStyles.h2.copyWith(fontSize: 22), textAlign: TextAlign.center)
+                      .animate().fadeIn(delay: 100.ms).slideY(begin: -0.2),
+                  const SizedBox(height: 4),
+                  Text('Your information is encrypted & secure.', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted), textAlign: TextAlign.center)
+                      .animate().fadeIn(delay: 150.ms),
+                  const SizedBox(height: 32),
+                  
+                  if (isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+                    )
+                  else ...[
+                    // Account Name Field
+                    TextField(
+                      controller: nameCtr,
+                      style: AppTextStyles.bodyMedium,
+                      decoration: InputDecoration(
+                        labelText: 'Account Holder Name',
+                        labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gold, width: 2)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.05),
+                    const SizedBox(height: 16),
+                    
+                    // Bank Name Field
+                    TextField(
+                      controller: bankCtr,
+                      style: AppTextStyles.bodyMedium,
+                      decoration: InputDecoration(
+                        labelText: 'Bank Name',
+                        labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.account_balance_wallet_outlined, color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gold, width: 2)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05),
+                    const SizedBox(height: 16),
+
+                    // Account Number Field
+                    TextField(
+                      controller: accCtr,
+                      style: AppTextStyles.bodyMedium,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Account Number',
+                        labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.numbers_rounded, color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gold, width: 2)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
+                    const SizedBox(height: 16),
+
+                    // IFSC Code Field
+                    TextField(
+                      controller: ifscCtr,
+                      style: AppTextStyles.bodyMedium,
+                      decoration: InputDecoration(
+                        labelText: 'IFSC Code',
+                        labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.pin_rounded, color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gold, width: 2)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ).animate().fadeIn(delay: 350.ms).slideX(begin: 0.05),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Save Button
+                    GestureDetector(
+                      onTap: isSaving ? null : () async {
+                        final acctName = nameCtr.text.trim();
+                        final acctNum = accCtr.text.trim();
+                        final ifsc = ifscCtr.text.trim().toUpperCase();
+                        
+                        if (acctName.isEmpty || acctNum.isEmpty || ifsc.isEmpty) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: const Text('Please fill all details'),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                          return;
+                        }
+
+                        if (acctNum.length < 9) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: const Text('Account Number must be at least 9 digits'),
+                            backgroundColor: AppColors.warning,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                          return;
+                        }
+
+                        setState(() => isSaving = true);
+                        
+                        // Verify IFSC with Razorpay API
+                        try {
+                          final response = await Dio().get('https://ifsc.razorpay.com/$ifsc');
+                          if (response.statusCode == 200) {
+                            final bankNameFromApi = response.data['BANK'];
+                            bankCtr.text = bankNameFromApi; // Auto-update bank name
+                          }
+                        } on DioException catch (e) {
+                          setState(() => isSaving = false);
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: const Text('Invalid IFSC Code. Please verify your details.'),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                          return;
+                        } catch (e) {
+                          // Ignore other errors to not block the user entirely if API is down
+                        }
+
+                        try {
+                          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                            'bankDetails': {
+                              'accountName': acctName,
+                              'bankName': bankCtr.text.trim(),
+                              'accountNumber': acctNum,
+                              'ifsc': ifsc,
+                              'updatedAt': Timestamp.now(),
+                            }
+                          });
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('Bank Details verified and saved securely! 🏦'),
+                              backgroundColor: AppColors.success,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                          }
+                        } catch (e) {
+                          setState(() => isSaving = false);
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.goldGradient,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.gold.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6))
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: isSaving
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.verified_user_rounded, color: Colors.white, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text('Verify & Save', style: AppTextStyles.h4.copyWith(color: Colors.white)),
+                                ],
+                              ),
+                      ),
+                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1).shimmer(delay: 1000.ms, duration: 1500.ms, color: Colors.white.withOpacity(0.3)),
+                  ]
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}

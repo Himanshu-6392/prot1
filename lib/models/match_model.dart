@@ -11,6 +11,9 @@ class MatchModel {
   final bool contactUnlockedByLender;
   final bool contactUnlockedByBorrower;
   final String? chatRoomId;
+  final double? offeredAmount;
+  final double? offeredInterestRate;
+  final String? offerMessage;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +26,9 @@ class MatchModel {
     this.contactUnlockedByLender = false,
     this.contactUnlockedByBorrower = false,
     this.chatRoomId,
+    this.offeredAmount,
+    this.offeredInterestRate,
+    this.offerMessage,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -39,6 +45,9 @@ class MatchModel {
       contactUnlockedByLender:   map['contactUnlockedByLender'] ?? false,
       contactUnlockedByBorrower: map['contactUnlockedByBorrower'] ?? false,
       chatRoomId:                map['chatRoomId'],
+      offeredAmount:             (map['offeredAmount'] as num?)?.toDouble(),
+      offeredInterestRate:       (map['offeredInterestRate'] as num?)?.toDouble(),
+      offerMessage:              map['offerMessage'],
       createdAt:                 (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt:                 (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -52,6 +61,9 @@ class MatchModel {
     'contactUnlockedByLender':   contactUnlockedByLender,
     'contactUnlockedByBorrower': contactUnlockedByBorrower,
     'chatRoomId':                chatRoomId,
+    'offeredAmount':             offeredAmount,
+    'offeredInterestRate':       offeredInterestRate,
+    'offerMessage':              offerMessage,
     'createdAt':                 Timestamp.fromDate(createdAt),
     'updatedAt':                 Timestamp.fromDate(updatedAt),
   };

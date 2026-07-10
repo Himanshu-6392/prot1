@@ -12,6 +12,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/loan_request_model.dart';
 import '../../../models/match_model.dart';
+import '../../match/presentation/match_screen.dart';
 
 class BorrowerSearchScreen extends ConsumerStatefulWidget {
   const BorrowerSearchScreen({super.key});
@@ -83,12 +84,16 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
               }
               var docs = snap.data!.docs;
 
-              if (_filterCollateral != null) {
-                docs = docs.where((d) {
-                  final data = d.data() as Map<String, dynamic>;
-                  return data['collateralType'] == _filterCollateral;
-                }).toList();
-              }
+              // Client-side filtering to avoid composite index errors
+              docs = docs.where((d) {
+                final data = d.data() as Map<String, dynamic>;
+                final status = data['status'] ?? LoanRequestStatus.open.name;
+                if (status != LoanRequestStatus.open.name) return false;
+                if (_filterCity != null && data['borrowerCity'] != _filterCity) return false;
+                if (_verifiedOnly && data['isVerified'] != true) return false;
+                if (_filterCollateral != null && data['collateralType'] != _filterCollateral) return false;
+                return true;
+              }).toList();
 
               if (docs.isEmpty) {
                 return EmptyState(
@@ -103,12 +108,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
                   final req = LoanRequestModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
-                  final currentUser = ref.read(currentUserProvider).valueOrNull;
-                  return _BorrowerRequestCard(
-                    request: req,
-                    lenderId: currentUser?.uid ?? '',
-                    isVerified: currentUser?.isVerified == true,
-                  ).animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideY(begin: 0.1, end: 0);
+                  return _BorrowerRequestCard(request: req, lenderId: ref.read(currentUserProvider).valueOrNull?.uid ?? '')
+                      .animate(delay: Duration(milliseconds: i * 50)).fadeIn().slideY(begin: 0.1, end: 0);
                 },
               );
             },
@@ -120,13 +121,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
 
   Stream<QuerySnapshot> _buildQuery() {
     Query<Map<String, dynamic>> q = FirebaseFirestore.instance
-        .collection(AppConstants.colRequests)
-        .where('status', isEqualTo: LoanRequestStatus.open.name);
-
-    if (_filterCity != null) q = q.where('borrowerCity', isEqualTo: _filterCity);
-    if (_verifiedOnly)       q = q.where('isVerified', isEqualTo: true);
-
-    return q.orderBy('createdAt', descending: true).limit(30).snapshots();
+        .collection(AppConstants.colRequests);
+        
+    return q.orderBy('createdAt', descending: true).limit(50).snapshots();
   }
 
   void _showCityPicker() {
@@ -182,8 +179,7 @@ class _FilterChip extends StatelessWidget {
 class _BorrowerRequestCard extends StatelessWidget {
   final LoanRequestModel request;
   final String lenderId;
-  final bool isVerified;
-  const _BorrowerRequestCard({required this.request, required this.lenderId, required this.isVerified});
+  const _BorrowerRequestCard({required this.request, required this.lenderId});
 
   @override
   Widget build(BuildContext context) {
@@ -239,43 +235,7 @@ class _BorrowerRequestCard extends StatelessWidget {
   }
 
   Future<void> _sendOffer(BuildContext context, LoanRequestModel request) async {
-    if (!isVerified) {
-      showDialog(
-        context: context,
-        builder: (c) => AlertDialog(
-          backgroundColor: AppColors.surfaceAlt,
-          title: Text('Verification Required', style: AppTextStyles.h3),
-          content: Text('You must complete KYC verification before sending lending offers.', style: AppTextStyles.bodyMedium),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: Text('Cancel', style: AppTextStyles.bodyMedium)),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(c);
-                context.push('/profile/kyc');
-              },
-              child: Text('Verify Now', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.gold, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    final now = DateTime.now();
-    await FirebaseFirestore.instance.collection(AppConstants.colMatches).add({
-      'borrowerId': request.borrowerId,
-      'lenderId':   lenderId,
-      'requestId':  request.id,
-      'status':     MatchStatus.pending.name,
-      'contactUnlockedByLender':   false,
-      'contactUnlockedByBorrower': false,
-      'createdAt':  now,
-      'updatedAt':  now,
-    });
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✓ Offer sent! Waiting for borrower to respond.')));
-    }
+    showMakeOfferSheet(context, lenderId, request.toMap(), request.id);
   }
 }
 

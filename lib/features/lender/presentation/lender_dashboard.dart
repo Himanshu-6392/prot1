@@ -12,12 +12,34 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../models/user_model.dart';
+import '../../../core/providers/security_provider.dart';
+import '../../../core/widgets/pin_entry_dialog.dart';
 
-class LenderDashboard extends ConsumerWidget {
+class LenderDashboard extends ConsumerStatefulWidget {
   const LenderDashboard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LenderDashboard> createState() => _LenderDashboardState();
+}
+
+class _LenderDashboardState extends ConsumerState<LenderDashboard> {
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPinSetup());
+  }
+
+  void _checkPinSetup() {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    final security = ref.read(securityProvider);
+    if (user != null && !security.isLoading && !security.isPinSet && mounted) {
+      showPinDialog(context, ref, forceSetup: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
@@ -198,8 +220,8 @@ class _ManageSection extends ConsumerWidget {
         )),
         SizedBox(width: 12),
         Expanded(child: _ActionTile(
-          icon: Icons.workspace_premium_rounded, label: 'Go Premium', color: AppColors.info,
-          onTap: () => context.push('/plans'),
+          icon: Icons.receipt_long_rounded, label: 'My Offers', color: AppColors.info,
+          onTap: () => context.push('/match'),
         )),
       ]),
     );
@@ -245,15 +267,21 @@ class _IncomingRequestsSliver extends ConsumerWidget {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection(AppConstants.colRequests)
-            .where('status', isEqualTo: 'open')
             .orderBy('createdAt', descending: true)
-            .limit(10)
+            .limit(30)
             .snapshots(),
         builder: (context, snap) {
+          if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
           if (!snap.hasData) {
             return Column(children: [RequestCardShimmer(), RequestCardShimmer()]);
           }
-          final docs = snap.data!.docs;
+          final allDocs = snap.data!.docs;
+          final docs = allDocs.where((d) {
+            final data = d.data() as Map<String, dynamic>;
+            final status = data['status'] ?? 'open';
+            return status == 'open';
+          }).take(10).toList();
+          
           if (docs.isEmpty) {
             return EmptyState(
               icon: Icons.inbox_outlined,

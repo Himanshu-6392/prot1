@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,9 +8,9 @@ import 'core/router/app_router.dart';
 import 'core/providers/security_provider.dart';
 import 'core/providers/firebase_providers.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/colors.dart';
-import 'core/theme/text_styles.dart';
 import 'firebase_options.dart';
+import 'package:device_preview/device_preview.dart';
+import 'scripts/fix_user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,11 @@ Future<void> main() async {
   await Hive.initFlutter();
   await Hive.openBox('settings');
 
-  runApp(const ProviderScope(child: PeerLendApp()));
+  runApp(DevicePreview(
+    enabled: !kReleaseMode,
+    isToolbarVisible: false,
+    builder: (context) => const ProviderScope(child: PeerLendApp()),
+  ));
 }
 
 class PeerLendApp extends ConsumerStatefulWidget {
@@ -51,6 +56,10 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Trigger initial auth if user is logged in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkDeviceLock();
+    });
   }
 
   @override
@@ -61,12 +70,31 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Re-blur sensitive data when it goes to background
-      final isLogged = ref.read(firebaseAuthProvider).currentUser != null;
-      if (isLogged) {
+    switch (state) {
+      // Lock on every transition away from foreground:
+      // • inactive  → phone screen off / call overlay / app switcher
+      // • paused    → app fully in background
+      // • hidden    → Flutter 3.13+ (pre-paused, window hidden)
+      // • detached  → process kept alive but no view
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
         ref.read(securityProvider.notifier).lockSensitiveData();
-      }
+        break;
+      case AppLifecycleState.resumed:
+        // Nothing — user must re-enter PIN manually via the blur tap
+        break;
+    }
+  }
+
+  Future<void> _checkDeviceLock() async {
+    final isLoggedIn = ref.read(currentUserProvider).valueOrNull != null;
+    if (isLoggedIn) {
+      // Assuming authenticateWithDevice handles its own UI (native overlay)
+      await ref.read(securityProvider.notifier).authenticateWithDevice(
+        'Please authenticate to unlock PeerLend',
+      );
     }
   }
 
@@ -79,14 +107,17 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp> with WidgetsBindingOb
       debugShowCheckedModeBanner: false,
       theme:              AppTheme.dark,
       routerConfig:       router,
+      locale:             DevicePreview.locale(context),
       builder: (context, child) {
-        final textScaler = MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2);
-        
+        final dpChild = DevicePreview.appBuilder(context, child);
+        // Global text scale constraint — prevents huge text on accessibility settings
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScaler),
+            textScaler: TextScaler.linear(
+              MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
+            ),
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: dpChild,
         );
       },
     );

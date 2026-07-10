@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
-import '../../../core/widgets/glass_card.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -26,101 +24,48 @@ class ChatListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final dummyMatch = MatchModel(
-            id: 'dummy_match_1',
-            requestId: 'dummy_req',
-            borrowerId: uid, // Make current user the borrower
-            lenderId: 'dummy_lender_123',
-            chatRoomId: 'dummy_chat_room_1',
-            status: MatchStatus.accepted,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+      appBar: AppBar(title: Text('Messages')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection(AppConstants.colMatches)
+            .where('status', whereIn: [MatchStatus.pending.name, MatchStatus.accepted.name])
+            .snapshots(),
+        builder: (context, snap) {
+          if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
+          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+
+          var docs = snap.data!.docs.where((d) {
+            final data = d.data() as Map<String, dynamic>;
+            return data['borrowerId'] == uid || data['lenderId'] == uid;
+          }).toList();
+
+          docs.sort((a, b) {
+            final aTime = (a.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+            final bTime = (b.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+            if (aTime == null || bTime == null) return 0;
+            return bTime.compareTo(aTime);
+          });
+
+          if (docs.isEmpty) return EmptyState(
+            icon: Icons.chat_bubble_outline_rounded,
+            title: 'No conversations yet',
+            subtitle: 'Send or receive an offer to start chatting.',
           );
-          await FirebaseFirestore.instance
-              .collection(AppConstants.colMatches)
-              .doc(dummyMatch.id)
-              .set(dummyMatch.toMap());
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Dummy chat added!')),
+
+          return ListView.separated(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: docs.length,
+            separatorBuilder: (_, __) => Divider(height: 1, indent: 72, color: AppColors.border),
+            itemBuilder: (context, i) {
+              final match = MatchModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
+              final isLender = match.lenderId == uid;
+              final peerId   = isLender ? match.borrowerId : match.lenderId;
+              return _ChatTile(match: match, peerId: peerId, isLender: isLender)
+                  .animate(delay: Duration(milliseconds: i * 40)).fadeIn();
+            },
           );
         },
-        label: const Text('Add Dummy Chat'),
-        icon: const Icon(Icons.add),
-      ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            backgroundColor: AppColors.bg.withOpacity(0.8),
-            surfaceTintColor: Colors.transparent,
-            pinned: true,
-            expandedHeight: 120,
-            flexibleSpace: ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-                  title: Text('Messages', style: AppTextStyles.h1.copyWith(fontSize: 28)),
-                  background: Container(color: Colors.transparent),
-                ),
-              ),
-            ),
-          ),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(AppConstants.colMatches)
-                .where('status', isEqualTo: MatchStatus.accepted.name)
-                .snapshots(),
-            builder: (context, snap) {
-              if (snap.hasError) return SliverToBoxAdapter(child: Center(child: Text('Error: ${snap.error}')));
-              if (!snap.hasData) return const SliverToBoxAdapter(child: SizedBox(height: 200, child: Center(child: CircularProgressIndicator())));
-
-              var docs = snap.data!.docs.where((d) {
-                final data = d.data() as Map<String, dynamic>;
-                return data['borrowerId'] == uid || data['lenderId'] == uid;
-              }).toList();
-
-              docs.sort((a, b) {
-                final aTime = (a.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-                final bTime = (b.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-                if (aTime == null || bTime == null) return 0;
-                return bTime.compareTo(aTime);
-              });
-
-              if (docs.isEmpty) return SliverToBoxAdapter(
-                child: EmptyState(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: 'No conversations yet',
-                  subtitle: 'Accept a match to start chatting.',
-                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
-              );
-
-              return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final match = MatchModel.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
-                      final isLender = match.lenderId == uid;
-                      final peerId   = isLender ? match.borrowerId : match.lenderId;
-                      // Staggered animation
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ChatTile(match: match, peerId: peerId, isLender: isLender)
-                            .animate(delay: (i * 80).ms)
-                            .fadeIn(duration: 400.ms)
-                            .slideX(begin: 0.05, curve: Curves.easeOutCubic),
-                      );
-                    },
-                    childCount: docs.length,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }
@@ -134,94 +79,44 @@ class _ChatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if there are "unread" messages (simulated for now by time proximity)
-    final bool hasUnread = DateTime.now().difference(match.updatedAt).inHours < 1;
-
-    return GlassCard(
-      onTap: () => context.push('/chat/${match.chatRoomId}'),
-      padding: const EdgeInsets.all(16),
-      glowOnHover: true,
-      borderColor: hasUnread ? AppColors.gold.withOpacity(0.5) : null,
-      child: Row(
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: Container(
+        width: 48, height: 48,
+        decoration: BoxDecoration(
+          gradient: isLender ? AppColors.emeraldGradient : AppColors.goldGradient,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(child: Icon(
+          isLender ? Icons.account_balance_wallet_rounded : Icons.savings_rounded,
+          color: Colors.white, size: 22,
+        )),
+      ),
+      title: Text(isLender ? 'Borrower' : 'Lender', style: AppTextStyles.labelLarge),
+      subtitle: Text(peerId.substring(0, 12) + '...',
+          style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Avatar with online indicator
-          Stack(
-            children: [
-              Container(
-                width: 56, height: 56,
-                decoration: BoxDecoration(
-                  gradient: isLender ? AppColors.emeraldGradient : AppColors.goldGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isLender ? AppColors.emerald : AppColors.gold).withOpacity(0.3),
-                      blurRadius: 12, offset: const Offset(0, 4)
-                    )
-                  ]
-                ),
-                child: Center(
-                  child: Text(
-                    isLender ? 'B' : 'L',
-                    style: AppTextStyles.h2.copyWith(color: Colors.white),
-                  ),
-                ),
-              ),
-              // Online dot
-              Positioned(
-                bottom: 2, right: 2,
-                child: Container(
-                  width: 14, height: 14,
-                  decoration: BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.surface, width: 2),
-                  ),
-                ),
-              )
-            ],
-          ),
-          const SizedBox(width: 16),
-          // Chat info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(isLender ? 'Borrower ${peerId.substring(0, 4)}' : 'Lender ${peerId.substring(0, 4)}', style: AppTextStyles.h4),
-                    Text(AppFormatters.formatRelative(match.updatedAt), style: AppTextStyles.caption.copyWith(color: hasUnread ? AppColors.gold : AppColors.textMuted)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Tap to view conversation...',
-                        style: AppTextStyles.bodyMedium.copyWith(color: hasUnread ? AppColors.textPrimary : AppColors.textMuted),
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (hasUnread)
-                      Container(
-                        margin: const EdgeInsets.only(left: 8),
-                        width: 10, height: 10,
-                        decoration: BoxDecoration(color: AppColors.gold, shape: BoxShape.circle),
-                      )
-                  ],
-                ),
-              ],
+          Text(AppFormatters.formatRelative(match.updatedAt), style: AppTextStyles.caption),
+          if (match.status == MatchStatus.pending) ...[
+            SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+              child: Text('Pending', style: AppTextStyles.caption.copyWith(color: AppColors.gold, fontSize: 10)),
             ),
-          ),
+          ],
         ],
       ),
+      onTap: () => context.push('/chat/${match.chatRoomId}'),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────
-// Chat Room Screen (Premium Redesign)
+// Chat Room Screen
 // ─────────────────────────────────────────────────────
 class ChatRoomScreen extends ConsumerStatefulWidget {
   final String roomId;
@@ -257,21 +152,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       'isRead':   false,
       'sentAt':   DateTime.now(),
     });
-    
-    // Update match timestamp so it bumps to top
-    FirebaseFirestore.instance
-      .collection(AppConstants.colMatches)
-      .doc(widget.roomId)
-      .update({'updatedAt': FieldValue.serverTimestamp()});
 
     setState(() => _sending = false);
-    
-    if (_scrollCtr.hasClients) {
-      _scrollCtr.animateTo(
-        _scrollCtr.position.minScrollExtent,
-        duration: const Duration(milliseconds: 300), curve: Curves.easeOut
-      );
-    }
+    _scrollCtr.animateTo(_scrollCtr.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
   @override
@@ -279,130 +163,79 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final authUser = ref.watch(authStateProvider).valueOrNull;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight + 10),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: AppBar(
-              backgroundColor: AppColors.bg.withOpacity(0.65),
-              elevation: 0,
-              centerTitle: true,
-              title: Column(children: [
-                Text('Chat', style: AppTextStyles.h3),
-                Text('Room: ${widget.roomId.substring(0, 8)}', style: AppTextStyles.caption),
-              ]),
-              actions: [
-                IconButton(icon: const Icon(Icons.more_vert_rounded), onPressed: () => _showChatOptions(context)),
-              ],
-            ),
-          ),
-        ),
+      appBar: AppBar(
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Chat'),
+          Text('Room: ${widget.roomId.substring(0, 12)}...', style: AppTextStyles.caption),
+        ]),
+        actions: [
+          IconButton(icon: Icon(Icons.more_vert_rounded), onPressed: () => _showChatOptions(context)),
+        ],
       ),
       body: Column(children: [
         // Messages
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            // We order by descending so list view can be reversed (sticks to bottom)
-            stream: _messagesRef.orderBy('sentAt', descending: true).snapshots(),
+            stream: _messagesRef.orderBy('sentAt').snapshots(),
             builder: (context, snap) {
               if (!snap.hasData) return Center(child: CircularProgressIndicator(color: AppColors.gold));
               final docs = snap.data!.docs;
 
               return ListView.builder(
                 controller: _scrollCtr,
-                reverse: true, // Crucial for modern chat feel (anchors to bottom)
                 physics:    const BouncingScrollPhysics(),
-                padding:    EdgeInsets.only(left: 16, right: 16, top: MediaQuery.of(context).padding.top + 70, bottom: 20),
+                padding:    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 itemCount:  docs.length,
                 itemBuilder: (context, i) {
                   final msg  = ChatMessage.fromMap(docs[i].data() as Map<String, dynamic>, docs[i].id);
                   final isMe = msg.senderId == (authUser?.uid ?? '');
-                  
-                  // Check if we need to show a date divider
-                  bool showDate = false;
-                  if (i == docs.length - 1) {
-                    showDate = true;
-                  } else {
-                    final prevMsg = ChatMessage.fromMap(docs[i + 1].data() as Map<String, dynamic>, docs[i + 1].id);
-                    if (msg.sentAt.day != prevMsg.sentAt.day) showDate = true;
-                  }
-
-                  Widget bubble = _MessageBubble(message: msg, isMe: isMe)
-                      .animate().fadeIn(duration: 200.ms).slideY(begin: 0.05, end: 0);
-
-                  if (showDate) {
-                    return Column(
-                      children: [
-                        _DateDivider(date: msg.sentAt).animate().fadeIn(),
-                        bubble,
-                      ],
-                    );
-                  }
-                  return bubble;
+                  return _MessageBubble(message: msg, isMe: isMe)
+                      .animate().fadeIn(duration: 200.ms).slideY(begin: 0.1, end: 0);
                 },
               );
             },
           ),
         ),
 
-        // Floating Glass Input Area
-        SafeArea(
-          top: false,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: GlassCard(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              borderRadius: 32,
-              blur: 24,
-              child: Row(children: [
-                Container(
-                  decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
-                  child: IconButton(
-                    icon: Icon(Icons.add_rounded, color: AppColors.textPrimary),
-                    onPressed: () => _showChatOptions(context),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _msgCtr,
-                    style:      AppTextStyles.bodyMedium,
-                    maxLines:   4, minLines: 1,
-                    textInputAction: TextInputAction.send,
-                    decoration: const InputDecoration(
-                      hintText:    'Message...',
-                      filled:       false,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 10),
-                      border:      InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                    onSubmitted: (_) => _send(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _send,
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.goldGradient, 
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: AppColors.gold.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))
-                      ]
-                    ),
-                    child: _sending
-                        ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 22),
-                  ),
-                ),
-              ]),
-            ),
+        // Input area
+        Container(
+          padding:    const EdgeInsets.fromLTRB(12, 8, 12, 20),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border(top: BorderSide(color: AppColors.border)),
           ),
+          child: Row(children: [
+            IconButton(
+              icon: Icon(Icons.attach_file_rounded, color: AppColors.textMuted),
+              onPressed: () {},
+            ),
+            Expanded(
+              child: TextField(
+                controller: _msgCtr,
+                style:      AppTextStyles.bodyMedium,
+                maxLines:   5, minLines: 1,
+                decoration: InputDecoration(
+                  hintText:    'Type a message...',
+                  filled:       true,
+                  fillColor:    AppColors.surfaceAlt,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border:      OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                ),
+                onSubmitted: (_) => _send(),
+              ),
+            ),
+            SizedBox(width: 8),
+            GestureDetector(
+              onTap: _send,
+              child: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(12)),
+                child: _sending
+                    ? Padding(padding: EdgeInsets.all(10), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              ),
+            ),
+          ]),
         ),
       ]),
     );
@@ -411,73 +244,36 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   void _showChatOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => GlassCard(
-        borderRadius: 24,
-        padding: const EdgeInsets.all(24),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 24),
-          _AttachmentOption(icon: Icons.image_rounded, color: AppColors.gold, title: 'Share Photo'),
-          _AttachmentOption(icon: Icons.description_rounded, color: AppColors.info, title: 'Document'),
-          _AttachmentOption(icon: Icons.location_on_rounded, color: AppColors.emerald, title: 'Location'),
-          const SizedBox(height: 20),
+          ListTile(
+            leading: Icon(Icons.image_rounded, color: AppColors.gold),
+            title: Text('Share Photo', style: AppTextStyles.labelLarge),
+            onTap: () { Navigator.pop(context); },
+          ),
+          ListTile(
+            leading: Icon(Icons.attach_file_rounded, color: AppColors.info),
+            title: Text('Share Document', style: AppTextStyles.labelLarge),
+            onTap: () { Navigator.pop(context); },
+          ),
+          ListTile(
+            leading: Icon(Icons.calendar_today_rounded, color: AppColors.emerald),
+            title: Text('Schedule Meeting', style: AppTextStyles.labelLarge),
+            onTap: () { Navigator.pop(context); },
+          ),
+          ListTile(
+            leading: Icon(Icons.location_on_rounded, color: AppColors.warning),
+            title: Text('Share Location', style: AppTextStyles.labelLarge),
+            onTap: () { Navigator.pop(context); },
+          ),
         ]),
       ),
     );
-  }
-}
-
-class _AttachmentOption extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  const _AttachmentOption({required this.icon, required this.color, required this.title});
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(title, style: AppTextStyles.labelLarge),
-      onTap: () => Navigator.pop(context),
-    );
-  }
-}
-
-class _DateDivider extends StatelessWidget {
-  final DateTime date;
-  const _DateDivider({required this.date});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceAlt,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Text(
-            _formatDate(date),
-            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textMuted),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime d) {
-    final now = DateTime.now();
-    if (d.year == now.year && d.month == now.month && d.day == now.day) return 'Today';
-    if (d.year == now.year && d.month == now.month && d.day == now.day - 1) return 'Yesterday';
-    return '${d.day}/${d.month}/${d.year}';
   }
 }
 
@@ -491,45 +287,32 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin:  const EdgeInsets.only(top: 2, bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        margin:  const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
           gradient: isMe ? AppColors.goldGradient : null,
-          color:    isMe ? null : AppColors.surface,
-          border:   isMe ? null : Border.all(color: AppColors.border),
+          color:    isMe ? null : AppColors.surfaceHigh,
           borderRadius: BorderRadius.only(
-            topLeft:     const Radius.circular(20),
-            topRight:    const Radius.circular(20),
-            bottomLeft:  Radius.circular(isMe ? 20 : 4), // Teardrop effect
-            bottomRight: Radius.circular(isMe ? 4 : 20),
+            topLeft:     const Radius.circular(16),
+            topRight:    const Radius.circular(16),
+            bottomLeft:  Radius.circular(isMe ? 16 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 16),
           ),
-          boxShadow: isMe 
-            ? [BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))] 
-            : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: isMe ? [BoxShadow(color: AppColors.gold.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Text(message.content,
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: isMe ? Colors.white : AppColors.textPrimary,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isMe ? AppColors.textInverse : AppColors.textPrimary,
               )),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(AppFormatters.formatTime(message.sentAt),
-                  style: AppTextStyles.caption.copyWith(
-                    color: isMe ? Colors.white70 : AppColors.textMuted,
-                    fontSize: 10,
-                  )),
-                if (isMe) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Icons.done_all_rounded, size: 12, color: Colors.white70),
-                ]
-              ],
-            ),
+            SizedBox(height: 3),
+            Text(AppFormatters.formatTime(message.sentAt),
+              style: AppTextStyles.caption.copyWith(
+                color: isMe ? AppColors.textInverse.withOpacity(0.7) : AppColors.textMuted,
+              )),
           ],
         ),
       ),

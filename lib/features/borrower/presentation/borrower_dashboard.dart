@@ -526,13 +526,13 @@ class _QuickActions extends ConsumerWidget {
     }
 
     final actions = [
-      _Action('Find Lenders', Icons.search_rounded, AppColors.gold,
+      _Action('Find Lenders', Icons.search_rounded, AppColors.textPrimary, false,
           () => context.go('/search')),
-      _Action('Post Request', Icons.add_circle_rounded, AppColors.emerald,
+      _Action('Post Request', Icons.add_circle_rounded, Colors.white, true,
           handlePostRequest),
-      _Action('Saved', Icons.bookmark_rounded, AppColors.info,
+      _Action('Saved', Icons.bookmark_rounded, AppColors.textPrimary, false,
           () => context.push('/saved-lenders')),
-      _Action('Chat', Icons.chat_bubble_rounded, AppColors.success,
+      _Action('Chat', Icons.chat_bubble_rounded, AppColors.textPrimary, false,
           () => context.push('/chat')),
     ];
 
@@ -550,9 +550,10 @@ class _QuickActions extends ConsumerWidget {
 class _Action {
   final String label;
   final IconData icon;
-  final Color color;
+  final Color iconColor;
+  final bool isPrimary;
   final VoidCallback onTap;
-  const _Action(this.label, this.icon, this.color, this.onTap);
+  const _Action(this.label, this.icon, this.iconColor, this.isPrimary, this.onTap);
 }
 
 class _QuickActionBtn extends StatelessWidget {
@@ -571,43 +572,44 @@ class _QuickActionBtn extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
+                color: action.isPrimary ? AppColors.emerald : AppColors.surface,
                 borderRadius: BorderRadius.circular(18),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    action.color.withOpacity(0.12),
-                    action.color.withOpacity(0.02),
-                  ],
-                ),
-                border: Border.all(
-                  color: action.color.withOpacity(0.15),
-                  width: 1.0,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: action.color.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+                border: action.isPrimary 
+                    ? null 
+                    : Border.all(color: AppColors.border, width: 1),
+                boxShadow: action.isPrimary
+                    ? [
+                        BoxShadow(
+                          color: AppColors.emerald.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : [
+                        BoxShadow(
+                          color: AppColors.textPrimary.withOpacity(0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
               ),
               child: Center(
-                child: Icon(action.icon, color: action.color, size: 26),
+                child: Icon(action.icon, color: action.iconColor, size: 24),
               ),
             ).animate().scale(
-                begin: const Offset(0.8, 0.8),
+                begin: const Offset(0.9, 0.9),
                 curve: Curves.easeOutBack,
-                duration: 500.ms),
-            const SizedBox(height: 8),
+                duration: 400.ms),
+            const SizedBox(height: 10),
             Text(
               action.label,
               style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  color: action.isPrimary ? AppColors.textPrimary : AppColors.textSecondary, 
+                  fontWeight: action.isPrimary ? FontWeight.w700 : FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 200.ms),
+            ).animate().fadeIn(delay: 100.ms),
           ],
         ),
       ),

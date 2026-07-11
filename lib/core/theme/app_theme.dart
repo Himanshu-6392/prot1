@@ -21,9 +21,9 @@ class AppTheme {
           onError: Colors.white,
         ),
 
-        // AppBar — white, no elevation
+        // AppBar — transparent/bg color
         appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: false,
@@ -66,41 +66,40 @@ class AppTheme {
           elevation: 0,
         ),
 
-        // Cards — white with soft border
+        // Cards — white, highly rounded, no border
         cardTheme: CardThemeData(
           color: AppColors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: AppColors.border, width: 1),
+            borderRadius: BorderRadius.circular(28),
           ),
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
         ),
 
-        // Inputs — Slate fill, Indigo focus
+        // Inputs — Pill shaped, white fill
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.surfaceAlt,
+          fillColor: AppColors.surface,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.border),
+            borderRadius: BorderRadius.circular(100),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.border),
+            borderRadius: BorderRadius.circular(100),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+            borderRadius: BorderRadius.circular(100),
+            borderSide: BorderSide(color: AppColors.emerald, width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(100),
             borderSide: BorderSide(color: AppColors.error),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(100),
             borderSide: BorderSide(color: AppColors.error, width: 1.5),
           ),
           labelStyle: AppTextStyles.labelMedium
@@ -112,7 +111,7 @@ class AppTheme {
           suffixIconColor: AppColors.textMuted,
         ),
 
-        // Elevated Button — Indigo solid
+        // Elevated Button — Pill shaped
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.gold,
@@ -121,12 +120,12 @@ class AppTheme {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
             textStyle: AppTextStyles.button,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
             minimumSize: const Size(double.infinity, 52),
           ),
         ),
 
-        // Outlined Button — Indigo border
+        // Outlined Button — Pill shaped
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.gold,
@@ -134,7 +133,7 @@ class AppTheme {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
             textStyle: AppTextStyles.button,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
             minimumSize: const Size(double.infinity, 52),
           ),
         ),
@@ -144,18 +143,18 @@ class AppTheme {
           style: TextButton.styleFrom(
             foregroundColor: AppColors.gold,
             textStyle: AppTextStyles.labelLarge,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           ),
         ),
 
-        // Chip
+        // Chip — Pill shaped
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.surfaceAlt,
           selectedColor: AppColors.gold.withOpacity(0.12),
-          side: BorderSide(color: AppColors.border),
+          side: BorderSide.none,
           labelStyle: AppTextStyles.labelSmall,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         ),
 
         // Divider

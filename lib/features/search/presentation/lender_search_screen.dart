@@ -334,8 +334,8 @@ class _LenderCard extends StatelessWidget {
                   height: 52,
                   decoration: BoxDecoration(
                     gradient: lender.isFeatured
-                        ? AppColors.goldGradient
-                        : AppColors.cardGradient,
+                        ? AppColors.emeraldGradient // Make featured lenders green
+                        : AppColors.goldGradient, // Make standard lenders dark
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(

@@ -10,32 +10,32 @@ class AppColors {
   static bool isDarkMode = false;
 
   // Background layers
-  static Color bg = const Color(0xFFF8FAFC); // Slate 50
+  static Color bg = const Color(0xFFF6F7FB); // Very light grayish blue
   static Color surface = const Color(0xFFFFFFFF); // Pure white
-  static Color surfaceAlt = const Color(0xFFF1F5F9); // Slate 100
-  static Color surfaceHigh = const Color(0xFFE2E8F0); // Slate 200
+  static Color surfaceAlt = const Color(0xFFF3F4F6); // Gray 100
+  static Color surfaceHigh = const Color(0xFFE5E7EB); // Gray 200
 
-  // Brand — Indigo Primary, Emerald Secondary
-  static Color gold = const Color(0xFF4F46E5); // Indigo 600
-  static Color goldLight = const Color(0xFF818CF8); // Indigo 400
-  static Color emerald = const Color(0xFF059669); // Emerald 600
-  static Color emeraldDark = const Color(0xFF047857); // Emerald 700
+  // Brand — Dark Primary, Vibrant Green Secondary
+  static Color gold = const Color(0xFF18181B); // Black/Dark Gray
+  static Color goldLight = const Color(0xFF3F3F46); // Lighter Gray
+  static Color emerald = const Color(0xFF52C41A); // Vibrant Green
+  static Color emeraldDark = const Color(0xFF389E0D); // Darker Green
 
   // Semantic
-  static Color success = const Color(0xFF059669);
-  static Color warning = const Color(0xFFF59E0B);
-  static Color error = const Color(0xFFDC2626);
-  static Color info = const Color(0xFF3B82F6);
+  static Color success = const Color(0xFF52C41A);
+  static Color warning = const Color(0xFFFAAD14);
+  static Color error = const Color(0xFFFF4D4F);
+  static Color info = const Color(0xFF1890FF);
 
   // Text
-  static Color textPrimary = const Color(0xFF0F172A); // Slate 900
-  static Color textSecondary = const Color(0xFF475569); // Slate 600
-  static Color textMuted = const Color(0xFF94A3B8); // Slate 400
-  static Color textInverse = const Color(0xFFFFFFFF);
+  static Color textPrimary = const Color(0xFF111827); // Very dark slate
+  static Color textSecondary = const Color(0xFF6B7280); // Gray 500
+  static Color textMuted = const Color(0xFF9CA3AF); // Gray 400
+  static Color textInverse = const Color(0xFFFFFFFF); // White
 
   // Borders
-  static Color border = const Color(0xFFE2E8F0); // Slate 200
-  static Color borderGlow = const Color(0x334F46E5);
+  static Color border = const Color(0xFFE5E7EB); // Gray 200
+  static Color borderGlow = const Color(0x1A000000); // Soft black shadow
 
   // Glass
   static Color glassBg = const Color(0x0A000000);
@@ -43,30 +43,30 @@ class AppColors {
 
   // Gradients
   static LinearGradient goldGradient = const LinearGradient(
-    colors: [Color(0xFF1E1B4B), Color(0xFF4F46E5)], // Deep Indigo → Indigo
+    colors: [Color(0xFF27272A), Color(0xFF18181B)], // Dark gray to black
     begin: Alignment.topLeft, end: Alignment.bottomRight,
   );
 
   static LinearGradient emeraldGradient = const LinearGradient(
-    colors: [Color(0xFF047857), Color(0xFF059669)],
+    colors: [Color(0xFF7AE582), Color(0xFF52C41A)], // Light green to vibrant green
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static LinearGradient bgGradient = const LinearGradient(
-    colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    colors: [Color(0xFFF6F7FB), Color(0xFFF3F4F6)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static LinearGradient cardGradient = const LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFF8F9FA)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static RadialGradient goldGlow = const RadialGradient(
-    colors: [Color(0x304F46E5), Color(0x004F46E5)],
+    colors: [Color(0x1A000000), Color(0x00000000)],
     radius: 0.8,
   );
 
@@ -74,36 +74,36 @@ class AppColors {
 
   static void setLight() {
     isDarkMode = false;
-    bg = const Color(0xFFF8FAFC);
+    bg = const Color(0xFFF6F7FB);
     surface = const Color(0xFFFFFFFF);
-    surfaceAlt = const Color(0xFFF1F5F9);
-    surfaceHigh = const Color(0xFFE2E8F0);
-    gold = const Color(0xFF4F46E5); // Indigo
-    goldLight = const Color(0xFF818CF8); // Indigo light
-    emerald = const Color(0xFF059669);
-    emeraldDark = const Color(0xFF047857);
-    textPrimary = const Color(0xFF0F172A);
-    textSecondary = const Color(0xFF475569);
-    textMuted = const Color(0xFF94A3B8);
+    surfaceAlt = const Color(0xFFF3F4F6);
+    surfaceHigh = const Color(0xFFE5E7EB);
+    gold = const Color(0xFF18181B);
+    goldLight = const Color(0xFF3F3F46);
+    emerald = const Color(0xFF52C41A);
+    emeraldDark = const Color(0xFF389E0D);
+    textPrimary = const Color(0xFF111827);
+    textSecondary = const Color(0xFF6B7280);
+    textMuted = const Color(0xFF9CA3AF);
     textInverse = const Color(0xFFFFFFFF);
-    border = const Color(0xFFE2E8F0);
-    borderGlow = const Color(0x334F46E5);
+    border = const Color(0xFFE5E7EB);
+    borderGlow = const Color(0x1A000000);
     glassBg = const Color(0x0A000000);
     glassBorder = const Color(0x1A000000);
     goldGradient = const LinearGradient(
-        colors: [Color(0xFF1E1B4B), Color(0xFF4F46E5)],
+        colors: [Color(0xFF27272A), Color(0xFF18181B)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
     emeraldGradient = const LinearGradient(
-        colors: [Color(0xFF047857), Color(0xFF059669)],
+        colors: [Color(0xFF7AE582), Color(0xFF52C41A)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
     bgGradient = const LinearGradient(
-        colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+        colors: [Color(0xFFF6F7FB), Color(0xFFF3F4F6)],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter);
     cardGradient = const LinearGradient(
-        colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+        colors: [Color(0xFFFFFFFF), Color(0xFFF8F9FA)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
   }

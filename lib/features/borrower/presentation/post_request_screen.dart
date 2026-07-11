@@ -42,8 +42,8 @@ class PostRequestScreen extends StatelessWidget {
               children: [
                 Divider(height: 1, color: AppColors.border),
                 TabBar(
-                  indicatorColor: AppColors.primary,
-                  labelColor: AppColors.primary,
+                  indicatorColor: AppColors.gold,
+                  labelColor: AppColors.gold,
                   unselectedLabelColor: AppColors.textMuted,
                   tabs: const [
                     Tab(text: 'Need a Loan (Borrower)'),

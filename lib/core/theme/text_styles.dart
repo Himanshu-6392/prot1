@@ -31,18 +31,18 @@ class AppTextStyles {
   // Headings (Jakarta)
   static TextStyle get h1 => _jakarta.copyWith(
       fontSize: 26,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
       height: 1.25,
       letterSpacing: -0.5);
   static TextStyle get h2 => _jakarta.copyWith(
       fontSize: 22,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
       height: 1.3,
       letterSpacing: -0.5);
   static TextStyle get h3 => _jakarta.copyWith(
-      fontSize: 18, fontWeight: FontWeight.w600, height: 1.35);
+      fontSize: 18, fontWeight: FontWeight.w700, height: 1.35);
   static TextStyle get h4 =>
-      _jakarta.copyWith(fontSize: 15, fontWeight: FontWeight.w600, height: 1.4);
+      _jakarta.copyWith(fontSize: 15, fontWeight: FontWeight.w700, height: 1.4);
 
   // Body (Inter)
   static TextStyle get bodyLarge =>
@@ -80,13 +80,13 @@ class AppTextStyles {
       fontSize: 32,
       fontWeight: FontWeight.w800,
       color: AppColors.textPrimary,
-      height: 1.1,
+      height: 1.25,
       letterSpacing: -1.0);
   static TextStyle get amountMedium => _jakarta.copyWith(
       fontSize: 22,
       fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
-      height: 1.1,
+      height: 1.25,
       letterSpacing: -0.5);
   static TextStyle get amountSmall => _jakarta.copyWith(
       fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary);

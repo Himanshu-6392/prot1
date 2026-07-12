@@ -50,62 +50,97 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // ─── App Bar ─────────────────────────
-            SliverToBoxAdapter(child: _buildHeader(context, user)),
-
-            // ─── Portfolio Hero Card ─────────────
-            SliverToBoxAdapter(child: _buildPortfolioCard(uid)),
-
-            // ─── Quick Actions ──────────────────
-            SliverToBoxAdapter(child: _QuickActions()),
-
-            // ─── My Requests ───────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
-                child: SectionHeader(
-                  title: 'My Requests',
-                  isExpandable: true,
-                  isExpanded: _requestsExpanded,
-                  onToggle: () =>
-                      setState(() => _requestsExpanded = !_requestsExpanded),
-                ),
+      body: Stack(
+        children: [
+          // Background Gradient Mesh
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.emerald.withValues(alpha: 0.05),
               ),
             ),
-            if (_requestsExpanded) _MyRequestsSliver(userId: uid),
-
-            // ─── Nearby Lenders ────────────────
-            if (user?.role != UserRole.lender) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                  child: SectionHeader(
-                      title: 'Lenders Near You',
-                      onSeeAll: () => context.go('/search')),
-                ),
+          ),
+          Positioned(
+            top: 200,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.gold.withValues(alpha: 0.05),
               ),
-              SliverToBoxAdapter(child: _NearbyLendersRow()),
-            ],
+            ),
+          ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: Container(color: Colors.transparent),
+          ),
+          
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // ─── App Bar ─────────────────────────
+                SliverToBoxAdapter(child: _buildHeader(context, user)),
 
-            // ─── Borrowers Near You ────────────
-            if (user?.role != UserRole.borrower) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                  child: SectionHeader(
-                      title: 'Borrowers Near You', onSeeAll: () {}),
+                // ─── Portfolio Hero Card ─────────────
+                SliverToBoxAdapter(child: _buildPortfolioCard(uid)),
+
+                // ─── Quick Actions ──────────────────
+                SliverToBoxAdapter(child: _QuickActions()),
+
+                // ─── My Requests ───────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
+                    child: SectionHeader(
+                      title: 'My Requests',
+                      isExpandable: true,
+                      isExpanded: _requestsExpanded,
+                      onToggle: () =>
+                          setState(() => _requestsExpanded = !_requestsExpanded),
+                    ),
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(child: _BorrowersNearYouRow()),
-            ],
+                if (_requestsExpanded) _MyRequestsSliver(userId: uid),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+                // ─── Nearby Lenders ────────────────
+                if (user?.role != UserRole.lender) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                      child: SectionHeader(
+                          title: 'Lenders Near You',
+                          onSeeAll: () => context.go('/search')),
+                    ),
+                  ),
+                  SliverToBoxAdapter(child: _NearbyLendersRow()),
+                ],
+
+                // ─── Borrowers Near You ────────────
+                if (user?.role != UserRole.borrower) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                      child: SectionHeader(
+                          title: 'Borrowers Near You', onSeeAll: () {}),
+                    ),
+                  ),
+                  SliverToBoxAdapter(child: _BorrowersNearYouRow()),
+                ],
+
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -123,11 +158,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
         (user?.name.isNotEmpty == true ? user!.name[0] : 'U').toUpperCase();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
       child: Row(
         children: [
           Expanded(
@@ -136,16 +167,22 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               children: [
                 Text(
                   greeting,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textMuted),
+                  style: AppTextStyles.h1.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: -1,
+                  ),
                 ),
                 Text(
                   firstName,
-                  style: AppTextStyles.labelLarge
-                      .copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.h1.copyWith(
+                    color: AppColors.gold,
+                    letterSpacing: -1,
+                    height: 1.1,
+                  ),
                 ),
               ],
-            ),
+            ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
           ),
 
           // Theme toggle
@@ -156,30 +193,49 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                   ? Icons.light_mode_outlined
                   : Icons.dark_mode_outlined,
               color: AppColors.textSecondary,
-              size: 20,
+              size: 24,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           // Avatar
           GestureDetector(
             onTap: () => context.push('/profile'),
             child: Container(
-              width: 36,
-              height: 36,
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: AppColors.gold,
-                borderRadius: BorderRadius.circular(10),
+                shape: BoxShape.circle,
+                gradient: AppColors.goldGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ],
               ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: AppTextStyles.labelLarge.copyWith(color: Colors.white),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.surface, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: AppTextStyles.h3.copyWith(
+                      foreground: Paint()
+                        ..shader = AppColors.goldGradient
+                            .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ).animate().scale(duration: 300.ms, curve: Curves.elasticOut),
+          ).animate().fadeIn(delay: 200.ms),
         ],
       ),
     );
@@ -224,11 +280,11 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: AppColors.goldGradient, // Deep Indigo → Indigo
+              color: const Color(0xFF18181B), // Black card background
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.gold.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -237,14 +293,27 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'TOTAL LOAN BALANCE',
-                  style: AppTextStyles.tag.copyWith(
-                    color: Colors.indigo[200],
-                    letterSpacing: 1.5,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'TOTAL LOAN BALANCE',
+                      style: AppTextStyles.tag.copyWith(
+                        color: Colors.white70,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 16),
                 Text(
                   snap.hasData ? AppFormatters.formatINR(totalBalance) : '...',
                   style: AppTextStyles.displaySmall.copyWith(
@@ -253,16 +322,16 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                     letterSpacing: -1,
                   ),
                 ),
-                const SizedBox(height: 20),
-
+                const SizedBox(height: 24),
+                
                 // Progress bar
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
                     valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF34D399)),
+                        AlwaysStoppedAnimation<Color>(AppColors.emerald),
                     minHeight: 8,
                   ),
                 ),
@@ -273,19 +342,19 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                     Text(
                       'Repayment Progress',
                       style: AppTextStyles.caption
-                          .copyWith(color: Colors.indigo[200]),
+                          .copyWith(color: Colors.white70),
                     ),
                     Text(
                       '${(progress * 100).toStringAsFixed(0)}% Complete',
                       style: AppTextStyles.caption.copyWith(
-                        color: const Color(0xFF34D399),
+                        color: AppColors.emerald,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -295,7 +364,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                         Text(
                           'ACTIVE REQUESTS',
                           style: AppTextStyles.tag.copyWith(
-                              color: Colors.indigo[200], letterSpacing: 1.2),
+                              color: Colors.white70, letterSpacing: 1.2),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -304,24 +373,34 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () => context.push('/post-request'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                        minimumSize: Size.zero,
-                      ),
-                      child: Text(
-                        'POST REQUEST',
-                        style: AppTextStyles.button.copyWith(
-                            color: Colors.white,
-                            fontSize: 11,
-                            letterSpacing: 0.5),
+                    GestureDetector(
+                      onTap: () => context.push('/post-request'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.emerald,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.emerald.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'POST REQUEST',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -572,24 +651,26 @@ class _QuickActionBtn extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: action.isPrimary ? AppColors.emerald : AppColors.surface,
+                color: action.isPrimary 
+                    ? AppColors.emerald 
+                    : AppColors.surface.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(18),
                 border: action.isPrimary 
                     ? null 
-                    : Border.all(color: AppColors.border, width: 1),
+                    : Border.all(color: AppColors.border.withValues(alpha: 0.3), width: 1),
                 boxShadow: action.isPrimary
                     ? [
                         BoxShadow(
-                          color: AppColors.emerald.withOpacity(0.3),
+                          color: AppColors.emerald.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         )
                       ]
                     : [
                         BoxShadow(
-                          color: AppColors.textPrimary.withOpacity(0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         )
                       ],
               ),
@@ -1156,10 +1237,10 @@ class _BorrowersNearYouRow extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: AppColors.info.withOpacity(0.2),
+                      backgroundColor: AppColors.gold.withOpacity(0.2),
                       child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'B',
-                        style: AppTextStyles.h2.copyWith(color: AppColors.info),
+                        name.isNotEmpty ? name[0].toUpperCase() : 'L',
+                        style: AppTextStyles.h2.copyWith(color: AppColors.gold),
                       ),
                     ),
                     const SizedBox(height: 12),

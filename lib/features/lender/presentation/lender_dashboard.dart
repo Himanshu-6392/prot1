@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,27 +44,62 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _LenderHeader(user: user)),
-            SliverToBoxAdapter(
-                child: _LenderPortfolioCard(userId: user?.uid ?? '')),
-            SliverToBoxAdapter(child: _ManageSection(userId: user?.uid ?? '')),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                child: SectionHeader(
-                  title: 'Incoming Requests',
-                  onSeeAll: () => context.push('/borrower-search'),
-                ),
+      body: Stack(
+        children: [
+          // Background Gradient Mesh
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.emerald.withValues(alpha: 0.05),
               ),
             ),
-            _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+          ),
+          Positioned(
+            top: 200,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.gold.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: Container(color: Colors.transparent),
+          ),
+          
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(child: _LenderHeader(user: user)),
+                SliverToBoxAdapter(
+                    child: _LenderPortfolioCard(userId: user?.uid ?? '')),
+                SliverToBoxAdapter(child: _ManageSection(userId: user?.uid ?? '')),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    child: SectionHeader(
+                      title: 'Incoming Requests',
+                      onSeeAll: () => context.push('/borrower-search'),
+                    ),
+                  ),
+                ),
+                _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/create-offer'),
@@ -94,11 +130,7 @@ class _LenderHeader extends ConsumerWidget {
         (user?.name.isNotEmpty == true ? user!.name[0] : 'L').toUpperCase();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
       child: Row(
         children: [
           Expanded(
@@ -106,15 +138,20 @@ class _LenderHeader extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(greeting,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textMuted)),
+                    style: AppTextStyles.h1.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -1,
+                    )),
                 Text(firstName,
-                    style: AppTextStyles.labelLarge
-                        .copyWith(color: AppColors.textPrimary)),
+                    style: AppTextStyles.h1.copyWith(
+                      color: AppColors.emerald,
+                      letterSpacing: -1,
+                      height: 1.1,
+                    )),
               ],
-            ),
+            ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
           ),
-
           IconButton(
             onPressed: () => AppColors.toggleTheme(context),
             icon: Icon(
@@ -122,28 +159,48 @@ class _LenderHeader extends ConsumerWidget {
                   ? Icons.light_mode_outlined
                   : Icons.dark_mode_outlined,
               color: AppColors.textSecondary,
-              size: 20,
+              size: 24,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           GestureDetector(
             onTap: () => context.push('/profile'),
             child: Container(
-              width: 36,
-              height: 36,
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: AppColors.emerald,
-                borderRadius: BorderRadius.circular(10),
+                shape: BoxShape.circle,
+                gradient: AppColors.emeraldGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.emerald.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ],
               ),
-              child: Center(
-                child: Text(initial,
-                    style:
-                        AppTextStyles.labelLarge.copyWith(color: Colors.white)),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.surface, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: AppTextStyles.h3.copyWith(
+                      foreground: Paint()
+                        ..shader = AppColors.emeraldGradient
+                            .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ).animate().fadeIn(delay: 200.ms),
         ],
       ),
     );
@@ -185,11 +242,12 @@ class _LenderPortfolioCard extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: AppColors.emeraldGradient,
-              borderRadius: BorderRadius.circular(24),
+              color: AppColors.surface.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.emerald.withOpacity(0.2),
+                  color: AppColors.emerald.withValues(alpha: 0.05),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -198,46 +256,73 @@ class _LenderPortfolioCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'AVAILABLE CAPITAL',
-                  style: AppTextStyles.tag.copyWith(
-                    color: Colors.white.withOpacity(0.7),
-                    letterSpacing: 1.5,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.account_balance_wallet_rounded, color: AppColors.emerald, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'AVAILABLE CAPITAL',
+                      style: AppTextStyles.tag.copyWith(
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 16),
                 Text(
                   snap.hasData
                       ? AppFormatters.formatINR(availableCapital)
                       : '...',
                   style: AppTextStyles.displaySmall.copyWith(
-                    color: Colors.white,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -1,
+                    foreground: Paint()
+                      ..shader = AppColors.emeraldGradient
+                          .createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 50.0)),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _CardStat('Active Offers', '$activeOffers', Colors.white),
-                    _CardStat('Matches', '$totalMatches', Colors.white),
-                    ElevatedButton(
-                      onPressed: () => context.push('/create-offer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.emerald,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        minimumSize: Size.zero,
-                      ),
-                      child: Text(
-                        'NEW OFFER',
-                        style: AppTextStyles.button
-                            .copyWith(color: AppColors.emerald, fontSize: 11),
+                    _CardStat('Active Offers', '$activeOffers', AppColors.textPrimary),
+                    _CardStat('Matches', '$totalMatches', AppColors.textPrimary),
+                    GestureDetector(
+                      onTap: () => context.push('/create-offer'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.emeraldGradient,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.emerald.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'NEW OFFER',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -442,22 +527,30 @@ class _ActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
         child: Column(children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: color, size: 22),
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.2))),
+            child: Icon(icon, color: color, size: 24),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 10),
           Text(label,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.labelSmall
+                  .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
               maxLines: 2),
         ]),

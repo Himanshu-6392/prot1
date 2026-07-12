@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +40,7 @@ class MainShell extends ConsumerWidget {
       value: SystemUiOverlayStyle.dark, // dark icons on light bg
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        extendBody: false,
+        extendBody: true,
         body: child,
         bottomNavigationBar: _buildNavBar(context, idx, userAsync.valueOrNull),
       ),
@@ -48,34 +49,38 @@ class MainShell extends ConsumerWidget {
 
   Widget _buildNavBar(BuildContext context, int idx, UserModel? user) {
     return Container(
-      color: AppColors.bg,
+      color: Colors.transparent,
       child: SafeArea(
         top: false,
         child: Padding(
           padding:
-              const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                  color: AppColors.border.withValues(alpha: 0.6), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.gold.withValues(alpha: 0.06),
-                  blurRadius: 24,
-                  offset: const Offset(0, 4),
+              const EdgeInsets.only(left: 20, right: 20, bottom: 4, top: 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                      color: AppColors.border.withValues(alpha: 0.6), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.gold.withValues(alpha: 0.06),
+                      blurRadius: 24,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Row(
-              children: _tabs.asMap().entries.map((entry) {
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                child: Row(
+                  children: _tabs.asMap().entries.map((entry) {
                 final i = entry.key;
                 final tab = entry.value;
                 final isSelected = i == idx;
@@ -88,6 +93,8 @@ class MainShell extends ConsumerWidget {
                   ),
                 );
               }).toList(),
+                ),
+              ),
             ),
           ),
         ),

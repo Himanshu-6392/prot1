@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +23,8 @@ import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
 import '../../../core/providers/security_provider.dart';
+import '../../../core/widgets/glass_widgets.dart';
+
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -172,22 +175,61 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeroHeader(user),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                _StatsRow(user: user),
-                const SizedBox(height: 24),
-                _KycStatusCard(user: user),
-                const SizedBox(height: 24),
-                _MenuSection(user: user),
-                const SizedBox(height: 24),
-                const _LogoutButton(),
-                const SizedBox(height: 40),
+      body: Stack(
+        children: [
+          // Background Gradient Mesh (Borrower Dashboard Style)
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.emerald.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 200,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.gold.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: Container(color: Colors.transparent),
+          ),
+          
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildHeroHeader(user),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      _ProfileCompletionBar(user: user),
+                      const SizedBox(height: 20),
+                      _StatsRow(user: user),
+                      const SizedBox(height: 24),
+                      _KycStatusCard(user: user),
+                      const SizedBox(height: 24),
+                      _MenuSection(user: user),
+                      const SizedBox(height: 24),
+                      const _LogoutButton(),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -196,99 +238,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  // ─── Hero Header with tap-to-upload avatar ────
-
   Widget _buildHeroHeader(UserModel? user) {
     final initials = user?.name.isNotEmpty == true
-        ? user!.name
-            .trim()
-            .split(' ')
-            .map((w) => w[0])
-            .take(2)
-            .join()
-            .toUpperCase()
+        ? user!.name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
         : 'U';
 
     return SliverToBoxAdapter(
-      child: SizedBox(
-        height: 260,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.bottomCenter,
-          children: [
-            // Gradient banner
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient, // Deep Indigo → Indigo
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                        top: -30,
-                        right: -30,
-                        child: Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.08)),
-                        )),
-                    Positioned(
-                        bottom: -20,
-                        left: -20,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.06)),
-                        )),
-                    Positioned(
-                      top: 48,
-                      left: 16,
-                      child: GestureDetector(
-                        onTap: () => context.pop(),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      ).animate().fadeIn(delay: 100.ms),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: NeumorphicContainer(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary, size: 20),
                     ),
-                    Positioned(
-                      top: 48,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.settings_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      ).animate().fadeIn(delay: 150.ms),
+                  ),
+                  Text('My Profile', style: AppTextStyles.h3),
+                  GestureDetector(
+                    onTap: () => _showSettingsDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.settings_rounded, color: AppColors.textPrimary, size: 20),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-
-            // Avatar — inside SizedBox(260) bounds so taps register correctly
-            Positioned(
-              bottom: 0,
-              child: GestureDetector(
+              const SizedBox(height: 24),
+              GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _isUploading ? null : _showPhotoOptions,
                 child: Stack(
@@ -297,16 +288,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     AnimatedBuilder(
                       animation: _pulseController,
                       builder: (_, __) => Container(
-                        width: 114 + _pulseController.value * 4,
-                        height: 114 + _pulseController.value * 4,
+                        width: 100 + _pulseController.value * 4,
+                        height: 100 + _pulseController.value * 4,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: SweepGradient(
                             colors: [
-                              Color(0xFF6366F1),
-                              Color(0xFF8B5CF6),
-                              Color(0xFF00C78B),
-                              Color(0xFF6366F1)
+                              AppColors.emerald,
+                              AppColors.gold,
+                              AppColors.emerald,
                             ],
                           ),
                         ),
@@ -315,9 +305,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.bg,
+                              color: AppColors.surface,
                             ),
-                            padding: const EdgeInsets.all(3),
+                            padding: const EdgeInsets.all(4),
                             child: ClipOval(
                               child: _buildAvatarContent(user, initials),
                             ),
@@ -327,94 +317,481 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                     if (_isUploading)
                       SizedBox(
-                        width: 118,
-                        height: 118,
+                        width: 104,
+                        height: 104,
                         child: CircularProgressIndicator(
                           value: _uploadProgress > 0 ? _uploadProgress : null,
                           strokeWidth: 3,
-                          color: Colors.white,
+                          color: AppColors.gold,
                         ),
                       ),
                     Positioned(
-                      bottom: 2,
-                      right: 2,
+                      bottom: 0,
+                      right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          gradient: AppColors.goldGradient,
+                          color: AppColors.surface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.bg, width: 2),
                           boxShadow: [
                             BoxShadow(
-                                color: AppColors.gold.withOpacity(0.4),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2)),
                           ],
                         ),
                         child: Icon(
-                          _isUploading
-                              ? Icons.hourglass_top_rounded
-                              : Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 14,
+                          _isUploading ? Icons.hourglass_top_rounded : Icons.camera_alt_rounded,
+                          color: AppColors.gold,
+                          size: 16,
                         ),
                       ),
                     ),
                   ],
                 ),
               ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                user?.name ?? 'User',
+                style: AppTextStyles.h2,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user?.email ?? '',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         ),
-      ),
+      ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
     );
   }
 
   Widget _buildAvatarContent(UserModel? user, String initials) {
     if (_isUploading) {
       return Container(
-        color: AppColors.gold.withOpacity(0.2),
+        color: AppColors.surfaceAlt,
         child: Center(
           child: Text(
             '${(_uploadProgress * 100).toInt()}%',
-            style: AppTextStyles.h3.copyWith(color: AppColors.gold),
+            style: AppTextStyles.h4.copyWith(color: AppColors.gold),
           ),
         ),
       );
     }
-
     if (user?.photoUrl != null && user!.photoUrl!.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: user.photoUrl!,
         fit: BoxFit.cover,
         placeholder: (_, __) => Container(
           color: AppColors.surfaceAlt,
-          child: Center(
-              child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.gold,
-          )),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
         ),
         errorWidget: (_, __, ___) => _initialsWidget(initials),
       );
     }
-
     return _initialsWidget(initials);
   }
 
   Widget _initialsWidget(String initials) {
     return Container(
-      decoration: BoxDecoration(gradient: AppColors.goldGradient),
+      decoration: BoxDecoration(gradient: AppColors.bgGradient),
       child: Center(
         child: Text(initials,
-            style:
-                AppTextStyles.h1.copyWith(color: Colors.white, fontSize: 32)),
+            style: AppTextStyles.h1.copyWith(color: AppColors.gold, fontSize: 32)),
       ),
     );
   }
 }
 
-// ─── Photo Picker Bottom Sheet ───────────────────────────────────────────────
+class _ProfileCompletionBar extends StatelessWidget {
+  final UserModel? user;
+  const _ProfileCompletionBar({this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    int score = 20; // Base score for creating account
+    if (user?.photoUrl != null && user!.photoUrl!.isNotEmpty) score += 20;
+    if (user?.name != null && user!.name.trim().isNotEmpty) score += 20;
+    if (user?.city != null && user!.city!.isNotEmpty) score += 10;
+    if (user?.kycStatus == KycStatus.verified) score += 20;
+    if (user?.phone != null && user!.phone.isNotEmpty) score += 10;
+
+    score = score.clamp(0, 100);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Profile Strength', style: AppTextStyles.h4),
+                Text('$score%', style: AppTextStyles.h4.copyWith(color: AppColors.emerald)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: score / 100,
+                minHeight: 8,
+                backgroundColor: AppColors.surfaceHigh,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  score == 100 ? AppColors.emerald : AppColors.gold,
+                ),
+              ),
+            ),
+            if (score < 100) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Complete your profile to unlock all features.',
+                style: AppTextStyles.caption,
+              ),
+            ]
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1);
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  final UserModel? user;
+  const _StatsRow({this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          _MiniStat(
+            value: _roleLabel(user?.role),
+            label: 'Role',
+            icon: Icons.badge_rounded,
+            color: AppColors.gold,
+          ),
+          const SizedBox(width: 12),
+          _MiniStat(
+            value: user?.kycStatus == KycStatus.verified ? 'Verified' : 'Pending',
+            label: 'KYC',
+            icon: Icons.verified_user_rounded,
+            color: user?.kycStatus == KycStatus.verified ? AppColors.success : AppColors.warning,
+          ),
+          const SizedBox(width: 12),
+          _MiniStat(
+            value: user?.isPremium == true ? 'Premium' : 'Free',
+            label: 'Plan',
+            icon: Icons.workspace_premium_rounded,
+            color: user?.isPremium == true ? AppColors.warning : AppColors.textMuted,
+          ),
+        ],
+      ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+    );
+  }
+
+  String _roleLabel(UserRole? role) {
+    switch (role) {
+      case UserRole.lender: return 'Lender';
+      case UserRole.borrower: return 'Borrower';
+      case UserRole.both: return 'Both';
+      case UserRole.admin: return 'Admin';
+      default: return 'User';
+    }
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String value, label;
+  final IconData icon;
+  final Color color;
+
+  const _MiniStat({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 12),
+            Text(value, style: AppTextStyles.h4.copyWith(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(label, style: AppTextStyles.caption),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KycStatusCard extends StatelessWidget {
+  final UserModel? user;
+  const _KycStatusCard({this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final isVerified = user?.kycStatus == KycStatus.verified;
+    final color = isVerified ? AppColors.success : AppColors.warning;
+    final icon = isVerified ? Icons.verified_rounded : Icons.pending_rounded;
+    final msg = isVerified
+        ? 'Your identity has been verified successfully.'
+        : 'Complete KYC to unlock full platform access.';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () {
+          if (!isVerified) context.push('/kyc');
+        },
+        child: NeumorphicContainer(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isVerified ? 'KYC Verified' : 'KYC Pending',
+                        style: AppTextStyles.h3),
+                    const SizedBox(height: 4),
+                    Text(msg, style: AppTextStyles.bodySmall),
+                  ],
+                ),
+              ),
+              if (!isVerified) Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
+    );
+  }
+}
+
+class _MenuSection extends ConsumerWidget {
+  final UserModel? user;
+  const _MenuSection({this.user});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCategoryTitle('Account'),
+          NeumorphicContainer(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _MenuItem(
+                  icon: Icons.person_rounded,
+                  label: 'Edit Profile',
+                  color: AppColors.info,
+                  onTap: () {
+                    if (user != null) showGlobalEditProfileDialog(context, user!);
+                  },
+                ),
+                _buildDivider(),
+                _MenuItem(
+                  icon: Icons.account_balance_rounded,
+                  label: 'Bank Details',
+                  color: AppColors.emerald,
+                  onTap: () {
+                    if (user != null) showBankDetailsDialog(context, user!);
+                  },
+                ),
+                _buildDivider(),
+                _MenuItem(
+                  icon: Icons.workspace_premium_rounded,
+                  label: 'Subscription Plan',
+                  color: AppColors.warning,
+                  onTap: () => context.push('/plans'),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+          
+          const SizedBox(height: 24),
+          _buildCategoryTitle('Preferences'),
+          NeumorphicContainer(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _MenuItem(
+                  icon: Icons.notifications_rounded,
+                  label: 'Notifications',
+                  color: AppColors.gold,
+                  onTap: () => context.go('/notifications'),
+                ),
+                _buildDivider(),
+                _MenuItem(
+                  icon: Icons.security_rounded,
+                  label: 'Security & Privacy',
+                  color: AppColors.textPrimary,
+                  onTap: () async {
+                    final changed = await showChangePinFlow(context, ref);
+                    if (changed && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('PIN updated successfully'),
+                          backgroundColor: AppColors.success,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
+          
+          const SizedBox(height: 24),
+          _buildCategoryTitle('Other'),
+          NeumorphicContainer(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _MenuItem(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Help & Support',
+                  color: AppColors.textSecondary,
+                  onTap: () => _showHelpSupportDialog(context),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 12),
+      child: Text(
+        title.toUpperCase(),
+        style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textMuted,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: AppColors.surfaceHigh.withValues(alpha: 0.5),
+      indent: 64,
+      endIndent: 20,
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(label, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500)),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends ConsumerWidget {
+  const _LogoutButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () async {
+          ref.read(sensitiveDataVisibleProvider.notifier).state = false;
+          await FirebaseAuth.instance.signOut();
+        },
+        child: NeumorphicContainer(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'Log Out',
+                style: AppTextStyles.h4.copyWith(color: AppColors.error),
+              ),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1),
+    );
+  }
+}
 
 class _PhotoPickerSheet extends StatelessWidget {
   const _PhotoPickerSheet();
@@ -440,32 +817,9 @@ class _PhotoPickerSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.goldGradient,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.camera_alt_rounded,
-                      color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 14),
-                Text('Update Profile Photo', style: AppTextStyles.h3),
-              ],
-            ),
-          ),
+          Text('Update Profile Photo', style: AppTextStyles.h3),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'Choose a clear photo of yourself',
-              style: AppTextStyles.bodySmall,
-            ),
-          ),
+          Text('Choose a clear photo of yourself', style: AppTextStyles.bodySmall),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -475,7 +829,6 @@ class _PhotoPickerSheet extends StatelessWidget {
                   child: _PickerOption(
                     icon: Icons.photo_camera_rounded,
                     label: 'Camera',
-                    subtitle: 'Take a photo',
                     color: AppColors.gold,
                     onTap: () => Navigator.pop(context, ImageSource.camera),
                   ),
@@ -485,7 +838,6 @@ class _PhotoPickerSheet extends StatelessWidget {
                   child: _PickerOption(
                     icon: Icons.photo_library_rounded,
                     label: 'Gallery',
-                    subtitle: 'Pick from gallery',
                     color: AppColors.emerald,
                     onTap: () => Navigator.pop(context, ImageSource.gallery),
                   ),
@@ -494,69 +846,45 @@ class _PhotoPickerSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: AppColors.border),
-                ),
-              ),
-              child: Text('Cancel',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textSecondary,
-                  )),
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: AppTextStyles.bodyLarge),
           ),
           const SizedBox(height: 24),
         ],
       ),
-    ).animate().slideY(
-        begin: 0.3, end: 0, duration: 300.ms, curve: Curves.easeOutCubic);
+    );
   }
 }
 
 class _PickerOption extends StatelessWidget {
   final IconData icon;
-  final String label, subtitle;
+  final String label;
   final Color color;
   final VoidCallback onTap;
-  const _PickerOption(
-      {required this.icon,
-      required this.label,
-      required this.subtitle,
-      required this.color,
-      required this.onTap});
+
+  const _PickerOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(label, style: AppTextStyles.h4.copyWith(color: color)),
-            const SizedBox(height: 2),
-            Text(subtitle,
-                style: AppTextStyles.caption, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -564,683 +892,94 @@ class _PickerOption extends StatelessWidget {
   }
 }
 
-// ─── Stats Row ───────────────────────────────────────────────────────────────
-
-class _StatsRow extends StatefulWidget {
-  final UserModel? user;
-  const _StatsRow({this.user});
-
-  @override
-  State<_StatsRow> createState() => _StatsRowState();
-}
-
-class _StatsRowState extends State<_StatsRow> {
-  bool _isFetchingLocation = false;
-
-  Future<void> _fetchLocation() async {
-    if (widget.user == null) return;
-
-    setState(() {
-      _isFetchingLocation = true;
-    });
-
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Location services are disabled.');
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception(
-            'Location permissions are permanently denied, we cannot request permissions.');
-      }
-
-      final position = await Geolocator.getCurrentPosition();
-      String city = 'Unknown City';
-
-      if (kIsWeb) {
-        // Fallback for Web since native geocoding plugin doesn't work on browsers
-        try {
-          final dio = Dio();
-          final response = await dio.get(
-              'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.latitude}&longitude=${position.longitude}&localityLanguage=en');
-          if (response.statusCode == 200) {
-            city = response.data['city'] ??
-                response.data['locality'] ??
-                response.data['principalSubdivision'] ??
-                'Unknown City';
-          }
-        } catch (_) {}
-      } else {
-        // Native Android/iOS Geocoding
-        final placemarks = await placemarkFromCoordinates(
-            position.latitude, position.longitude);
-        if (placemarks.isNotEmpty) {
-          final place = placemarks.first;
-          city =
-              place.locality ?? place.subAdministrativeArea ?? 'Unknown City';
-        }
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.user!.uid)
-          .update({
-        'city': city,
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Location updated to $city'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingLocation = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _showEditRoleDialog(
-      BuildContext context, String uid, UserRole? currentRole) async {
-    UserRole selectedRole = currentRole ?? UserRole.borrower;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          return AlertDialog(
-            backgroundColor: AppColors.surface,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Change Role', style: AppTextStyles.h3),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RadioListTile<UserRole>(
-                  title: Text('Borrower', style: AppTextStyles.bodyMedium),
-                  activeColor: AppColors.gold,
-                  value: UserRole.borrower,
-                  groupValue: selectedRole,
-                  onChanged: (val) => setState(() => selectedRole = val!),
-                ),
-                RadioListTile<UserRole>(
-                  title: Text('Lender', style: AppTextStyles.bodyMedium),
-                  activeColor: AppColors.emerald,
-                  value: UserRole.lender,
-                  groupValue: selectedRole,
-                  onChanged: (val) => setState(() => selectedRole = val!),
-                ),
-                RadioListTile<UserRole>(
-                  title: Text('Both', style: AppTextStyles.bodyMedium),
-                  activeColor: AppColors.gold,
-                  value: UserRole.both,
-                  groupValue: selectedRole,
-                  onChanged: (val) => setState(() => selectedRole = val!),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel',
-                    style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textMuted)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () async {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .update({
-                    'role': selectedRole.name,
-                  });
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final displayName =
-        (widget.user?.name != null && widget.user!.name.trim().isNotEmpty)
-            ? widget.user!.name.trim()
-            : 'User';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: widget.user != null
-                ? () => showGlobalEditProfileDialog(context, widget.user!)
-                : null,
-            child: Text(displayName,
-                style: AppTextStyles.h1, textAlign: TextAlign.center),
-          ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: (widget.user != null && !_isFetchingLocation)
-                    ? _fetchLocation
-                    : null,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      _isFetchingLocation
-                          ? SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.gold))
-                          : Icon(Icons.my_location_rounded,
-                              size: 13, color: AppColors.gold),
-                      const SizedBox(width: 4),
-                      Text(widget.user?.city ?? 'India',
-                          style: AppTextStyles.bodySmall),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _RoleBadge(role: widget.user?.role),
-              if (widget.user?.isPremium == true) ...[
-                const SizedBox(width: 8),
-                const _PremiumBadge(),
-              ],
-            ],
-          ).animate().fadeIn(delay: 250.ms),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              _MiniStat(
-                value: _roleLabel(widget.user?.role),
-                label: 'Role',
-                icon: Icons.badge_rounded,
-                color: AppColors.gold,
-                onTap: widget.user != null
-                    ? () => _showEditRoleDialog(
-                        context, widget.user!.uid, widget.user!.role)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              _MiniStat(
-                value: _kycLabel(widget.user?.kycStatus),
-                label: 'KYC',
-                icon: Icons.verified_user_rounded,
-                color: _kycColor(widget.user?.kycStatus),
-                onTap: () {},
-              ),
-              const SizedBox(width: 12),
-              _MiniStat(
-                value: widget.user?.isPremium == true ? 'Active' : 'Free',
-                label: 'Plan',
-                icon: Icons.workspace_premium_rounded,
-                color: widget.user?.isPremium == true
-                    ? AppColors.warning
-                    : AppColors.textMuted,
-                onTap: () => context.push('/plans'),
-              ),
-            ],
-          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-        ],
-      ),
-    );
-  }
-
-  String _roleLabel(UserRole? role) {
-    switch (role) {
-      case UserRole.lender:
-        return 'Lender';
-      case UserRole.borrower:
-        return 'Borrower';
-      case UserRole.both:
-        return 'Both';
-      case UserRole.admin:
-        return 'Admin';
-      default:
-        return 'User';
-    }
-  }
-
-  String _kycLabel(KycStatus? status) {
-    switch (status) {
-      case KycStatus.verified:
-        return 'Verified';
-      case KycStatus.submitted:
-        return 'Pending';
-      case KycStatus.rejected:
-        return 'Rejected';
-      default:
-        return 'Pending';
-    }
-  }
-
-  Color _kycColor(KycStatus? status) {
-    switch (status) {
-      case KycStatus.verified:
-        return AppColors.success;
-      case KycStatus.submitted:
-        return AppColors.warning;
-      case KycStatus.rejected:
-        return AppColors.error;
-      default:
-        return AppColors.textMuted;
-    }
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final String value, label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _MiniStat({
-    required this.value,
-    required this.label,
-    required this.icon,
-    required this.color,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                  color: color.withOpacity(0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4))
-            ],
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 18),
-              ),
-              const SizedBox(height: 8),
-              Text(value,
-                  style: AppTextStyles.h4.copyWith(color: color, fontSize: 13)),
-              Text(label, style: AppTextStyles.caption),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleBadge extends StatelessWidget {
-  final UserRole? role;
-  const _RoleBadge({this.role});
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isBoth = role == UserRole.both;
-    final bool isLender = role == UserRole.lender;
-
-    Gradient gradient;
-    IconData icon;
-    String text;
-
-    if (isBoth) {
-      gradient = LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF8A63F8)]);
-      icon = Icons.sync_alt_rounded;
-      text = 'Both';
-    } else if (isLender) {
-      gradient = AppColors.emeraldGradient;
-      icon = Icons.savings_rounded;
-      text = 'Lender';
-    } else {
-      gradient = AppColors.goldGradient;
-      icon = Icons.person_rounded;
-      text = 'Borrower';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: Colors.white),
-        const SizedBox(width: 4),
-        Text(text,
-            style: AppTextStyles.labelSmall
-                .copyWith(color: Colors.white, fontSize: 11)),
-      ]),
-    );
-  }
-}
-
-class _PremiumBadge extends StatelessWidget {
-  const _PremiumBadge();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        gradient:
-            LinearGradient(colors: [Color(0xFFF5A623), Color(0xFFE8900A)]),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.star_rounded, size: 12, color: Colors.white),
-        const SizedBox(width: 4),
-        Text('Premium',
-            style: AppTextStyles.labelSmall
-                .copyWith(color: Colors.white, fontSize: 11)),
-      ]),
-    );
-  }
-}
-
-// ─── KYC Status Card ─────────────────────────────────────────────────────────
-
-class _KycStatusCard extends StatelessWidget {
-  final UserModel? user;
-  const _KycStatusCard({this.user});
-  @override
-  Widget build(BuildContext context) {
-    final isVerified = user?.kycStatus == KycStatus.verified;
-    final color = isVerified ? AppColors.success : AppColors.warning;
-    final icon = isVerified ? Icons.verified_rounded : Icons.pending_rounded;
-    final msg = isVerified
-        ? 'Your identity has been verified successfully.'
-        : 'Complete KYC to unlock full platform access.';
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.25)),
-        ),
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(14)),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(isVerified ? 'KYC Verified' : 'KYC Pending',
-                    style: AppTextStyles.h4.copyWith(color: color)),
-                const SizedBox(height: 3),
-                Text(msg, style: AppTextStyles.bodySmall),
-              ])),
-          if (!isVerified) Icon(Icons.chevron_right_rounded, color: color),
-        ]),
-      ).animate().fadeIn(delay: 350.ms).slideX(begin: 0.1, end: 0),
-    );
-  }
-}
-
-// ─── Menu Section ────────────────────────────────────────────────────────────
-
-class _MenuSection extends ConsumerWidget {
-  final UserModel? user;
-  const _MenuSection({this.user});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final displayName = (user?.name != null && user!.name.trim().isNotEmpty)
-        ? user!.name.trim()
-        : 'User';
-    final items = [
-      _MenuItem(
-        icon: Icons.person_rounded,
-        label: 'Edit Profile',
-        subtitle: 'Update your info',
-        color: AppColors.gold,
-        onTap: () {
-          if (user != null) {
-            showGlobalEditProfileDialog(context, user!);
-          }
-        },
-      ),
-      _MenuItem(
-        icon: Icons.account_balance_rounded,
-        label: 'My Bank Details',
-        subtitle: 'Manage bank accounts',
-        color: AppColors.info,
-        onTap: () {
-          if (user != null) {
-            showBankDetailsDialog(context, user!);
-          }
-        },
-      ),
-      _MenuItem(
-          icon: Icons.workspace_premium_rounded,
-          label: 'Subscription Plan',
-          subtitle:
-              user?.isPremium == true ? 'Premium active' : 'Upgrade to premium',
-          color: AppColors.warning,
-          onTap: () => context.push('/plans')),
-      _MenuItem(
-          icon: Icons.notifications_rounded,
-          label: 'Notifications',
-          subtitle: 'Manage alerts',
-          color: AppColors.emerald,
-          onTap: () => context.go('/notifications')),
-      _MenuItem(
-          icon: Icons.security_rounded,
-          label: 'Security & Privacy',
-          subtitle: 'Change PIN & privacy settings',
-          color: AppColors.goldLight,
-          onTap: () async {
-            final changed = await showChangePinFlow(context, ref);
-            if (changed && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(children: [
-                    Icon(Icons.check_circle_rounded,
-                        color: Colors.white, size: 18),
-                    SizedBox(width: 8),
-                    Text('PIN updated successfully'),
-                  ]),
-                  backgroundColor: AppColors.emerald,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
-            }
-          }),
-      _MenuItem(
-          icon: Icons.help_outline_rounded,
-          label: 'Help & Support',
-          subtitle: 'FAQs and contact us',
-          color: AppColors.textSecondary,
-          onTap: () {}),
-    ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-                color: AppColors.gold.withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 8))
-          ],
-        ),
+void _showSettingsDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (int i = 0; i < items.length; i++) ...[
-              items[i]
-                  .animate()
-                  .fadeIn(delay: Duration(milliseconds: 100 * i + 400))
-                  .slideX(begin: 0.05, end: 0),
-              if (i < items.length - 1)
-                Padding(
-                  padding: const EdgeInsets.only(left: 68, right: 20),
-                  child: Divider(color: AppColors.border, height: 1),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('App Settings', style: AppTextStyles.h2),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                  ),
                 ),
-            ],
+              ],
+            ),
+            const SizedBox(height: 24),
+            SwitchListTile(
+              title: Text('Dark Mode', style: AppTextStyles.bodyLarge),
+              subtitle: Text('Toggle app theme', style: AppTextStyles.caption),
+              value: AppColors.isDarkMode,
+              activeColor: AppColors.emerald,
+              onChanged: (val) {
+                AppColors.toggleTheme(context);
+                Navigator.pop(ctx);
+              },
+            ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label, subtitle;
-  final Color color;
-  final VoidCallback onTap;
-  const _MenuItem(
-      {required this.icon,
-      required this.label,
-      required this.subtitle,
-      required this.color,
-      required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          child: Row(children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: color, size: 20),
+void _showHelpSupportDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Help & Support', style: AppTextStyles.h2),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(label,
-                      style: AppTextStyles.bodyLarge
-                          .copyWith(fontWeight: FontWeight.w600)),
-                  Text(subtitle, style: AppTextStyles.caption),
-                ])),
-            Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted, size: 20),
-          ]),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: Icon(Icons.email_rounded, color: AppColors.gold),
+              title: Text('Email Us', style: AppTextStyles.bodyMedium),
+              subtitle: Text('support@peerlend.com', style: AppTextStyles.caption),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            ListTile(
+              leading: Icon(Icons.phone_rounded, color: AppColors.emerald),
+              title: Text('Call Us', style: AppTextStyles.bodyMedium),
+              subtitle: Text('+1 (800) 123-4567', style: AppTextStyles.caption),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-// ─── Logout Button ────────────────────────────────────────────────────────────
-
-class _LogoutButton extends ConsumerWidget {
-  const _LogoutButton();
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            // Explicitly lock sensitive data before logging out to ensure it's blurred on next login
-            ref.read(sensitiveDataVisibleProvider.notifier).state = false;
-            await FirebaseAuth.instance.signOut();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            decoration: BoxDecoration(
-              color: AppColors.error.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.error.withOpacity(0.2)),
-            ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.logout_rounded,
-                    color: AppColors.error, size: 18),
-              ),
-              const SizedBox(width: 12),
-              Text('Log Out',
-                  style: AppTextStyles.h4.copyWith(color: AppColors.error)),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded,
-                  color: AppColors.error, size: 16),
-            ]),
-          ),
-        ),
-      ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2, end: 0),
-    );
-  }
+    ),
+  );
 }
 
 Future<void> showGlobalEditProfileDialog(
@@ -1268,11 +1007,13 @@ Future<void> showGlobalEditProfileDialog(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 40,
-                    offset: const Offset(0, 10))
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 40,
+                  offset: const Offset(0, 20),
+                )
               ],
             ),
             child: SingleChildScrollView(
@@ -1566,11 +1307,13 @@ Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 40,
-                    offset: const Offset(0, 10))
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 40,
+                  offset: const Offset(0, 20),
+                )
               ],
             ),
             child: SingleChildScrollView(

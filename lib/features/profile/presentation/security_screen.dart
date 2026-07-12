@@ -14,7 +14,6 @@ class SecurityScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final securityState = ref.watch(securityProvider);
     final isPinSet = securityState.isPinSet;
-    final useBiometrics = securityState.useBiometrics;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -55,17 +54,14 @@ class SecurityScreen extends ConsumerWidget {
           Text('App Lock', style: AppTextStyles.h4),
           const SizedBox(height: 16),
           _buildOptionTile(
-            icon: Icons.fingerprint_rounded,
-            title: 'Use Device Lock',
-            subtitle: 'Unlock with Face ID, Fingerprint, or PIN',
+            icon: Icons.pin_rounded,
+            title: isPinSet ? 'Change App PIN' : 'Set App PIN',
+            subtitle: 'Secure your app and sensitive data',
             color: AppColors.info,
-            trailing: Switch.adaptive(
-              value: useBiometrics,
-              activeColor: AppColors.gold,
-              onChanged: (val) {
-                ref.read(securityProvider.notifier).setUseBiometrics(val);
-              },
-            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              // TODO: Navigation to set/change PIN
+            },
           ),
 
           const SizedBox(height: 32),

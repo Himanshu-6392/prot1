@@ -47,3 +47,10 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
     error: (_, __) => const Stream.empty(),
   );
 });
+
+// ─── Fetch Specific User ───────────────────────
+final userProfileProvider = FutureProvider.family<UserModel?, String>((ref, uid) async {
+  final snap = await ref.watch(firestoreProvider).collection('users').doc(uid).get();
+  if (!snap.exists) return null;
+  return UserModel.fromMap(snap.data()!, snap.id);
+});

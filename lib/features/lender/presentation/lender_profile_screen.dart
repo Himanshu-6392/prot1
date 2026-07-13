@@ -384,7 +384,7 @@ class _LenderProfileBody extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(c);
-              context.push('/profile/kyc');
+              context.push('/kyc');
             },
             child: Text('Verify Now',
                 style: AppTextStyles.bodyMedium.copyWith(

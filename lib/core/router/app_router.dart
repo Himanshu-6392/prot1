@@ -46,6 +46,7 @@ import '../../features/subscription/presentation/plans_screen.dart';
 // ─── Notifications ───────────────────────────
 import '../../features/notifications/presentation/notifications_screen.dart';
 
+import '../../features/profile/presentation/kyc_verification_screen.dart';
 // ─── Admin ───────────────────────────────────
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
@@ -99,7 +100,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (c, s) =>
                   const LenderDashboard()), // Kept for direct linking if needed
           GoRoute(
-              path: '/search', builder: (c, s) => const LenderSearchScreen()),
+              path: '/search', builder: (c, s) => const SearchRouter()),
           GoRoute(path: '/chat', builder: (c, s) => const ChatListScreen()),
           GoRoute(
               path: '/notifications',
@@ -137,7 +138,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ─── Chat ─────────────────────────────
       GoRoute(
         path: '/chat/:roomId',
-        builder: (c, s) => ChatRoomScreen(roomId: s.pathParameters['roomId']!),
+        builder: (c, s) => ChatRoomScreen(
+          roomId: s.pathParameters['roomId']!,
+          peerUser: s.extra as UserModel?,
+        ),
       ),
 
       // ─── Collateral ───────────────────────
@@ -161,6 +165,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ─── Admin ────────────────────────────
       GoRoute(path: '/admin', builder: (c, s) => const AdminDashboardScreen()),
       GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
+      GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
@@ -184,13 +189,50 @@ class DashboardRouter extends ConsumerWidget {
 
     return userAsync.when(
       data: (user) {
-        // Universal dashboard that adapts its UI based on the user's role
+        if (user == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        if (user.role == UserRole.lender) {
+          return const LenderDashboard();
+        }
         return const BorrowerDashboard();
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (_, __) => const BorrowerDashboard(),
+    );
+  }
+}
+
+// ─── Search Router ───────────────────────────
+class SearchRouter extends ConsumerWidget {
+  const SearchRouter({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      data: (user) {
+        if (user == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        if (user.role == UserRole.lender) {
+          return const BorrowerSearchScreen();
+        }
+        return const LenderSearchScreen();
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const LenderSearchScreen(),
     );
   }
 }

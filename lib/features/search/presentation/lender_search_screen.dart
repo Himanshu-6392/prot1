@@ -215,7 +215,9 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
 
                     // Client-side filtering
                     docs = docs.where((d) {
+                      if (d.id.startsWith('dummy_')) return false; // HIDE DUMMY LENDERS
                       final data = d.data() as Map<String, dynamic>;
+                      if (data['businessName']?.toString().toLowerCase() == 'test') return false; // HIDE TEST OFFERS
                       if (data['isActive'] != true) return false;
                       if (_filterCity != null && data['city'] != _filterCity) return false;
                       if (_verifiedOnly && data['isVerified'] != true) return false;

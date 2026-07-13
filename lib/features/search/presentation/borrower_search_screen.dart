@@ -217,6 +217,7 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                     // Client-side filtering
                     docs = docs.where((d) {
                       final data = d.data() as Map<String, dynamic>;
+                      if (data['borrowerName'] == 'Test User') return false; // HIDE DEMO REQUESTS
                       final status = data['status'] ?? LoanRequestStatus.open.name;
                       if (status != LoanRequestStatus.open.name) return false;
                       if (_filterCity != null && data['borrowerCity'] != _filterCity) return false;

@@ -8,6 +8,7 @@ import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../models/user_model.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/match_model.dart';
 
@@ -88,7 +89,7 @@ class ChatListScreen extends ConsumerWidget {
   }
 }
 
-class _ChatTile extends StatelessWidget {
+class _ChatTile extends ConsumerWidget {
   final MatchModel match;
   final String peerId;
   final bool isLender;
@@ -96,53 +97,67 @@ class _ChatTile extends StatelessWidget {
       {required this.match, required this.peerId, required this.isLender});
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          gradient:
-              isLender ? AppColors.emeraldGradient : AppColors.goldGradient,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Center(
-            child: Icon(
-          isLender
-              ? Icons.account_balance_wallet_rounded
-              : Icons.savings_rounded,
-          color: Colors.white,
-          size: 22,
-        )),
-      ),
-      title: Text(isLender ? 'Borrower' : 'Lender',
-          style: AppTextStyles.labelLarge),
-      subtitle: Text(peerId.substring(0, 12) + '...',
-          style: AppTextStyles.caption,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(AppFormatters.formatRelative(match.updatedAt),
-              style: AppTextStyles.caption),
-          if (match.status == MatchStatus.pending) ...[
-            SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4)),
-              child: Text('Pending',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.gold, fontSize: 10)),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final peerAsync = ref.watch(userProfileProvider(peerId));
+
+    return peerAsync.when(
+      data: (peer) {
+        final name = peer?.name ?? (isLender ? 'Borrower' : 'Lender');
+        final dp = peer?.photoUrl;
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: dp == null ? (isLender ? AppColors.emeraldGradient : AppColors.goldGradient) : null,
+              borderRadius: BorderRadius.circular(14),
+              image: dp != null ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover) : null,
             ),
-          ],
-        ],
+            child: dp == null ? Center(
+                child: Icon(
+              isLender
+                  ? Icons.account_balance_wallet_rounded
+                  : Icons.savings_rounded,
+              color: Colors.white,
+              size: 22,
+            )) : null,
+          ),
+          title: Text(name, style: AppTextStyles.labelLarge),
+          subtitle: Text(isLender ? 'Borrower' : 'Lender',
+              style: AppTextStyles.caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(AppFormatters.formatRelative(match.updatedAt),
+                  style: AppTextStyles.caption),
+              if (match.status == MatchStatus.pending) ...[
+                SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: AppColors.gold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Text('Pending',
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.gold, fontSize: 10)),
+                ),
+              ],
+            ],
+          ),
+          onTap: () => context.push('/chat/${match.chatRoomId}', extra: peer),
+        );
+      },
+      loading: () => const ListTile(
+        title: Text('Loading...'),
       ),
-      onTap: () => context.push('/chat/${match.chatRoomId}'),
+      error: (_, __) => const ListTile(
+        title: Text('Error loading user'),
+      ),
     );
   }
 }
@@ -152,7 +167,8 @@ class _ChatTile extends StatelessWidget {
 // ─────────────────────────────────────────────────────
 class ChatRoomScreen extends ConsumerStatefulWidget {
   final String roomId;
-  const ChatRoomScreen({super.key, required this.roomId});
+  final UserModel? peerUser;
+  const ChatRoomScreen({super.key, required this.roomId, this.peerUser});
   @override
   ConsumerState<ChatRoomScreen> createState() => _ChatRoomScreenState();
 }
@@ -182,7 +198,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       'content': text,
       'type': MessageType.text.name,
       'isRead': false,
-      'sentAt': DateTime.now(),
+      'sentAt': FieldValue.serverTimestamp(),
     });
 
     setState(() => _sending = false);
@@ -196,11 +212,30 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Chat'),
-          Text('Room: ${widget.roomId.substring(0, 12)}...',
-              style: AppTextStyles.caption),
-        ]),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            if (widget.peerUser?.photoUrl != null) ...[
+              CircleAvatar(
+                radius: 16,
+                backgroundImage: NetworkImage(widget.peerUser!.photoUrl!),
+              ),
+              const SizedBox(width: 12),
+            ] else ...[
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.emerald,
+                child: Icon(Icons.person_rounded, size: 18, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.peerUser?.name ?? 'Private Message', style: AppTextStyles.h3.copyWith(fontSize: 16)),
+              if (widget.peerUser != null)
+                Text('Online', style: AppTextStyles.caption.copyWith(color: AppColors.emerald)),
+            ]),
+          ],
+        ),
         actions: [
           IconButton(
               icon: Icon(Icons.more_vert_rounded),

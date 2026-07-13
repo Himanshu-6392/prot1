@@ -24,7 +24,7 @@ import '../../../models/user_model.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
 import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/glass_widgets.dart';
-
+import '../../../core/widgets/app_widgets.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -459,12 +459,107 @@ class _ProfileCompletionBar extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   final UserModel? user;
   const _StatsRow({this.user});
 
+  Future<void> _switchRole(BuildContext context, WidgetRef ref) async {
+    if (user == null) return;
+    final currentRole = user!.role;
+    // Allow switching between lender and borrower
+    final newRole = currentRole == UserRole.lender ? UserRole.borrower : UserRole.lender;
+
+    final confirm = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Icon(Icons.swap_horiz_rounded, color: AppColors.gold, size: 48),
+            const SizedBox(height: 16),
+            Text('Switch Role', style: AppTextStyles.h2),
+            const SizedBox(height: 8),
+            Text(
+              'Are you sure you want to switch your role to ${newRole.name.toUpperCase()}?',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text('Cancel', style: AppTextStyles.button.copyWith(color: AppColors.textPrimary)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: AppButton(
+                    label: 'Switch to ${newRole.name}',
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(firestoreProvider).collection('users').doc(user!.uid).update({
+          'role': newRole.name,
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Role switched to ${newRole.name}!'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to switch role: $e'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -474,6 +569,7 @@ class _StatsRow extends StatelessWidget {
             label: 'Role',
             icon: Icons.badge_rounded,
             color: AppColors.gold,
+            onTap: () => _switchRole(context, ref),
           ),
           const SizedBox(width: 12),
           _MiniStat(
@@ -509,34 +605,40 @@ class _MiniStat extends StatelessWidget {
   final String value, label;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _MiniStat({
     required this.value,
     required this.label,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: NeumorphicContainer(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: NeumorphicContainer(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
               ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(value, style: AppTextStyles.h4.copyWith(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(label, style: AppTextStyles.caption),
-          ],
+              const SizedBox(height: 12),
+              Text(value, style: AppTextStyles.h4.copyWith(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(label, style: AppTextStyles.caption),
+            ],
+          ),
         ),
       ),
     );
@@ -549,18 +651,33 @@ class _KycStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVerified = user?.kycStatus == KycStatus.verified;
-    final color = isVerified ? AppColors.success : AppColors.warning;
-    final icon = isVerified ? Icons.verified_rounded : Icons.pending_rounded;
-    final msg = isVerified
-        ? 'Your identity has been verified successfully.'
-        : 'Complete KYC to unlock full platform access.';
+    final status = user?.kycStatus ?? KycStatus.pending;
+    final isVerified = status == KycStatus.verified;
+    final isSubmitted = status == KycStatus.submitted;
+    
+    final color = isVerified ? AppColors.success : (isSubmitted ? AppColors.info : AppColors.warning);
+    final icon = isVerified ? Icons.verified_rounded : (isSubmitted ? Icons.hourglass_top_rounded : Icons.pending_rounded);
+    
+    String title = 'KYC Pending';
+    String msg = 'Complete KYC to unlock full platform access.';
+    if (isVerified) {
+      title = 'KYC Verified';
+      msg = 'Your identity has been verified successfully.';
+    } else if (isSubmitted) {
+      title = 'KYC Under Review';
+      msg = 'Your documents are currently being verified by an admin.';
+    } else if (status == KycStatus.rejected) {
+      title = 'KYC Rejected';
+      msg = 'Your KYC was rejected. Please resubmit your documents.';
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
         onTap: () {
-          if (!isVerified) context.push('/kyc');
+          if (status == KycStatus.pending || status == KycStatus.rejected) {
+            context.push('/kyc');
+          }
         },
         child: NeumorphicContainer(
           padding: const EdgeInsets.all(20),
@@ -579,14 +696,14 @@ class _KycStatusCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isVerified ? 'KYC Verified' : 'KYC Pending',
-                        style: AppTextStyles.h3),
+                    Text(title, style: AppTextStyles.h3),
                     const SizedBox(height: 4),
                     Text(msg, style: AppTextStyles.bodySmall),
                   ],
                 ),
               ),
-              if (!isVerified) Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+              if (status == KycStatus.pending || status == KycStatus.rejected) 
+                Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
             ],
           ),
         ),

@@ -124,17 +124,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                   SliverToBoxAdapter(child: _NearbyLendersRow()),
                 ],
 
-                // ─── Borrowers Near You ────────────
-                if (user?.role != UserRole.borrower) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                      child: SectionHeader(
-                          title: 'Borrowers Near You', onSeeAll: () {}),
-                    ),
-                  ),
-                  SliverToBoxAdapter(child: _BorrowersNearYouRow()),
-                ],
+
 
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
@@ -185,19 +175,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
           ),
 
-          // Theme toggle
-          IconButton(
-            onPressed: () => AppColors.toggleTheme(context),
-            icon: Icon(
-              AppColors.isDarkMode
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-              color: AppColors.textSecondary,
-              size: 24,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          ),
+
           const SizedBox(width: 16),
           // Avatar
           GestureDetector(
@@ -590,7 +568,7 @@ class _QuickActions extends ConsumerWidget {
               TextButton(
                 onPressed: () {
                   Navigator.pop(c);
-                  context.push('/profile/kyc');
+                  context.push('/kyc');
                 },
                 child: Text('Verify Now',
                     style: AppTextStyles.bodyMedium.copyWith(
@@ -699,80 +677,7 @@ class _QuickActionBtn extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────
-Future<void> _seedDemoRequests(String userId) async {
-  final firestore = FirebaseFirestore.instance;
-  final now = Timestamp.now();
 
-  final demos = [
-    {
-      'borrowerId': userId,
-      'borrowerName': 'Test User',
-      'borrowerCity': 'Mumbai',
-      'loanAmount': 150000.0,
-      'collateralType': 'Gold',
-      'collateralValue': 200000.0,
-      'maxInterestRatePerMonth': 1.5,
-      'tenureMonths': 12,
-      'description':
-          'Need funds for home renovation. Have gold jewellery as collateral.',
-      'isVerified': true,
-      'status': 'open',
-      'collateralPhotoUrls': [],
-      'savedByLenderIds': [],
-      'borrowerRating': 4.5,
-      'createdAt': now,
-      'expiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
-    },
-    {
-      'borrowerId': userId,
-      'borrowerName': 'Test User',
-      'borrowerCity': 'Delhi',
-      'loanAmount': 75000.0,
-      'collateralType': 'Electronics',
-      'collateralValue': 90000.0,
-      'maxInterestRatePerMonth': 2.0,
-      'tenureMonths': 6,
-      'description': 'Medical emergency. MacBook Pro 2023 as collateral.',
-      'isVerified': false,
-      'status': 'matched',
-      'collateralPhotoUrls': [],
-      'savedByLenderIds': [],
-      'borrowerRating': null,
-      'createdAt':
-          Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 5))),
-      'expiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 25))),
-    },
-    {
-      'borrowerId': userId,
-      'borrowerName': 'Test User',
-      'borrowerCity': 'Bangalore',
-      'loanAmount': 300000.0,
-      'collateralType': 'Property',
-      'collateralValue': 1500000.0,
-      'maxInterestRatePerMonth': 1.2,
-      'tenureMonths': 24,
-      'description': 'Business expansion loan. Clear property title available.',
-      'isVerified': true,
-      'status': 'accepted',
-      'collateralPhotoUrls': [],
-      'savedByLenderIds': [],
-      'borrowerRating': 4.8,
-      'createdAt':
-          Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 10))),
-      'expiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 20))),
-    },
-  ];
-
-  final batch = firestore.batch();
-  for (final data in demos) {
-    final doc = firestore.collection(AppConstants.colRequests).doc();
-    batch.set(doc, data);
-  }
-  await batch.commit();
-}
 
 class _MyRequestsSliver extends ConsumerWidget {
   final String userId;
@@ -797,6 +702,10 @@ class _MyRequestsSliver extends ConsumerWidget {
             ]);
           }
           var docs = snap.data!.docs.toList();
+          docs = docs.where((d) {
+            final data = d.data() as Map<String, dynamic>;
+            return data['borrowerName'] != 'Test User';
+          }).toList();
           docs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
@@ -833,20 +742,6 @@ class _MyRequestsSliver extends ConsumerWidget {
                         width: 200),
                   ),
                   const SizedBox(height: 12),
-                  // Demo seed button for testing
-                  OutlinedButton.icon(
-                    onPressed: () => _seedDemoRequests(userId),
-                    icon: const Icon(Icons.science_outlined, size: 16),
-                    label: const Text('Load Demo Data'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textMuted,
-                      side: BorderSide(color: AppColors.border),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
                 ],
               ),
             );
@@ -1106,6 +1001,11 @@ class _NearbyLendersRow extends ConsumerWidget {
           );
         }
         var docs = snap.data!.docs.toList();
+        docs = docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return data['businessName']?.toString().toLowerCase() != 'test';
+        }).toList();
+
         docs.sort((a, b) {
           final aFeat =
               (a.data() as Map<String, dynamic>)['isFeatured'] == true ? 1 : 0;
@@ -1114,6 +1014,14 @@ class _NearbyLendersRow extends ConsumerWidget {
           return bFeat.compareTo(aFeat);
         });
         if (docs.length > 6) docs = docs.sublist(0, 6);
+
+        if (docs.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Text('No lenders available near you right now.',
+                style: TextStyle(color: Colors.grey)),
+          );
+        }
 
         return SizedBox(
           height: 180,
@@ -1179,123 +1087,4 @@ class _NearbyLendersRow extends ConsumerWidget {
   }
 }
 
-// ──────────────────────────────────────────────
-class _BorrowersNearYouRow extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: 'borrower')
-          .limit(6)
-          .snapshots(),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return SizedBox(
-            height: 170,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, __) =>
-                  ShimmerBox(width: 160, height: 160, borderRadius: 16),
-            ),
-          );
-        }
 
-        final docs = snap.data!.docs;
-        if (docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Text('No borrowers near you.',
-                style: TextStyle(color: Colors.grey)),
-          );
-        }
-
-        return SizedBox(
-          height: 180,
-          child: ListView.separated(
-            clipBehavior: Clip.none,
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 24, right: 24),
-            itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
-              final name = data['name'] ?? 'Borrower';
-              final city = data['city'] ?? 'Unknown City';
-              final rating = data['rating']?.toString() ?? 'New';
-
-              return NeumorphicContainer(
-                width: 160,
-                padding: const EdgeInsets.all(14),
-                borderRadius: 24,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: AppColors.gold.withOpacity(0.2),
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'L',
-                        style: AppTextStyles.h2.copyWith(color: AppColors.gold),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      name,
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.location_on_rounded,
-                            color: AppColors.textMuted, size: 12),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            city,
-                            style: AppTextStyles.caption.copyWith(fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.star_rounded,
-                              color: AppColors.gold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(rating,
-                              style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.gold,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-}

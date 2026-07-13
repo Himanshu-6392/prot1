@@ -152,18 +152,7 @@ class _LenderHeader extends ConsumerWidget {
               ],
             ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
           ),
-          IconButton(
-            onPressed: () => AppColors.toggleTheme(context),
-            icon: Icon(
-              AppColors.isDarkMode
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-              color: AppColors.textSecondary,
-              size: 24,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          ),
+
           const SizedBox(width: 16),
           GestureDetector(
             onTap: () => context.push('/profile'),
@@ -582,6 +571,7 @@ class _IncomingRequestsSliver extends ConsumerWidget {
           final docs = allDocs
               .where((d) {
                 final data = d.data() as Map<String, dynamic>;
+                if (data['borrowerName'] == 'Test User') return false; // HIDE DEMO REQUESTS
                 final status = data['status'] ?? 'open';
                 return status == 'open';
               })

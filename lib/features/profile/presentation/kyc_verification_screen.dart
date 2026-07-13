@@ -10,6 +10,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dotted_border/dotted_border.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../../../models/user_model.dart';
+import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/glass_widgets.dart';
 
 class KycVerificationScreen extends ConsumerStatefulWidget {
   const KycVerificationScreen({super.key});
@@ -96,8 +99,8 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
 
       // Update Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'kycStatus': 'verified', // Auto-verify for testing
-        'isVerified': true,
+        'kycStatus': KycStatus.submitted.name,
+        'isVerified': false,
         'kycDocuments': {
           'aadhaarFront': aadhaarFrontUrl,
           'aadhaarBack': aadhaarBackUrl,
@@ -110,8 +113,8 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('KYC Verified successfully! 🎉'),
-          backgroundColor: AppColors.success,
+          content: const Text('KYC Submitted! Pending Admin Approval ⏳'),
+          backgroundColor: AppColors.info,
           behavior: SnackBarBehavior.floating,
         ));
         context.pop();
@@ -144,37 +147,66 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           Text(title,
               style: AppTextStyles.bodyMedium
                   .copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          DottedBorder(
-            color: AppColors.gold,
-            strokeWidth: 2,
-            dashPattern: const [8, 4],
-            borderType: BorderType.RRect,
-            radius: const Radius.circular(16),
-            child: Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 12),
+          NeumorphicContainer(
+            padding: EdgeInsets.zero,
+            child: DottedBorder(
+              color: file != null ? AppColors.emerald : AppColors.gold.withValues(alpha: 0.3),
+              strokeWidth: 2,
+              dashPattern: const [8, 4],
+              borderType: BorderType.RRect,
+              radius: const Radius.circular(16),
+              child: Container(
+                width: double.infinity,
+                height: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: file != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.file(file,
+                                fit: BoxFit.cover, width: double.infinity),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.emerald,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check, color: Colors.white, size: 16),
+                            ).animate().scale(),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.gold.withValues(alpha: 0.05),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.cloud_upload_outlined,
+                                color: AppColors.gold, size: 32),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('Tap to browse',
+                              style: AppTextStyles.button.copyWith(color: AppColors.gold)),
+                          const SizedBox(height: 4),
+                          Text('Supports JPG, PNG (Max 5MB)',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.textMuted)),
+                        ],
+                      ),
               ),
-              child: file != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(file,
-                          fit: BoxFit.cover, width: double.infinity),
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.cloud_upload_rounded,
-                            color: AppColors.gold, size: 32),
-                        const SizedBox(height: 8),
-                        Text('Tap to upload',
-                            style: AppTextStyles.caption
-                                .copyWith(color: AppColors.textMuted)),
-                      ],
-                    ),
             ),
           ),
         ],
@@ -187,8 +219,10 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('KYC Verification', style: AppTextStyles.h3),
-        backgroundColor: AppColors.surface,
+        title: Text('Identity Verification', style: AppTextStyles.h3),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
@@ -199,29 +233,52 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.gold.withValues(alpha: 0.1),
+            Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.gold.withValues(alpha: 0.05),
+                    ),
+                  ).animate(onPlay: (c) => c.repeat()).scale(
+                      duration: 2.seconds, begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)).fade(end: 0),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.goldGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.gold.withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.shield_outlined,
+                        size: 40, color: Colors.white),
+                  ),
+                ],
               ),
-              child: Icon(Icons.verified_user_rounded,
-                  size: 48, color: AppColors.gold),
             ).animate().scale(
                 delay: 50.ms, duration: 400.ms, curve: Curves.easeOutBack),
-            const SizedBox(height: 16),
-            Text('Upload Documents',
+            const SizedBox(height: 24),
+            Text('Secure KYC',
                     style: AppTextStyles.h2, textAlign: TextAlign.center)
                 .animate()
-                .fadeIn(delay: 100.ms),
+                .fadeIn(delay: 100.ms).slideY(begin: 0.1),
             const SizedBox(height: 8),
-            Text('Please upload clear images of your Aadhaar and PAN card to verify your identity.',
+            Text('Your documents are encrypted and securely stored. We need them to verify your identity before you can lend or borrow.',
                     style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textMuted),
+                        .copyWith(color: AppColors.textMuted, height: 1.5),
                     textAlign: TextAlign.center)
                 .animate()
-                .fadeIn(delay: 150.ms),
-            const SizedBox(height: 32),
+                .fadeIn(delay: 150.ms).slideY(begin: 0.1),
+            const SizedBox(height: 40),
             _buildUploadBox(
               title: 'Aadhaar Card (Front)',
               file: _aadhaarFront,
@@ -241,37 +298,28 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
             ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
             const SizedBox(height: 48),
             if (_isUploading) ...[
-              LinearProgressIndicator(
-                value: _uploadProgress,
-                backgroundColor: AppColors.surfaceAlt,
-                color: AppColors.gold,
+              Text('Encrypting and Uploading...', style: AppTextStyles.caption.copyWith(color: AppColors.gold, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              const SizedBox(height: 16),
-              Text('Uploading documents... ${(_uploadProgress * 100).toInt()}%',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.caption.copyWith(color: AppColors.gold)),
-              const SizedBox(height: 32),
-            ],
-            GestureDetector(
-              onTap: _isUploading ? null : _submitKyc,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: AppColors.gold.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4))
-                  ],
+                child: LinearProgressIndicator(
+                  value: _uploadProgress,
+                  backgroundColor: AppColors.surfaceHigh,
+                  color: AppColors.gold,
+                  minHeight: 8,
                 ),
-                alignment: Alignment.center,
-                child: Text('Submit for Verification',
-                    style: AppTextStyles.h4.copyWith(color: Colors.white)),
               ),
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+            ] else
+              AppButton(
+                label: 'Submit Documents',
+                icon: const Icon(Icons.lock_outline, size: 18),
+                onPressed: (_aadhaarFront == null ||
+                        _aadhaarBack == null ||
+                        _panCard == null)
+                    ? null
+                    : _submitKyc,
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
+            const SizedBox(height: 24),
           ],
         ),
       ),

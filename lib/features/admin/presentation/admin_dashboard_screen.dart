@@ -12,6 +12,7 @@ import '../../../core/providers/admin_stats_provider.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../main.dart';
+import 'admin_kyc_review_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -567,66 +568,89 @@ class _PendingUserRowState extends State<_PendingUserRow> {
     }
   }
 
+  void _navigateToKycReview(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => AdminKycReviewScreen(
+        uid: widget.uid,
+        userData: widget.data,
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.data['name'] ?? 'Unknown';
     final email = widget.data['email'] ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final isKyc = widget.type == _PendingType.kyc;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User info row
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.1),
-                    shape: BoxShape.circle),
-                child: Center(
-                  child: Text(initial,
-                      style: AppTextStyles.labelMedium
-                          .copyWith(fontWeight: FontWeight.w800)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name,
+    return GestureDetector(
+      onTap: isKyc ? () => _navigateToKycReview(context) : null,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User info row
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: AppColors.gold.withOpacity(0.1),
+                      shape: BoxShape.circle),
+                  child: Center(
+                    child: Text(initial,
                         style: AppTextStyles.labelMedium
-                            .copyWith(color: AppColors.textPrimary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    Text(email,
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.textMuted),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ],
+                            .copyWith(fontWeight: FontWeight.w800)),
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          style: AppTextStyles.labelMedium
+                              .copyWith(color: AppColors.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      Text(email,
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                if (_loading)
+                  const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                else if (isKyc)
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      size: 14, color: AppColors.textMuted),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Action buttons (differ by type; KYC goes to detail screen)
+            if (!_loading && !isKyc) ..._buildActions(),
+            // For KYC: show a subtle hint
+            if (isKyc)
+              Text(
+                'Tap to review documents',
+                style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textMuted, fontStyle: FontStyle.italic),
               ),
-              if (_loading)
-                const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Action buttons (differ by type)
-          if (!_loading) ..._buildActions(),
-        ],
+          ],
+        ),
       ),
     );
   }

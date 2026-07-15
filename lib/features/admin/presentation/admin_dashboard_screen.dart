@@ -17,7 +17,6 @@ class AdminDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // ─── Subtle Theme Background (Matching Search Screen) ───
@@ -56,23 +55,45 @@ class AdminDashboardScreen extends ConsumerWidget {
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  expandedHeight: 80,
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16, right: 20),
-                    title: Text('Admin Command Center',
-                        style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary, fontSize: 20)),
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: Icon(Icons.settings, color: AppColors.textSecondary),
-                      onPressed: () => _showSettings(context, ref),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 8, 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Admin',
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: AppColors.textMuted,
+                                  letterSpacing: 1.5,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Command Center',
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.settings_outlined,
+                              color: AppColors.textSecondary, size: 22),
+                          onPressed: () => _showSettings(context, ref),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                  ],
+                  ),
                 ),
 
                 // Stats Row

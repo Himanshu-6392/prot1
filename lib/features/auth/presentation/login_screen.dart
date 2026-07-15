@@ -74,7 +74,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           });
           if (mounted) context.go('/');
           return;
-        } catch (_) {} // Ignore fallback failure and fall through to error msg
+        } on FirebaseAuthException catch (createErr) {
+          // Account already exists in Firebase Auth but password is wrong
+          if (createErr.code == 'email-already-in-use') {
+            setState(() {
+              _loading = false;
+              _errorMsg =
+                  'Admin account exists but the password is incorrect. '
+                  'Please reset it in Firebase Console → Authentication.';
+            });
+            return;
+          }
+          // Any other creation error — fall through to generic message
+        }
       }
       // ─────────────────────────────────────
 

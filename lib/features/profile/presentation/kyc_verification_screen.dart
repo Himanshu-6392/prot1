@@ -151,7 +151,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           NeumorphicContainer(
             padding: EdgeInsets.zero,
             child: DottedBorder(
-              color: file != null ? AppColors.emerald : AppColors.gold.withValues(alpha: 0.3),
+              color: file != null
+                  ? AppColors.emerald
+                  : AppColors.gold.withValues(alpha: 0.3),
               strokeWidth: 2,
               dashPattern: const [8, 4],
               borderType: BorderType.RRect,
@@ -180,7 +182,8 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                                 color: AppColors.emerald,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check, color: Colors.white, size: 16),
+                              child: const Icon(Icons.check,
+                                  color: Colors.white, size: 16),
                             ).animate().scale(),
                           ),
                         ],
@@ -199,7 +202,8 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text('Tap to browse',
-                              style: AppTextStyles.button.copyWith(color: AppColors.gold)),
+                              style: AppTextStyles.button
+                                  .copyWith(color: AppColors.gold)),
                           const SizedBox(height: 4),
                           Text('Supports JPG, PNG (Max 5MB)',
                               style: AppTextStyles.caption
@@ -244,8 +248,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                       shape: BoxShape.circle,
                       color: AppColors.gold.withValues(alpha: 0.05),
                     ),
-                  ).animate(onPlay: (c) => c.repeat()).scale(
-                      duration: 2.seconds, begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)).fade(end: 0),
+                  )
+                      .animate(onPlay: (c) => c.repeat())
+                      .scale(
+                          duration: 2.seconds,
+                          begin: const Offset(0.8, 0.8),
+                          end: const Offset(1.2, 1.2))
+                      .fade(end: 0),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -270,14 +279,16 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
             Text('Secure KYC',
                     style: AppTextStyles.h2, textAlign: TextAlign.center)
                 .animate()
-                .fadeIn(delay: 100.ms).slideY(begin: 0.1),
+                .fadeIn(delay: 100.ms)
+                .slideY(begin: 0.1),
             const SizedBox(height: 8),
             Text('Your documents are encrypted and securely stored. We need them to verify your identity before you can lend or borrow.',
                     style: AppTextStyles.bodyMedium
                         .copyWith(color: AppColors.textMuted, height: 1.5),
                     textAlign: TextAlign.center)
                 .animate()
-                .fadeIn(delay: 150.ms).slideY(begin: 0.1),
+                .fadeIn(delay: 150.ms)
+                .slideY(begin: 0.1),
             const SizedBox(height: 40),
             _buildUploadBox(
               title: 'Aadhaar Card (Front)',
@@ -298,7 +309,10 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
             ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
             const SizedBox(height: 48),
             if (_isUploading) ...[
-              Text('Encrypting and Uploading...', style: AppTextStyles.caption.copyWith(color: AppColors.gold, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+              Text('Encrypting and Uploading...',
+                  style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gold, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center),
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),

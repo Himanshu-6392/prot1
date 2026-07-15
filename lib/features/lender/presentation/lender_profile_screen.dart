@@ -68,7 +68,8 @@ class LenderProfileScreen extends ConsumerWidget {
               }
               final lender = LenderModel.fromMap(
                   snap.data!.data() as Map<String, dynamic>, snap.data!.id);
-              return _LenderProfileBody(lender: lender, ref: ref, context: context);
+              return _LenderProfileBody(
+                  lender: lender, ref: ref, context: context);
             },
           ),
         ],
@@ -118,7 +119,9 @@ class _LenderProfileBody extends StatelessWidget {
                       decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: AppColors.goldGradient,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 2),
                           boxShadow: [
                             BoxShadow(
                                 color: AppColors.gold.withValues(alpha: 0.3),
@@ -133,15 +136,22 @@ class _LenderProfileBody extends StatelessWidget {
                         style: AppTextStyles.displaySmall
                             .copyWith(color: Colors.white),
                       )),
-                    ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
+                    ).animate().scale(
+                        delay: 100.ms,
+                        duration: 400.ms,
+                        curve: Curves.easeOutBack),
                     SizedBox(height: 12),
-                    Text(lender.businessName, style: AppTextStyles.h2).animate().fadeIn(delay: 200.ms),
+                    Text(lender.businessName, style: AppTextStyles.h2)
+                        .animate()
+                        .fadeIn(delay: 200.ms),
                     SizedBox(height: 2),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.location_on_rounded,
                           color: AppColors.textMuted, size: 14),
                       SizedBox(width: 4),
-                      Text(lender.city, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600)),
+                      Text(lender.city,
+                          style: AppTextStyles.caption
+                              .copyWith(fontWeight: FontWeight.w600)),
                       SizedBox(width: 8),
                       if (lender.isVerified) VerifiedBadge(small: true),
                     ]).animate().fadeIn(delay: 300.ms),
@@ -170,7 +180,8 @@ class _LenderProfileBody extends StatelessWidget {
                     _GlassStatCard(
                         icon: Icons.account_balance_wallet_rounded,
                         label: 'Capital',
-                        value: AppFormatters.formatINRCompact(lender.availableCapital),
+                        value: AppFormatters.formatINRCompact(
+                            lender.availableCapital),
                         color: AppColors.gold),
                     _GlassStatCard(
                         icon: Icons.percent_rounded,
@@ -188,7 +199,10 @@ class _LenderProfileBody extends StatelessWidget {
                         value: lender.rating.toStringAsFixed(1),
                         color: AppColors.warning),
                   ],
-                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, duration: 400.ms),
+                )
+                    .animate()
+                    .fadeIn(delay: 100.ms)
+                    .slideY(begin: 0.1, duration: 400.ms),
 
                 SizedBox(height: 24),
 
@@ -200,22 +214,44 @@ class _LenderProfileBody extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.surface.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                    boxShadow: [
-                      BoxShadow(color: AppColors.glassBg, blurRadius: 10, offset: Offset(0, 4))
-                    ]
-                  ),
+                      color: AppColors.surface.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.5)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: AppColors.glassBg,
+                            blurRadius: 10,
+                            offset: Offset(0, 4))
+                      ]),
                   child: Column(
                     children: [
-                      _GlassDetailRow(icon: Icons.arrow_downward_rounded, label: 'Min Loan', value: AppFormatters.formatINR(lender.minLoanAmount)),
-                      Divider(color: AppColors.border.withValues(alpha: 0.5), height: 16),
-                      _GlassDetailRow(icon: Icons.arrow_upward_rounded, label: 'Max Loan', value: AppFormatters.formatINR(lender.maxLoanAmount)),
-                      Divider(color: AppColors.border.withValues(alpha: 0.5), height: 16),
-                      _GlassDetailRow(icon: Icons.calendar_month_rounded, label: 'Max Tenure', value: AppFormatters.formatTenure(lender.maxTenureMonths)),
-                      Divider(color: AppColors.border.withValues(alpha: 0.5), height: 16),
-                      _GlassDetailRow(icon: Icons.pie_chart_rounded, label: 'LTV Ratio', value: AppFormatters.formatLTV(lender.ltvRatio)),
+                      _GlassDetailRow(
+                          icon: Icons.arrow_downward_rounded,
+                          label: 'Min Loan',
+                          value: AppFormatters.formatINR(lender.minLoanAmount)),
+                      Divider(
+                          color: AppColors.border.withValues(alpha: 0.5),
+                          height: 16),
+                      _GlassDetailRow(
+                          icon: Icons.arrow_upward_rounded,
+                          label: 'Max Loan',
+                          value: AppFormatters.formatINR(lender.maxLoanAmount)),
+                      Divider(
+                          color: AppColors.border.withValues(alpha: 0.5),
+                          height: 16),
+                      _GlassDetailRow(
+                          icon: Icons.calendar_month_rounded,
+                          label: 'Max Tenure',
+                          value: AppFormatters.formatTenure(
+                              lender.maxTenureMonths)),
+                      Divider(
+                          color: AppColors.border.withValues(alpha: 0.5),
+                          height: 16),
+                      _GlassDetailRow(
+                          icon: Icons.pie_chart_rounded,
+                          label: 'LTV Ratio',
+                          value: AppFormatters.formatLTV(lender.ltvRatio)),
                     ],
                   ),
                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -232,13 +268,18 @@ class _LenderProfileBody extends StatelessWidget {
                   runSpacing: 10,
                   children: lender.acceptedCollateral
                       .map((c) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: AppColors.info.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                  color: AppColors.info.withValues(alpha: 0.3)),
                             ),
-                            child: Text(c, style: AppTextStyles.labelMedium.copyWith(color: AppColors.info, fontWeight: FontWeight.bold)),
+                            child: Text(c,
+                                style: AppTextStyles.labelMedium.copyWith(
+                                    color: AppColors.info,
+                                    fontWeight: FontWeight.bold)),
                           ))
                       .toList(),
                 ).animate().fadeIn(delay: 300.ms),
@@ -249,8 +290,8 @@ class _LenderProfileBody extends StatelessWidget {
                   Text('About', style: AppTextStyles.h3),
                   SizedBox(height: 8),
                   Text(lender.description!,
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary, height: 1.5)),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary, height: 1.5)),
                   SizedBox(height: 24),
                 ],
 
@@ -267,20 +308,23 @@ class _LenderProfileBody extends StatelessWidget {
                     child: Container(
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(40),
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(color: AppColors.glassBg, blurRadius: 20, offset: Offset(0, 10))
-                        ]
-                      ),
+                          color: Colors.white.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(40),
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                                color: AppColors.glassBg,
+                                blurRadius: 20,
+                                offset: Offset(0, 10))
+                          ]),
                       child: Row(
                         children: [
                           // Unlock Contact
                           Expanded(
                             flex: 4,
                             child: InkWell(
-                              onTap: () => context.push('/unlock-contact/${lender.id}'),
+                              onTap: () =>
+                                  context.push('/unlock-contact/${lender.id}'),
                               borderRadius: BorderRadius.circular(30),
                               child: Container(
                                 height: 56,
@@ -298,16 +342,31 @@ class _LenderProfileBody extends StatelessWidget {
                                         color: AppColors.surfaceAlt,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Icon(Icons.lock_outline_rounded, color: AppColors.textPrimary, size: 16),
+                                      child: Icon(Icons.lock_outline_rounded,
+                                          color: AppColors.textPrimary,
+                                          size: 16),
                                     ),
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text('Unlock Contact', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.w600)),
-                                          Text('₹${AppConstants.contactUnlockBasic}', style: AppTextStyles.h3.copyWith(fontSize: 13, fontWeight: FontWeight.w800)),
+                                          Text('Unlock Contact',
+                                              style: AppTextStyles.labelSmall
+                                                  .copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                          Text(
+                                              '₹${AppConstants.contactUnlockBasic}',
+                                              style: AppTextStyles.h3.copyWith(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w800)),
                                         ],
                                       ),
                                     ),
@@ -322,7 +381,8 @@ class _LenderProfileBody extends StatelessWidget {
                             flex: 5,
                             child: InkWell(
                               onTap: () {
-                                final currentUser = ref.read(currentUserProvider).valueOrNull;
+                                final currentUser =
+                                    ref.read(currentUserProvider).valueOrNull;
                                 if (currentUser?.isVerified != true) {
                                   _showVerificationDialog(context);
                                 } else {
@@ -333,18 +393,24 @@ class _LenderProfileBody extends StatelessWidget {
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: AppColors.emerald,
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(color: AppColors.emerald.withValues(alpha: 0.3), blurRadius: 15, offset: Offset(0, 5))
-                                  ]
-                                ),
+                                    color: AppColors.emerald,
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: AppColors.emerald
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 15,
+                                          offset: Offset(0, 5))
+                                    ]),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text('Send Request', style: AppTextStyles.h3.copyWith(color: Colors.white, fontSize: 14)),
+                                    Text('Send Request',
+                                        style: AppTextStyles.h3.copyWith(
+                                            color: Colors.white, fontSize: 14)),
                                     SizedBox(width: 6),
-                                    Icon(Icons.send_rounded, color: Colors.white, size: 16),
+                                    Icon(Icons.send_rounded,
+                                        color: Colors.white, size: 16),
                                   ],
                                 ),
                               ),
@@ -371,16 +437,14 @@ class _LenderProfileBody extends StatelessWidget {
       builder: (c) => AlertDialog(
         backgroundColor: AppColors.surfaceAlt,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Verification Required',
-            style: AppTextStyles.h3),
+        title: Text('Verification Required', style: AppTextStyles.h3),
         content: Text(
             'You must complete KYC verification before sending a loan request.',
             style: AppTextStyles.bodyMedium),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(c),
-              child: Text('Cancel',
-                  style: AppTextStyles.bodyMedium)),
+              child: Text('Cancel', style: AppTextStyles.bodyMedium)),
           TextButton(
             onPressed: () {
               Navigator.pop(c);
@@ -388,8 +452,7 @@ class _LenderProfileBody extends StatelessWidget {
             },
             child: Text('Verify Now',
                 style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.emerald,
-                    fontWeight: FontWeight.bold)),
+                    color: AppColors.emerald, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -401,20 +464,24 @@ class _GlassStatCard extends StatelessWidget {
   final IconData icon;
   final String label, value;
   final Color color;
-  const _GlassStatCard({required this.icon, required this.label, required this.value, required this.color});
+  const _GlassStatCard(
+      {required this.icon,
+      required this.label,
+      required this.value,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(color: AppColors.glassBg, blurRadius: 10, offset: Offset(0, 4))
-        ]
-      ),
+          color: AppColors.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.glassBg, blurRadius: 10, offset: Offset(0, 4))
+          ]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -430,7 +497,11 @@ class _GlassStatCard extends StatelessWidget {
                 child: Icon(icon, size: 16, color: color),
               ),
               SizedBox(width: 8),
-              Expanded(child: Text(label, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(label,
+                      style: AppTextStyles.caption
+                          .copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           Spacer(),
@@ -444,7 +515,8 @@ class _GlassStatCard extends StatelessWidget {
 class _GlassDetailRow extends StatelessWidget {
   final IconData icon;
   final String label, value;
-  const _GlassDetailRow({required this.icon, required this.label, required this.value});
+  const _GlassDetailRow(
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +531,9 @@ class _GlassDetailRow extends StatelessWidget {
           child: Icon(icon, size: 16, color: AppColors.textSecondary),
         ),
         SizedBox(width: 12),
-        Text(label, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+        Text(label,
+            style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
         Spacer(),
         Text(value, style: AppTextStyles.h3),
       ],
@@ -494,23 +568,30 @@ class _ReviewsSection extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.glassBg, blurRadius: 10, offset: Offset(0, 4))
-                  ]
-                ),
+                    color: AppColors.surface.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppColors.glassBg,
+                          blurRadius: 10,
+                          offset: Offset(0, 4))
+                    ]),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
                         CircleAvatar(
                           radius: 16,
-                          backgroundColor: AppColors.gold.withValues(alpha: 0.1),
+                          backgroundColor:
+                              AppColors.gold.withValues(alpha: 0.1),
                           child: Text(
                             (data['reviewerName'] ?? 'U')[0].toUpperCase(),
-                            style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                                color: AppColors.gold,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -523,8 +604,8 @@ class _ReviewsSection extends ConsumerWidget {
                       ]),
                       SizedBox(height: 12),
                       Text(data['comment'] ?? '',
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textSecondary, height: 1.4)),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary, height: 1.4)),
                     ]),
               );
             }),
@@ -534,4 +615,3 @@ class _ReviewsSection extends ConsumerWidget {
     );
   }
 }
-

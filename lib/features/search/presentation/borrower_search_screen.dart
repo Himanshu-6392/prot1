@@ -18,7 +18,8 @@ import '../../match/presentation/match_screen.dart';
 class BorrowerSearchScreen extends ConsumerStatefulWidget {
   const BorrowerSearchScreen({super.key});
   @override
-  ConsumerState<BorrowerSearchScreen> createState() => _BorrowerSearchScreenState();
+  ConsumerState<BorrowerSearchScreen> createState() =>
+      _BorrowerSearchScreenState();
 }
 
 class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
@@ -28,7 +29,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
   bool _verifiedOnly = false;
 
   Query<Map<String, dynamic>> get _query {
-    return FirebaseFirestore.instance.collection(AppConstants.colRequests).orderBy('createdAt', descending: true);
+    return FirebaseFirestore.instance
+        .collection(AppConstants.colRequests)
+        .orderBy('createdAt', descending: true);
   }
 
   @override
@@ -97,19 +100,24 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
+                    )
+                        .animate()
+                        .fadeIn(duration: 600.ms)
+                        .slideY(begin: 0.2, end: 0),
                   ),
                 ),
 
                 // Search Bar
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surface.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.5)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.04),
@@ -127,27 +135,35 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                             style: AppTextStyles.bodyLarge,
                             decoration: InputDecoration(
                               hintText: 'Search borrowers, cities...',
-                              hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMuted),
+                              hintStyle: AppTextStyles.bodyLarge
+                                  .copyWith(color: AppColors.textMuted),
                               prefixIcon: Padding(
                                 padding: const EdgeInsets.only(left: 8.0),
-                                child: Icon(Icons.search_rounded, color: AppColors.emerald, size: 24),
+                                child: Icon(Icons.search_rounded,
+                                    color: AppColors.emerald, size: 24),
                               ),
                               suffixIcon: _searchCtr.text.isNotEmpty
                                   ? IconButton(
-                                      icon: Icon(Icons.clear_rounded, color: AppColors.textSecondary, size: 20),
+                                      icon: Icon(Icons.clear_rounded,
+                                          color: AppColors.textSecondary,
+                                          size: 20),
                                       onPressed: () {
                                         _searchCtr.clear();
                                         setState(() {});
                                       })
                                   : null,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
                             ),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
                       ),
-                    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
+                    )
+                        .animate()
+                        .fadeIn(delay: 100.ms)
+                        .slideY(begin: 0.2, end: 0),
                   ),
                 ),
 
@@ -172,7 +188,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                         const SizedBox(width: 10),
                         // Verified Toggle Chip
                         GestureDetector(
-                          onTap: () => setState(() => _verifiedOnly = !_verifiedOnly),
+                          onTap: () =>
+                              setState(() => _verifiedOnly = !_verifiedOnly),
                           child: _buildFilterChip(
                             label: 'Verified Only',
                             icon: Icons.verified_rounded,
@@ -187,9 +204,13 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                           hint: 'Any Collateral',
                           icon: Icons.inventory_2_rounded,
                           items: AppConstants.collateralTypes,
-                          onChanged: (v) => setState(() => _filterCollateral = v),
+                          onChanged: (v) =>
+                              setState(() => _filterCollateral = v),
                         ),
-                      ].animate(interval: 50.ms).fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
+                      ]
+                          .animate(interval: 50.ms)
+                          .fadeIn(delay: 200.ms)
+                          .slideX(begin: 0.1, end: 0),
                     ),
                   ),
                 ),
@@ -217,17 +238,28 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                     // Client-side filtering
                     docs = docs.where((d) {
                       final data = d.data() as Map<String, dynamic>;
-                      if (data['borrowerName'] == 'Test User') return false; // HIDE DEMO REQUESTS
-                      final status = data['status'] ?? LoanRequestStatus.open.name;
+                      if (data['borrowerName'] == 'Test User')
+                        return false; // HIDE DEMO REQUESTS
+                      final status =
+                          data['status'] ?? LoanRequestStatus.open.name;
                       if (status != LoanRequestStatus.open.name) return false;
-                      if (_filterCity != null && data['borrowerCity'] != _filterCity) return false;
-                      if (_verifiedOnly && data['isVerified'] != true) return false;
-                      if (_filterCollateral != null && data['collateralType'] != _filterCollateral) return false;
+                      if (_filterCity != null &&
+                          data['borrowerCity'] != _filterCity) return false;
+                      if (_verifiedOnly && data['isVerified'] != true)
+                        return false;
+                      if (_filterCollateral != null &&
+                          data['collateralType'] != _filterCollateral)
+                        return false;
                       if (_searchCtr.text.isNotEmpty) {
                         final q = _searchCtr.text.toLowerCase();
-                        final name = (data['borrowerName'] ?? '').toString().toLowerCase();
-                        final city = (data['borrowerCity'] ?? '').toString().toLowerCase();
-                        if (!name.contains(q) && !city.contains(q)) return false;
+                        final name = (data['borrowerName'] ?? '')
+                            .toString()
+                            .toLowerCase();
+                        final city = (data['borrowerCity'] ?? '')
+                            .toString()
+                            .toLowerCase();
+                        if (!name.contains(q) && !city.contains(q))
+                          return false;
                       }
                       return true;
                     }).toList();
@@ -241,7 +273,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                             child: EmptyState(
                               icon: Icons.search_off_rounded,
                               title: 'No borrower requests found',
-                              subtitle: 'Try adjusting your filters or search term.',
+                              subtitle:
+                                  'Try adjusting your filters or search term.',
                               action: AppButton(
                                 label: 'Clear Filters',
                                 width: 160,
@@ -264,10 +297,15 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, i) {
                             final req = LoanRequestModel.fromMap(
-                                docs[i].data() as Map<String, dynamic>, docs[i].id);
+                                docs[i].data() as Map<String, dynamic>,
+                                docs[i].id);
                             return _AestheticBorrowerRequestCard(
                               request: req,
-                              lenderId: ref.read(currentUserProvider).valueOrNull?.uid ?? '',
+                              lenderId: ref
+                                      .read(currentUserProvider)
+                                      .valueOrNull
+                                      ?.uid ??
+                                  '',
                             )
                                 .animate(delay: Duration(milliseconds: i * 50))
                                 .fadeIn()
@@ -298,10 +336,12 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
       curve: Curves.easeOutCubic,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       decoration: BoxDecoration(
-        color: isActive ? activeColor : AppColors.surface.withValues(alpha: 0.6),
+        color:
+            isActive ? activeColor : AppColors.surface.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isActive ? activeColor : AppColors.border.withValues(alpha: 0.5),
+          color:
+              isActive ? activeColor : AppColors.border.withValues(alpha: 0.5),
         ),
         boxShadow: isActive
             ? [
@@ -316,7 +356,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: isActive ? Colors.white : AppColors.textSecondary),
+          Icon(icon,
+              size: 16,
+              color: isActive ? Colors.white : AppColors.textSecondary),
           const SizedBox(width: 8),
           Text(
             label,
@@ -341,10 +383,14 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.emerald : AppColors.surface.withValues(alpha: 0.6),
+        color: isActive
+            ? AppColors.emerald
+            : AppColors.surface.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isActive ? AppColors.emerald : AppColors.border.withValues(alpha: 0.5),
+          color: isActive
+              ? AppColors.emerald
+              : AppColors.border.withValues(alpha: 0.5),
         ),
         boxShadow: isActive
             ? [
@@ -366,7 +412,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: isActive ? Colors.white : AppColors.textSecondary),
+            Icon(icon,
+                size: 16,
+                color: isActive ? Colors.white : AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
               isActive ? value : hint,
@@ -377,12 +425,17 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
             ),
             const SizedBox(width: 8),
             Icon(Icons.keyboard_arrow_down_rounded,
-                color: isActive ? Colors.white : AppColors.textSecondary, size: 20),
+                color: isActive ? Colors.white : AppColors.textSecondary,
+                size: 20),
           ],
         ),
         itemBuilder: (context) => [
-          PopupMenuItem(value: null, child: Text('Any', style: TextStyle(color: AppColors.textSecondary))),
-          ...items.map((e) => PopupMenuItem(value: e, child: Text(e, style: AppTextStyles.labelMedium))),
+          PopupMenuItem(
+              value: null,
+              child: Text('Any',
+                  style: TextStyle(color: AppColors.textSecondary))),
+          ...items.map((e) => PopupMenuItem(
+              value: e, child: Text(e, style: AppTextStyles.labelMedium))),
         ],
       ),
     );
@@ -392,7 +445,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
 class _AestheticBorrowerRequestCard extends StatelessWidget {
   final LoanRequestModel request;
   final String lenderId;
-  const _AestheticBorrowerRequestCard({required this.request, required this.lenderId});
+  const _AestheticBorrowerRequestCard(
+      {required this.request, required this.lenderId});
 
   @override
   Widget build(BuildContext context) {
@@ -443,15 +497,19 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.surface,
-                            border: Border.all(color: AppColors.surface, width: 2),
+                            border:
+                                Border.all(color: AppColors.surface, width: 2),
                           ),
                           child: Center(
                             child: Text(
-                              request.borrowerName.isNotEmpty ? request.borrowerName[0].toUpperCase() : 'B',
+                              request.borrowerName.isNotEmpty
+                                  ? request.borrowerName[0].toUpperCase()
+                                  : 'B',
                               style: AppTextStyles.h2.copyWith(
                                 foreground: Paint()
                                   ..shader = AppColors.emeraldGradient
-                                      .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+                                      .createShader(const Rect.fromLTWH(
+                                          0.0, 0.0, 50.0, 50.0)),
                               ),
                             ),
                           ),
@@ -479,16 +537,20 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
                                 ),
                                 if (request.isVerified) ...[
                                   const SizedBox(width: 6),
-                                  Icon(Icons.verified_rounded, color: AppColors.info, size: 20),
+                                  Icon(Icons.verified_rounded,
+                                      color: AppColors.info, size: 20),
                                 ],
                               ],
                             ),
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Icon(Icons.location_on_rounded, color: AppColors.textMuted, size: 14),
+                                Icon(Icons.location_on_rounded,
+                                    color: AppColors.textMuted, size: 14),
                                 const SizedBox(width: 4),
-                                Text(request.borrowerCity, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                Text(request.borrowerCity,
+                                    style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.textSecondary)),
                               ],
                             ),
                           ],
@@ -501,28 +563,40 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
 
                   // Stats Grid with Modern Aesthetic
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: AppColors.bg.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildStatColumn('Req. Amount', AppFormatters.formatINRCompact(request.loanAmount), Icons.account_balance_wallet_rounded, AppColors.emerald),
-                        _buildStatColumn('Max Int.', '${request.maxInterestRatePerMonth}%', Icons.percent_rounded, AppColors.warning),
-                        _buildStatColumn('Tenure', '${request.tenureMonths}mo', Icons.calendar_month_rounded, AppColors.info),
+                        _buildStatColumn(
+                            'Req. Amount',
+                            AppFormatters.formatINRCompact(request.loanAmount),
+                            Icons.account_balance_wallet_rounded,
+                            AppColors.emerald),
+                        _buildStatColumn(
+                            'Max Int.',
+                            '${request.maxInterestRatePerMonth}%',
+                            Icons.percent_rounded,
+                            AppColors.warning),
+                        _buildStatColumn('Tenure', '${request.tenureMonths}mo',
+                            Icons.calendar_month_rounded, AppColors.info),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 16),
-                  
+
                   // Description
                   Text(
                     request.description,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -536,7 +610,8 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
                     children: [
                       // Collateral Tag
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppColors.emerald.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
@@ -549,15 +624,17 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(width: 16),
 
                       // Connect Button
                       GestureDetector(
-                        onTap: () => showMakeOfferSheet(context, lenderId, request.toMap(), request.id),
+                        onTap: () => showMakeOfferSheet(
+                            context, lenderId, request.toMap(), request.id),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
                             gradient: AppColors.emeraldGradient,
                             borderRadius: BorderRadius.circular(100),
@@ -580,7 +657,8 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                              const Icon(Icons.send_rounded,
+                                  color: Colors.white, size: 18),
                             ],
                           ),
                         ),
@@ -596,7 +674,8 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatColumn(String label, String value, IconData icon, Color iconColor) {
+  Widget _buildStatColumn(
+      String label, String value, IconData icon, Color iconColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -604,11 +683,15 @@ class _AestheticBorrowerRequestCard extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: iconColor),
             const SizedBox(width: 6),
-            Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+            Text(label,
+                style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
         const SizedBox(height: 4),
-        Text(value, style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800)),
+        Text(value,
+            style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800)),
       ],
     );
   }

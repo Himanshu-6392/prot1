@@ -48,7 +48,10 @@ class AppColors {
   );
 
   static LinearGradient emeraldGradient = const LinearGradient(
-    colors: [Color(0xFF7AE582), Color(0xFF52C41A)], // Light green to vibrant green
+    colors: [
+      Color(0xFF7AE582),
+      Color(0xFF52C41A)
+    ], // Light green to vibrant green
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

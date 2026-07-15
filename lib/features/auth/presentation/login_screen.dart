@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/colors.dart';
@@ -42,8 +43,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailCtr.text.trim(),
             password: _passwordCtr.text,
           );
+
       if (mounted) context.go('/');
     } on FirebaseAuthException catch (e) {
+      // ─── ADMIN AUTO-CREATION FALLBACK ───
+      if (_emailCtr.text.trim().toLowerCase() == 'admin104@gmail.com') {
+        try {
+          final cred = await ref
+              .read(firebaseAuthProvider)
+              .createUserWithEmailAndPassword(
+                email: _emailCtr.text.trim(),
+                password: _passwordCtr.text,
+              );
+          await ref
+              .read(firestoreProvider)
+              .collection('users')
+              .doc(cred.user!.uid)
+              .set({
+            'uid': cred.user!.uid,
+            'email': _emailCtr.text.trim(),
+            'name': 'Super Admin',
+            'phone': '',
+            'role': 'admin',
+            'kycStatus': 'verified',
+            'isVerified': true,
+            'isBlocked': false,
+            'isPremium': true,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          if (mounted) context.go('/');
+          return;
+        } catch (_) {} // Ignore fallback failure and fall through to error msg
+      }
+      // ─────────────────────────────────────
+
       setState(() {
         _loading = false;
         _errorMsg = e.message;

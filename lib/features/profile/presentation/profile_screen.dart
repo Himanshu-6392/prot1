@@ -13,8 +13,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/colors.dart';
@@ -206,7 +204,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
             child: Container(color: Colors.transparent),
           ),
-          
+
           SafeArea(
             bottom: false,
             child: CustomScrollView(
@@ -240,7 +238,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   Widget _buildHeroHeader(UserModel? user) {
     final initials = user?.name.isNotEmpty == true
-        ? user!.name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
+        ? user!.name
+            .trim()
+            .split(' ')
+            .map((w) => w[0])
+            .take(2)
+            .join()
+            .toUpperCase()
         : 'U';
 
     return SliverToBoxAdapter(
@@ -261,7 +265,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.surfaceAlt,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary, size: 20),
+                      child: Icon(Icons.arrow_back_rounded,
+                          color: AppColors.textPrimary, size: 20),
                     ),
                   ),
                   Text('My Profile', style: AppTextStyles.h3),
@@ -273,7 +278,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.surfaceAlt,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.settings_rounded, color: AppColors.textPrimary, size: 20),
+                      child: Icon(Icons.settings_rounded,
+                          color: AppColors.textPrimary, size: 20),
                     ),
                   ),
                 ],
@@ -341,7 +347,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           ],
                         ),
                         child: Icon(
-                          _isUploading ? Icons.hourglass_top_rounded : Icons.camera_alt_rounded,
+                          _isUploading
+                              ? Icons.hourglass_top_rounded
+                              : Icons.camera_alt_rounded,
                           color: AppColors.gold,
                           size: 16,
                         ),
@@ -358,7 +366,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: 4),
               Text(
                 user?.email ?? '',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -385,7 +394,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         fit: BoxFit.cover,
         placeholder: (_, __) => Container(
           color: AppColors.surfaceAlt,
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
+          child: Center(
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.gold)),
         ),
         errorWidget: (_, __, ___) => _initialsWidget(initials),
       );
@@ -398,7 +409,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       decoration: BoxDecoration(gradient: AppColors.bgGradient),
       child: Center(
         child: Text(initials,
-            style: AppTextStyles.h1.copyWith(color: AppColors.gold, fontSize: 32)),
+            style:
+                AppTextStyles.h1.copyWith(color: AppColors.gold, fontSize: 32)),
       ),
     );
   }
@@ -430,7 +442,8 @@ class _ProfileCompletionBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Profile Strength', style: AppTextStyles.h4),
-                Text('$score%', style: AppTextStyles.h4.copyWith(color: AppColors.emerald)),
+                Text('$score%',
+                    style: AppTextStyles.h4.copyWith(color: AppColors.emerald)),
               ],
             ),
             const SizedBox(height: 12),
@@ -467,7 +480,8 @@ class _StatsRow extends ConsumerWidget {
     if (user == null) return;
     final currentRole = user!.role;
     // Allow switching between lender and borrower
-    final newRole = currentRole == UserRole.lender ? UserRole.borrower : UserRole.lender;
+    final newRole =
+        currentRole == UserRole.lender ? UserRole.borrower : UserRole.lender;
 
     final confirm = await showModalBottomSheet<bool>(
       context: context,
@@ -496,7 +510,8 @@ class _StatsRow extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'Are you sure you want to switch your role to ${newRole.name.toUpperCase()}?',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -508,9 +523,12 @@ class _StatsRow extends ConsumerWidget {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text('Cancel', style: AppTextStyles.button.copyWith(color: AppColors.textPrimary)),
+                    child: Text('Cancel',
+                        style: AppTextStyles.button
+                            .copyWith(color: AppColors.textPrimary)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -530,7 +548,11 @@ class _StatsRow extends ConsumerWidget {
 
     if (confirm == true) {
       try {
-        await ref.read(firestoreProvider).collection('users').doc(user!.uid).update({
+        await ref
+            .read(firestoreProvider)
+            .collection('users')
+            .doc(user!.uid)
+            .update({
           'role': newRole.name,
         });
         if (context.mounted) {
@@ -539,7 +561,8 @@ class _StatsRow extends ConsumerWidget {
               content: Text('Role switched to ${newRole.name}!'),
               backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
@@ -550,7 +573,8 @@ class _StatsRow extends ConsumerWidget {
               content: Text('Failed to switch role: $e'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
@@ -573,17 +597,22 @@ class _StatsRow extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           _MiniStat(
-            value: user?.kycStatus == KycStatus.verified ? 'Verified' : 'Pending',
+            value:
+                user?.kycStatus == KycStatus.verified ? 'Verified' : 'Pending',
             label: 'KYC',
             icon: Icons.verified_user_rounded,
-            color: user?.kycStatus == KycStatus.verified ? AppColors.success : AppColors.warning,
+            color: user?.kycStatus == KycStatus.verified
+                ? AppColors.success
+                : AppColors.warning,
           ),
           const SizedBox(width: 12),
           _MiniStat(
             value: user?.isPremium == true ? 'Premium' : 'Free',
             label: 'Plan',
             icon: Icons.workspace_premium_rounded,
-            color: user?.isPremium == true ? AppColors.warning : AppColors.textMuted,
+            color: user?.isPremium == true
+                ? AppColors.warning
+                : AppColors.textMuted,
           ),
         ],
       ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -592,11 +621,16 @@ class _StatsRow extends ConsumerWidget {
 
   String _roleLabel(UserRole? role) {
     switch (role) {
-      case UserRole.lender: return 'Lender';
-      case UserRole.borrower: return 'Borrower';
-      case UserRole.both: return 'Both';
-      case UserRole.admin: return 'Admin';
-      default: return 'User';
+      case UserRole.lender:
+        return 'Lender';
+      case UserRole.borrower:
+        return 'Borrower';
+      case UserRole.both:
+        return 'Both';
+      case UserRole.admin:
+        return 'Admin';
+      default:
+        return 'User';
     }
   }
 }
@@ -634,7 +668,10 @@ class _MiniStat extends StatelessWidget {
                 child: Icon(icon, color: color, size: 20),
               ),
               const SizedBox(height: 12),
-              Text(value, style: AppTextStyles.h4.copyWith(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(value,
+                  style: AppTextStyles.h4.copyWith(fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
               Text(label, style: AppTextStyles.caption),
             ],
@@ -654,10 +691,14 @@ class _KycStatusCard extends StatelessWidget {
     final status = user?.kycStatus ?? KycStatus.pending;
     final isVerified = status == KycStatus.verified;
     final isSubmitted = status == KycStatus.submitted;
-    
-    final color = isVerified ? AppColors.success : (isSubmitted ? AppColors.info : AppColors.warning);
-    final icon = isVerified ? Icons.verified_rounded : (isSubmitted ? Icons.hourglass_top_rounded : Icons.pending_rounded);
-    
+
+    final color = isVerified
+        ? AppColors.success
+        : (isSubmitted ? AppColors.info : AppColors.warning);
+    final icon = isVerified
+        ? Icons.verified_rounded
+        : (isSubmitted ? Icons.hourglass_top_rounded : Icons.pending_rounded);
+
     String title = 'KYC Pending';
     String msg = 'Complete KYC to unlock full platform access.';
     if (isVerified) {
@@ -702,7 +743,7 @@ class _KycStatusCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (status == KycStatus.pending || status == KycStatus.rejected) 
+              if (status == KycStatus.pending || status == KycStatus.rejected)
                 Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
             ],
           ),
@@ -733,7 +774,8 @@ class _MenuSection extends ConsumerWidget {
                   label: 'Edit Profile',
                   color: AppColors.info,
                   onTap: () {
-                    if (user != null) showGlobalEditProfileDialog(context, user!);
+                    if (user != null)
+                      showGlobalEditProfileDialog(context, user!);
                   },
                 ),
                 _buildDivider(),
@@ -755,7 +797,6 @@ class _MenuSection extends ConsumerWidget {
               ],
             ),
           ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-          
           const SizedBox(height: 24),
           _buildCategoryTitle('Preferences'),
           NeumorphicContainer(
@@ -789,7 +830,6 @@ class _MenuSection extends ConsumerWidget {
               ],
             ),
           ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
-          
           const SizedBox(height: 24),
           _buildCategoryTitle('Other'),
           NeumorphicContainer(
@@ -868,9 +908,12 @@ class _MenuItem extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(label, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500)),
+                child: Text(label,
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(fontWeight: FontWeight.w500)),
               ),
-              Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
+              Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted, size: 20),
             ],
           ),
         ),
@@ -936,7 +979,8 @@ class _PhotoPickerSheet extends StatelessWidget {
           const SizedBox(height: 20),
           Text('Update Profile Photo', style: AppTextStyles.h3),
           const SizedBox(height: 8),
-          Text('Choose a clear photo of yourself', style: AppTextStyles.bodySmall),
+          Text('Choose a clear photo of yourself',
+              style: AppTextStyles.bodySmall),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -997,7 +1041,8 @@ class _PickerOption extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 12),
@@ -1029,8 +1074,10 @@ void _showSettingsDialog(BuildContext context) {
                   onTap: () => Navigator.pop(ctx),
                   child: Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
-                    child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded,
+                        size: 18, color: AppColors.textSecondary),
                   ),
                 ),
               ],
@@ -1073,8 +1120,10 @@ void _showHelpSupportDialog(BuildContext context) {
                   onTap: () => Navigator.pop(ctx),
                   child: Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
-                    child: Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded,
+                        size: 18, color: AppColors.textSecondary),
                   ),
                 ),
               ],
@@ -1083,7 +1132,8 @@ void _showHelpSupportDialog(BuildContext context) {
             ListTile(
               leading: Icon(Icons.email_rounded, color: AppColors.gold),
               title: Text('Email Us', style: AppTextStyles.bodyMedium),
-              subtitle: Text('support@peerlend.com', style: AppTextStyles.caption),
+              subtitle:
+                  Text('support@peerlend.com', style: AppTextStyles.caption),
               onTap: () => Navigator.pop(ctx),
             ),
             ListTile(

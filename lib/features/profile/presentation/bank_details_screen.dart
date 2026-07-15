@@ -68,7 +68,6 @@ class _BankDetailsScreenState extends ConsumerState<BankDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.bg,

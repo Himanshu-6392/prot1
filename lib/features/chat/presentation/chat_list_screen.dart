@@ -106,23 +106,32 @@ class _ChatTile extends ConsumerWidget {
         final dp = peer?.photoUrl;
 
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           leading: Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              gradient: dp == null ? (isLender ? AppColors.emeraldGradient : AppColors.goldGradient) : null,
+              gradient: dp == null
+                  ? (isLender
+                      ? AppColors.emeraldGradient
+                      : AppColors.goldGradient)
+                  : null,
               borderRadius: BorderRadius.circular(14),
-              image: dp != null ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover) : null,
+              image: dp != null
+                  ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover)
+                  : null,
             ),
-            child: dp == null ? Center(
-                child: Icon(
-              isLender
-                  ? Icons.account_balance_wallet_rounded
-                  : Icons.savings_rounded,
-              color: Colors.white,
-              size: 22,
-            )) : null,
+            child: dp == null
+                ? Center(
+                    child: Icon(
+                    isLender
+                        ? Icons.account_balance_wallet_rounded
+                        : Icons.savings_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ))
+                : null,
           ),
           title: Text(name, style: AppTextStyles.labelLarge),
           subtitle: Text(isLender ? 'Borrower' : 'Lender',
@@ -138,7 +147,8 @@ class _ChatTile extends ConsumerWidget {
               if (match.status == MatchStatus.pending) ...[
                 SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                       color: AppColors.gold.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4)),
@@ -225,14 +235,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: AppColors.emerald,
-                child: Icon(Icons.person_rounded, size: 18, color: Colors.white),
+                child:
+                    Icon(Icons.person_rounded, size: 18, color: Colors.white),
               ),
               const SizedBox(width: 12),
             ],
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(widget.peerUser?.name ?? 'Private Message', style: AppTextStyles.h3.copyWith(fontSize: 16)),
+              Text(widget.peerUser?.name ?? 'Private Message',
+                  style: AppTextStyles.h3.copyWith(fontSize: 16)),
               if (widget.peerUser != null)
-                Text('Online', style: AppTextStyles.caption.copyWith(color: AppColors.emerald)),
+                Text('Online',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.emerald)),
             ]),
           ],
         ),

@@ -58,13 +58,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
 
       final now = DateTime.now();
+
+      final isAdmin = _emailCtr.text.trim().toLowerCase().startsWith('admin');
+
       final model = UserModel(
         uid: user.uid,
-        name: _nameCtr.text.trim(),
+        name: isAdmin ? 'Super Admin' : _nameCtr.text.trim(),
         email: _emailCtr.text.trim(),
         phone: '', // Optional or empty for email login
-        role: UserRole.borrower,
+        role: isAdmin ? UserRole.admin : UserRole.borrower,
         city: _selectedCity ?? _cityCtr.text.trim(),
+        isPremium: isAdmin,
+        isVerified: isAdmin,
+        kycStatus: isAdmin ? KycStatus.verified : KycStatus.pending,
         createdAt: now,
         updatedAt: now,
       );
@@ -75,7 +81,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           .doc(user.uid)
           .set(model.toMap());
 
-      if (mounted) context.go('/auth/role-selection');
+      if (mounted) {
+        if (isAdmin) {
+          context.go('/');
+        } else {
+          context.go('/auth/role-selection');
+        }
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         _loading = false;

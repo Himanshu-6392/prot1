@@ -228,41 +228,30 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             .where('borrowerId', isEqualTo: userId)
             .snapshots(),
         builder: (context, snap) {
-          double totalBalance = 0;
           int activeCount = 0;
-          double totalPaid = 0;
-          double totalLoan = 0;
+          int matchedCount = 0;
 
           if (snap.hasData) {
             for (var doc in snap.data!.docs) {
               final d = doc.data() as Map<String, dynamic>;
               final status = d['status'] ?? 'open';
-              final amount = (d['loanAmount'] ?? 0).toDouble();
-              if (status == 'open' ||
-                  status == 'matched' ||
-                  status == 'accepted') {
-                totalBalance += amount;
+              if (status == 'open') {
                 activeCount++;
-                totalLoan += amount;
-              } else if (status == 'completed') {
-                totalPaid += amount;
-                totalLoan += amount;
+              } else if (status == 'matched' || status == 'accepted' || status == 'completed') {
+                matchedCount++;
               }
             }
           }
-
-          final progress =
-              totalLoan > 0 ? (totalPaid / totalLoan).clamp(0.0, 1.0) : 0.0;
 
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF18181B), // Black card background
+              gradient: AppColors.goldGradient,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -279,109 +268,83 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                         color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+                      child: const Icon(Icons.insights_rounded, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'TOTAL LOAN BALANCE',
+                      'YOUR PROFILE STATS',
                       style: AppTextStyles.tag.copyWith(
                         color: Colors.white70,
                         letterSpacing: 1.5,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  snap.hasData ? AppFormatters.formatINR(totalBalance) : '...',
-                  style: AppTextStyles.displaySmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.emerald),
-                    minHeight: 8,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Repayment Progress',
-                      style: AppTextStyles.caption
-                          .copyWith(color: Colors.white70),
-                    ),
-                    Text(
-                      '${(progress * 100).toStringAsFixed(0)}% Complete',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.emerald,
-                        fontWeight: FontWeight.w700,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
+                          const SizedBox(width: 4),
+                          Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
+                        ],
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
+                
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ACTIVE REQUESTS',
-                          style: AppTextStyles.tag.copyWith(
-                              color: Colors.white70, letterSpacing: 1.2),
+                          snap.hasData ? '$activeCount' : '-',
+                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '$activeCount',
-                          style: AppTextStyles.h2.copyWith(color: Colors.white),
-                        ),
+                        Text('Active', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () => context.push('/post-request'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.emerald,
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.emerald.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
+                    Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.15)),
+                    Column(
+                      children: [
+                        Text(
+                          snap.hasData ? '$matchedCount' : '-',
+                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'POST REQUEST',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 4),
+                        Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                      ],
+                    ),
+                    Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.15)),
+                    Column(
+                      children: [
+                        Text(
+                          '124',
+                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text('Views', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                      ],
                     ),
                   ],
+                ),
+                
+                const SizedBox(height: 32),
+                
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    label: 'Post New Request',
+                    onPressed: () => context.push('/post-request'),
+                    color: AppColors.emerald,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                  ),
                 ),
               ],
             ),
@@ -727,22 +690,44 @@ class _MyRequestsSliver extends ConsumerWidget {
 
           if (docs.isEmpty) {
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  EmptyState(
-                    icon: Icons.description_outlined,
-                    title: 'No requests yet',
-                    subtitle:
-                        'Post your first loan request and connect with lenders.',
-                    action: AppButton(
-                        label: 'Post a Request',
-                        onPressed: () => context.push('/post-request'),
-                        width: 200),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.description_outlined, size: 22, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('No requests yet', style: AppTextStyles.labelLarge),
+                          const SizedBox(height: 2),
+                          Text('Post your first loan request above.', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }

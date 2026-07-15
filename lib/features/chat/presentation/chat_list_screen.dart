@@ -12,11 +12,20 @@ import '../../../models/user_model.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/match_model.dart';
 
-class ChatListScreen extends ConsumerWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+  String _searchQuery = '';
+  String _selectedFilter = 'All';
+  final List<String> _filters = ['All', 'Pending', 'Active'];
+
+  @override
+  Widget build(BuildContext context) {
     final authUser = ref.watch(authStateProvider).valueOrNull;
     if (authUser == null) {
       return const Scaffold(body: Center(child: Text('Please log in.')));
@@ -24,77 +33,264 @@ class ChatListScreen extends ConsumerWidget {
     final uid = authUser.uid;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        title: Text('Messages', style: AppTextStyles.h3),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection(AppConstants.colMatches)
-            .where('status', whereIn: [
-          MatchStatus.pending.name,
-          MatchStatus.accepted.name
-        ]).snapshots(),
-        builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
-          if (!snap.hasData)
-            return const Center(child: CircularProgressIndicator());
+      backgroundColor: const Color(0xFFEFEFF1), // Light premium grey background similar to the image
+      body: Stack(
+        children: [
+          // Background subtle gradients for the premium feel
+          Positioned(
+            top: -100,
+            left: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.8),
+                boxShadow: [
+                  BoxShadow(color: Colors.white.withOpacity(0.4), blurRadius: 100, spreadRadius: 50)
+                ]
+              ),
+            ),
+          ),
+          
+          SafeArea(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your',
+                          style: AppTextStyles.h1.copyWith(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                            height: 1.1,
+                          ),
+                        ),
+                        Text(
+                          'Messages',
+                          style: AppTextStyles.h1.copyWith(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Search Bar
+                        Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  onChanged: (val) => setState(() => _searchQuery = val),
+                                  style: AppTextStyles.bodyLarge,
+                                  decoration: InputDecoration(
+                                    hintText: 'Search chats, names...',
+                                    hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMuted),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Filters
+                        SizedBox(
+                          height: 40,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: _filters.length,
+                            itemBuilder: (context, i) {
+                              final filter = _filters[i];
+                              final isSelected = _selectedFilter == filter;
+                              return GestureDetector(
+                                onTap: () => setState(() => _selectedFilter = filter),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: isSelected 
+                                        ? Border.all(color: AppColors.textPrimary, width: 1.5)
+                                        : Border.all(color: Colors.transparent, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.02),
+                                        blurRadius: 5,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ]
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      if (filter == 'Verified Only') ...[
+                                        Icon(Icons.verified, size: 14, color: AppColors.textPrimary),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Text(
+                                        filter,
+                                        style: AppTextStyles.labelLarge.copyWith(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection(AppConstants.colMatches)
+                      .where('status', whereIn: [
+                    MatchStatus.pending.name,
+                    MatchStatus.accepted.name
+                  ]).snapshots(),
+                  builder: (context, snap) {
+                    if (snap.hasError) {
+                      return SliverToBoxAdapter(
+                        child: Center(child: Text('Error loading messages')),
+                      );
+                    }
+                    if (!snap.hasData) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                            child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(),
+                        )),
+                      );
+                    }
 
-          var docs = snap.data!.docs.where((d) {
-            final data = d.data() as Map<String, dynamic>;
-            return data['borrowerId'] == uid || data['lenderId'] == uid;
-          }).toList();
+                    var docs = snap.data!.docs.where((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      return data['borrowerId'] == uid || data['lenderId'] == uid;
+                    }).toList();
 
-          docs.sort((a, b) {
-            final aTime =
-                (a.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-            final bTime =
-                (b.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-            if (aTime == null || bTime == null) return 0;
-            return bTime.compareTo(aTime);
-          });
+                    docs.sort((a, b) {
+                      final aTime = (a.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+                      final bTime = (b.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+                      if (aTime == null || bTime == null) return 0;
+                      return bTime.compareTo(aTime);
+                    });
 
-          if (docs.isEmpty)
-            return EmptyState(
-              icon: Icons.chat_bubble_outline_rounded,
-              title: 'No conversations yet',
-              subtitle: 'Send or receive an offer to start chatting.',
-            );
+                    final matches = docs
+                        .map((d) => MatchModel.fromMap(d.data() as Map<String, dynamic>, d.id))
+                        .toList();
 
-          return ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: docs.length,
-            separatorBuilder: (_, __) =>
-                Divider(height: 1, indent: 72, color: AppColors.border),
-            itemBuilder: (context, i) {
-              final match = MatchModel.fromMap(
-                  docs[i].data() as Map<String, dynamic>, docs[i].id);
-              final isLender = match.lenderId == uid;
-              final peerId = isLender ? match.borrowerId : match.lenderId;
-              return _ChatTile(match: match, peerId: peerId, isLender: isLender)
-                  .animate(delay: Duration(milliseconds: i * 40))
-                  .fadeIn();
-            },
-          );
-        },
+                    // Apply filters
+                    var filteredMatches = matches;
+                    if (_selectedFilter == 'Pending') {
+                      filteredMatches = filteredMatches.where((m) => m.status == MatchStatus.pending).toList();
+                    } else if (_selectedFilter == 'Active') {
+                      filteredMatches = filteredMatches.where((m) => m.status == MatchStatus.accepted).toList();
+                    }
+
+                    if (filteredMatches.isEmpty) {
+                      return SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyState(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          title: 'No conversations',
+                          subtitle: 'Your matches will appear here.',
+                        ),
+                      );
+                    }
+
+                    return SliverPadding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 40, left: 24, right: 24),
+                      sliver: SliverToBoxAdapter(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              )
+                            ]
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              itemCount: filteredMatches.length,
+                              separatorBuilder: (context, i) => Divider(height: 1, color: AppColors.border.withOpacity(0.4), indent: 80, endIndent: 20),
+                              itemBuilder: (context, i) {
+                                final match = filteredMatches[i];
+                                final isLender = match.lenderId == uid;
+                                final peerId = isLender ? match.borrowerId : match.lenderId;
+                                return _ChatTile(
+                                  match: match,
+                                  peerId: peerId,
+                                  isLender: isLender,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ─── Minimal Chat Tile ─────────────────────────────────────────────────────────
+
 class _ChatTile extends ConsumerWidget {
   final MatchModel match;
   final String peerId;
   final bool isLender;
-  const _ChatTile(
-      {required this.match, required this.peerId, required this.isLender});
+  
+  const _ChatTile({
+    required this.match,
+    required this.peerId,
+    required this.isLender,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,60 +300,157 @@ class _ChatTile extends ConsumerWidget {
       data: (peer) {
         final name = peer?.name ?? (isLender ? 'Borrower' : 'Lender');
         final dp = peer?.photoUrl;
+        final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+        final isPending = match.status == MatchStatus.pending;
+        
+        final query = context.findAncestorStateOfType<_ChatListScreenState>()?._searchQuery.toLowerCase() ?? '';
+        if (query.isNotEmpty && !name.toLowerCase().contains(query)) {
+          return const SizedBox.shrink();
+        }
 
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          leading: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: dp == null ? (isLender ? AppColors.emeraldGradient : AppColors.goldGradient) : null,
-              borderRadius: BorderRadius.circular(14),
-              image: dp != null ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover) : null,
+        return Dismissible(
+          key: Key(match.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+          ),
+          confirmDismiss: (dir) async {
+             return await showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete Chat'),
+                  content: const Text('Are you sure you want to delete this chat? This cannot be undone.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                  ]
+                )
+             );
+          },
+          onDismissed: (dir) {
+             FirebaseFirestore.instance.collection(AppConstants.colMatches).doc(match.id).delete();
+          },
+          child: InkWell(
+            onTap: () => context.push('/chat/${match.chatRoomId}', extra: peer),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Minimal Avatar
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFF3F4F6),
+                      image: dp != null ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover) : null,
+                    ),
+                    child: dp == null ? Center(
+                      child: Text(initial, style: AppTextStyles.h2.copyWith(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary))
+                    ) : null,
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              AppFormatters.formatRelative(match.updatedAt),
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w400),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (isPending)
+                              Expanded(
+                                child: Text(
+                                  (isLender ? 'Incoming loan request...' : 'Waiting for approval...'),
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
+                            else
+                              Expanded(
+                                child: StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection(AppConstants.colChats)
+                                      .doc(match.chatRoomId)
+                                      .collection(AppConstants.colMessages)
+                                      .orderBy('sentAt', descending: true)
+                                      .limit(1)
+                                      .snapshots(),
+                                  builder: (context, msgSnap) {
+                                    String preview = 'Start the conversation';
+                                    bool unread = false;
+                                    if (msgSnap.hasData && msgSnap.data!.docs.isNotEmpty) {
+                                      final doc = msgSnap.data!.docs.first.data() as Map<String, dynamic>;
+                                      preview = doc['content'] as String? ?? 'Message';
+                                      final currentUid = ref.read(authStateProvider).valueOrNull?.uid;
+                                      final isMine = doc['senderId'] == currentUid;
+                                      unread = !isMine && (doc['isRead'] == false);
+                                    }
+                                    return Text(
+                                      preview,
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: unread ? AppColors.textPrimary : AppColors.textSecondary,
+                                        fontSize: 14,
+                                        fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  },
+                                ),
+                              ),
+                            if (isPending) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.gold,
+                                ),
+                              )
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: dp == null ? Center(
-                child: Icon(
-              isLender
-                  ? Icons.account_balance_wallet_rounded
-                  : Icons.savings_rounded,
-              color: Colors.white,
-              size: 22,
-            )) : null,
           ),
-          title: Text(name, style: AppTextStyles.labelLarge),
-          subtitle: Text(isLender ? 'Borrower' : 'Lender',
-              style: AppTextStyles.caption,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(AppFormatters.formatRelative(match.updatedAt),
-                  style: AppTextStyles.caption),
-              if (match.status == MatchStatus.pending) ...[
-                SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4)),
-                  child: Text('Pending',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.gold, fontSize: 10)),
-                ),
-              ],
-            ],
-          ),
-          onTap: () => context.push('/chat/${match.chatRoomId}', extra: peer),
         );
       },
-      loading: () => const ListTile(
-        title: Text('Loading...'),
-      ),
-      error: (_, __) => const ListTile(
-        title: Text('Error loading user'),
-      ),
+      loading: () => const SizedBox(height: 84),
+      error: (_, __) => const SizedBox(height: 84),
     );
   }
 }
@@ -202,7 +495,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     });
 
     setState(() => _sending = false);
-    _scrollCtr.animateTo(_scrollCtr.position.maxScrollExtent,
+    _scrollCtr.animateTo(0.0,
         duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
@@ -246,7 +539,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         // Messages
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _messagesRef.orderBy('sentAt').snapshots(),
+            stream: _messagesRef.orderBy('sentAt', descending: true).snapshots(),
             builder: (context, snap) {
               if (!snap.hasData)
                 return Center(
@@ -255,6 +548,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
               return ListView.builder(
                 controller: _scrollCtr,
+                reverse: true,
                 physics: const BouncingScrollPhysics(),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -342,6 +636,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             title: Text('Share Photo', style: AppTextStyles.labelLarge),
             onTap: () {
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo sharing coming soon!')));
             },
           ),
           ListTile(
@@ -349,6 +644,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             title: Text('Share Document', style: AppTextStyles.labelLarge),
             onTap: () {
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Document sharing coming soon!')));
             },
           ),
           ListTile(
@@ -357,6 +653,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             title: Text('Schedule Meeting', style: AppTextStyles.labelLarge),
             onTap: () {
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Meeting scheduler coming soon!')));
             },
           ),
           ListTile(
@@ -364,6 +661,33 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             title: Text('Share Location', style: AppTextStyles.labelLarge),
             onTap: () {
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location sharing coming soon!')));
+            },
+          ),
+          Divider(color: AppColors.border),
+          ListTile(
+            leading: Icon(Icons.delete_outline_rounded, color: Colors.red),
+            title: Text('Delete Chat', style: AppTextStyles.labelLarge.copyWith(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context); // close bottom sheet
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete Chat'),
+                  content: const Text('Are you sure you want to delete this chat? This cannot be undone.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () {
+                        FirebaseFirestore.instance.collection(AppConstants.colMatches).doc(widget.roomId).delete();
+                        Navigator.pop(ctx);
+                        Navigator.pop(context); // go back to list
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ]),

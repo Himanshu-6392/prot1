@@ -271,27 +271,27 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
-              child: Icon(icon, size: 44, color: AppColors.textMuted),
+              child: Icon(icon, size: 32, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Text(
               title,
               style: AppTextStyles.h3.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 subtitle!,
                 style: AppTextStyles.bodyMedium
@@ -299,7 +299,7 @@ class EmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[const SizedBox(height: 24), action!],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),

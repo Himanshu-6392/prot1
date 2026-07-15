@@ -92,6 +92,20 @@ class _MatchCard extends ConsumerWidget {
       'chatRoomId': chatRoomId,
       'updatedAt': DateTime.now(),
     });
+
+    // Create a notification for the lender
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(match.lenderId)
+        .collection('notifications')
+        .add({
+      'title': 'Offer Accepted! 🎉',
+      'body': 'Your offer of ₹${match.offeredAmount} was accepted! Start chatting to finalize the deal.',
+      'type': 'match',
+      'isRead': false,
+      'createdAt': DateTime.now(),
+    });
+
     if (context.mounted) context.push('/chat/$chatRoomId');
   }
 
@@ -257,98 +271,217 @@ class RequestDetailScreen extends ConsumerWidget {
                 child: Text('Request not found', style: AppTextStyles.h3));
           final data = snap.data!.data() as Map<String, dynamic>;
 
+          final user = ref.watch(currentUserProvider).valueOrNull;
+          final isOwner = user?.uid == data['borrowerId'];
+
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Amount
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: AppColors.cardGradient,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.borderGlow),
-                ),
-                child: Column(children: [
-                  Text(
-                      AppFormatters.formatINR(
-                          (data['loanAmount'] ?? 0).toDouble()),
-                      style: AppTextStyles.amountLarge),
-                  SizedBox(height: 4),
-                  Text('Loan Amount', style: AppTextStyles.caption),
-                  SizedBox(height: 16),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _DetailStat(
-                            'Collateral', data['collateralType'] ?? '—'),
-                        _DetailStat('Max Rate',
-                            '${data['maxInterestRatePerMonth'] ?? '-'}%/mo'),
-                        _DetailStat(
-                            'Tenure',
-                            AppFormatters.formatTenure(
-                                data['tenureMonths'] ?? 1)),
-                      ]),
-                ]),
-              ).animate().fadeIn(),
-
-              SizedBox(height: 24),
-              Text('Borrower', style: AppTextStyles.h3),
-              SizedBox(height: 12),
-              Row(children: [
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── HERO CARD (Amount & Stats) ───
                 Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Center(
-                        child: Text(
-                            (data['borrowerName'] ?? 'B')[0].toUpperCase(),
-                            style: AppTextStyles.labelLarge))),
-                SizedBox(width: 12),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(data['borrowerName'] ?? '',
-                      style: AppTextStyles.labelLarge),
-                  Row(children: [
-                    Icon(Icons.location_on_rounded,
-                        size: 12, color: AppColors.textMuted),
-                    Text(data['borrowerCity'] ?? '',
-                        style: AppTextStyles.caption),
-                  ]),
-                ]),
-                Spacer(),
-                if (data['isVerified'] == true) VerifiedBadge(),
-              ]),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
+                        style: AppTextStyles.amountLarge.copyWith(fontSize: 40),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Requested Loan Amount', style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary)),
+                      const SizedBox(height: 24),
+                      Divider(color: AppColors.border),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _DetailStat('Collateral', data['collateralType'] ?? '—'),
+                          Container(width: 1, height: 32, color: AppColors.border),
+                          _DetailStat('Max Rate', '${data['maxInterestRatePerMonth'] ?? '-'}%/mo'),
+                          Container(width: 1, height: 32, color: AppColors.border),
+                          _DetailStat('Tenure', AppFormatters.formatTenure(data['tenureMonths'] ?? 1)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.1),
 
-              SizedBox(height: 20),
-              Text('Description', style: AppTextStyles.h3),
-              SizedBox(height: 8),
-              Text(data['description'] ?? '',
-                  style: AppTextStyles.bodyMedium
-                      .copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 24),
+                Text('Borrower Details', style: AppTextStyles.h3),
+                const SizedBox(height: 12),
 
-              SizedBox(height: 20),
-              Text('Collateral Details', style: AppTextStyles.h3),
-              SizedBox(height: 12),
-              _DetailRow2('Type', data['collateralType'] ?? '—'),
-              _DetailRow2(
-                  'Value',
-                  AppFormatters.formatINR(
-                      (data['collateralValue'] ?? 0).toDouble())),
+                // ─── BORROWER CARD ───
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            (data['borrowerName']?.toString().isNotEmpty == true)
+                                ? data['borrowerName'].toString()[0].toUpperCase()
+                                : 'B',
+                            style: AppTextStyles.h2.copyWith(color: AppColors.gold, fontSize: 20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(data['borrowerName'] ?? 'Unknown', style: AppTextStyles.h3.copyWith(fontSize: 16)),
+                                if (data['isVerified'] == true) ...[
+                                  const SizedBox(width: 6),
+                                  VerifiedBadge(),
+                                ]
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_rounded, size: 14, color: AppColors.textMuted),
+                                const SizedBox(width: 4),
+                                Text(data['borrowerCity'] ?? 'Location not specified', style: AppTextStyles.caption),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
 
-              SizedBox(height: 28),
-              AppButton(
-                label: 'Send Offer to Borrower',
-                onPressed: () {
-                  final user = ref.read(currentUserProvider).valueOrNull;
-                  if (user == null) return;
-                  _showMakeOfferSheet(context, user.uid, data, requestId);
-                },
-                icon: Icon(Icons.send_rounded, size: 18),
-              ),
-            ]),
+                const SizedBox(height: 24),
+                Text('Loan Description', style: AppTextStyles.h3),
+                const SizedBox(height: 12),
+
+                // ─── DESCRIPTION CARD ───
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    data['description']?.isEmpty == true ? 'No description provided.' : data['description'] ?? 'No description provided.',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary, height: 1.5),
+                  ),
+                ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1),
+
+                const SizedBox(height: 24),
+                Text('Collateral Overview', style: AppTextStyles.h3),
+                const SizedBox(height: 12),
+
+                // ─── COLLATERAL CARD ───
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      _DetailRow2('Collateral Type', data['collateralType'] ?? '—'),
+                      const Divider(height: 24),
+                      _DetailRow2('Estimated Value', AppFormatters.formatINR((data['collateralValue'] ?? 0).toDouble())),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+
+                if (!isOwner) ...[
+                  const SizedBox(height: 32),
+                  AppButton(
+                    label: 'Send Offer to Borrower',
+                    onPressed: () {
+                      if (user == null) return;
+                      _showMakeOfferSheet(context, user.uid, data, requestId);
+                    },
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                  ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
+                ] else ...[
+                  const SizedBox(height: 32),
+                  AppButton(
+                    label: 'Delete Request',
+                    isOutlined: true,
+                    color: AppColors.error,
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: AppColors.surface,
+                          title: Text('Delete Request?', style: AppTextStyles.h3),
+                          content: Text('Are you sure you want to delete this loan request? This cannot be undone.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text('Cancel', style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text('Delete', style: AppTextStyles.labelMedium.copyWith(color: AppColors.error)),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          await FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(requestId).delete();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Request deleted successfully', style: AppTextStyles.caption.copyWith(color: Colors.white)), backgroundColor: AppColors.gold));
+                            Navigator.pop(context); // Fallback if context.pop() fails
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting request', style: AppTextStyles.caption.copyWith(color: Colors.white)), backgroundColor: AppColors.error));
+                          }
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
+                ],
+                const SizedBox(height: 40),
+              ],
+            ),
           );
         },
       ),
@@ -478,6 +611,19 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
 
       // Create the match document
       await matchRef.set(match.toMap());
+
+      // Create a notification for the borrower
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(match.borrowerId)
+          .collection('notifications')
+          .add({
+        'title': 'New Offer Received! 📬',
+        'body': 'A lender has offered ₹${match.offeredAmount} at ${match.offeredInterestRate}%.',
+        'type': 'match',
+        'isRead': false,
+        'createdAt': DateTime.now(),
+      });
 
       // If there is an introductory message, insert it into the chat immediately
       if (msg.isNotEmpty) {

@@ -312,6 +312,7 @@ class _AdminUserTile extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) => _UserControlPanel(uid: uid, data: data),
@@ -363,10 +364,11 @@ class _UserControlPanel extends StatelessWidget {
     final isPremium = data['isPremium'] ?? false;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
@@ -479,7 +481,7 @@ class _UserControlPanel extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _updateUser(BuildContext context, Map<String, dynamic> updates) {

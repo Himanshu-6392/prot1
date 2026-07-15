@@ -13,6 +13,7 @@ import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../main.dart';
 import 'admin_kyc_review_screen.dart';
+import 'admin_platform_health_widget.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -113,8 +114,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border:
-                                  Border.all(color: AppColors.border, width: 1),
+                              border: Border.all(color: AppColors.border, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 8),
+                                )
+                              ],
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -838,149 +845,7 @@ class _PendingTile extends StatelessWidget {
 class _PlatformHealthChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 6));
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection(AppConstants.colUsers)
-            .where('createdAt',
-                isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
-            .snapshots(),
-        builder: (context, snap) {
-          // Build day-bucket map (last 7 days)
-          final Map<int, int> dayCounts = {};
-          for (int i = 0; i < 7; i++) {
-            dayCounts[i] = 0;
-          }
-
-          if (snap.hasData) {
-            for (var doc in snap.data!.docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              final ts = data['createdAt'];
-              if (ts is Timestamp) {
-                final day = now.difference(ts.toDate()).inDays;
-                if (day >= 0 && day < 7) {
-                  dayCounts[6 - day] = (dayCounts[6 - day] ?? 0) + 1;
-                }
-              }
-            }
-          }
-
-          final maxY = dayCounts.values.fold(0, (a, b) => a > b ? a : b);
-          final chartMax = (maxY < 4 ? 4 : maxY + 1).toDouble();
-
-          return Container(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('New Signups',
-                        style: AppTextStyles.labelMedium
-                            .copyWith(color: AppColors.textPrimary)),
-                    const Spacer(),
-                    Text('Last 7 days',
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.textMuted)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 110,
-                  child: BarChart(
-                    BarChartData(
-                      maxY: chartMax,
-                      minY: 0,
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: chartMax / 4,
-                        getDrawingHorizontalLine: (val) => FlLine(
-                          color: AppColors.border.withOpacity(0.6),
-                          strokeWidth: 1,
-                          dashArray: [4, 4],
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
-                        leftTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 22,
-                            getTitlesWidget: (val, meta) {
-                              final day = now.subtract(
-                                  Duration(days: 6 - val.toInt()));
-                              final label = _dayLabel(day.weekday);
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(label,
-                                    style: AppTextStyles.caption.copyWith(
-                                        color: AppColors.textMuted,
-                                        fontSize: 9)),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      barGroups: List.generate(7, (i) {
-                        final count = dayCounts[i] ?? 0;
-                        return BarChartGroupData(
-                          x: i,
-                          barRods: [
-                            BarChartRodData(
-                              toY: count.toDouble(),
-                              width: 14,
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(6)),
-                              color: i == 6
-                                  ? AppColors.emerald
-                                  : AppColors.emerald.withOpacity(0.35),
-                            ),
-                          ],
-                        );
-                      }),
-                      barTouchData: BarTouchData(
-                        touchTooltipData: BarTouchTooltipData(
-                          getTooltipColor: (_) => AppColors.textPrimary,
-                          tooltipRoundedRadius: 8,
-                          getTooltipItem: (group, gI, rod, rI) =>
-                              BarTooltipItem(
-                            '${rod.toY.toInt()}',
-                            AppTextStyles.caption.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 500.ms);
-        },
-      ),
-    );
-  }
-
-  String _dayLabel(int weekday) {
-    const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-    return days[(weekday - 1).clamp(0, 6)];
+    return AdminPlatformHealthChart();
   }
 }
 
@@ -1061,11 +926,18 @@ class _RecentActivityFeed extends StatelessWidget {
               }
 
               return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border, width: 1),
-                ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
                 child: Column(
                   children: List.generate(display.length, (i) {
                     final item = display[i];
@@ -1195,6 +1067,7 @@ class _TopUsersSectionState extends State<_TopUsersSection>
             child: TabBar(
               controller: _tab,
               labelPadding: EdgeInsets.zero,
+              indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
@@ -1270,7 +1143,14 @@ class _TopRoleList extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: AppColors.border, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              )
+            ],
           ),
           child: Column(
             children: List.generate(docs.length, (i) {
@@ -1398,3 +1278,5 @@ class _TopRoleList extends StatelessWidget {
     );
   }
 }
+
+

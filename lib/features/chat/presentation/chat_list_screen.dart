@@ -447,8 +447,6 @@ class _ChatTile extends ConsumerWidget {
               ),
             ),
           ),
-        );
-      },
       loading: () => const SizedBox(height: 84),
       error: (_, __) => const SizedBox(height: 84),
     );
@@ -518,14 +516,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: AppColors.emerald,
-                child: Icon(Icons.person_rounded, size: 18, color: Colors.white),
+                child:
+                    Icon(Icons.person_rounded, size: 18, color: Colors.white),
               ),
               const SizedBox(width: 12),
             ],
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(widget.peerUser?.name ?? 'Private Message', style: AppTextStyles.h3.copyWith(fontSize: 16)),
+              Text(widget.peerUser?.name ?? 'Private Message',
+                  style: AppTextStyles.h3.copyWith(fontSize: 16)),
               if (widget.peerUser != null)
-                Text('Online', style: AppTextStyles.caption.copyWith(color: AppColors.emerald)),
+                Text('Online',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.emerald)),
             ]),
           ],
         ),

@@ -29,7 +29,8 @@ class MatchScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        title: Text(isLender ? 'My Offers' : 'Match Requests', style: AppTextStyles.h3),
+        title: Text(isLender ? 'My Offers' : 'Match Requests',
+            style: AppTextStyles.h3),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: AppColors.border),

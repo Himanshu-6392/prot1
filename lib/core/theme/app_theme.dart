@@ -84,11 +84,11 @@ class AppTheme {
               const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(100),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: AppColors.border, width: 1.0),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(100),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: AppColors.border, width: 1.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(100),
@@ -105,10 +105,10 @@ class AppTheme {
           labelStyle: AppTextStyles.labelMedium
               .copyWith(color: AppColors.textSecondary),
           hintStyle:
-              AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+              AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary.withOpacity(0.8)),
           errorStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
-          prefixIconColor: AppColors.textMuted,
-          suffixIconColor: AppColors.textMuted,
+          prefixIconColor: AppColors.textSecondary.withOpacity(0.8),
+          suffixIconColor: AppColors.textSecondary.withOpacity(0.8),
         ),
 
         // Elevated Button — Pill shaped
@@ -119,8 +119,8 @@ class AppTheme {
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
             textStyle: AppTextStyles.button,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100)),
             minimumSize: const Size(double.infinity, 52),
           ),
         ),
@@ -132,8 +132,8 @@ class AppTheme {
             side: BorderSide(color: AppColors.border, width: 1.5),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
             textStyle: AppTextStyles.button,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100)),
             minimumSize: const Size(double.infinity, 52),
           ),
         ),
@@ -154,7 +154,8 @@ class AppTheme {
           side: BorderSide.none,
           labelStyle: AppTextStyles.labelSmall,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         ),
 
         // Divider

@@ -49,8 +49,17 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
 });
 
 // ─── Fetch Specific User ───────────────────────
-final userProfileProvider = FutureProvider.family<UserModel?, String>((ref, uid) async {
-  final snap = await ref.watch(firestoreProvider).collection('users').doc(uid).get();
+final userProfileProvider =
+    FutureProvider.family<UserModel?, String>((ref, uid) async {
+  final snap =
+      await ref.watch(firestoreProvider).collection('users').doc(uid).get();
   if (!snap.exists) return null;
   return UserModel.fromMap(snap.data()!, snap.id);
+});
+
+// ─── All Users (Admin) ────────────────────────
+final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
+  return ref.watch(firestoreProvider).collection('users').snapshots().map(
+      (snap) =>
+          snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList());
 });

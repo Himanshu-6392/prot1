@@ -63,14 +63,21 @@ class UserModel {
       isBlocked: map['isBlocked'] ?? false,
       isPremium: map['isPremium'] ?? false,
       subscriptionPlan: map['subscriptionPlan'],
-      subscriptionExpiry: (map['subscriptionExpiry'] as Timestamp?)?.toDate(),
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      subscriptionExpiry: _parseDate(map['subscriptionExpiry']),
+      createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
+      updatedAt: _parseDate(map['updatedAt']) ?? DateTime.now(),
       fcmToken: map['fcmToken'],
       city: map['city'],
       gender: map['gender'],
       securityPin: map['securityPin'],
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toMap() => {

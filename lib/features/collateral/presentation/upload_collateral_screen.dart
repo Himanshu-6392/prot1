@@ -26,7 +26,6 @@ class _UploadCollateralScreenState
   String? _selectedType;
   String? _selectedCondition;
   final _photos = <File>[];
-  File? _invoiceFile;
   bool _loading = false;
 
   final _conditions = ['Excellent', 'Good', 'Fair', 'Poor'];

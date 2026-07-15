@@ -29,7 +29,6 @@ class _ChangeRoleScreenState extends ConsumerState<ChangeRoleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.bg,

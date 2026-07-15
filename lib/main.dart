@@ -12,6 +12,8 @@ import 'core/theme/colors.dart';
 import 'firebase_options.dart';
 import 'package:device_preview/device_preview.dart';
 
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -111,7 +113,7 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp>
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.light,
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
       locale: DevicePreview.locale(context),
       builder: (context, child) {

@@ -78,21 +78,22 @@ class MainShell extends ConsumerWidget {
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 child: Row(
                   children: _tabs.asMap().entries.map((entry) {
-                final i = entry.key;
-                final tab = entry.value;
-                final isSelected = i == idx;
-                return Expanded(
-                  child: _NavItem(
-                    icon: tab.icon,
-                    label: tab.label,
-                    isSelected: isSelected,
-                    onTap: () => context.go(tab.path),
-                  ),
-                );
-              }).toList(),
+                    final i = entry.key;
+                    final tab = entry.value;
+                    final isSelected = i == idx;
+                    return Expanded(
+                      child: _NavItem(
+                        icon: tab.icon,
+                        label: tab.label,
+                        isSelected: isSelected,
+                        onTap: () => context.go(tab.path),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
@@ -150,7 +151,7 @@ class _NavItem extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: isSelected ? Colors.white : AppColors.textMuted,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
               size: 22,
             ),
           ),
@@ -158,9 +159,9 @@ class _NavItem extends StatelessWidget {
           AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 200),
             style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.gold : AppColors.textMuted,
+              color: isSelected ? AppColors.gold : AppColors.textSecondary,
               fontSize: 10,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
             child: Text(label),
           ),

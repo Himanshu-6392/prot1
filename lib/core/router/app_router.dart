@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/firebase_providers.dart';
 import '../../models/user_model.dart';
 
@@ -49,6 +51,8 @@ import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/profile/presentation/kyc_verification_screen.dart';
 // ─── Admin ───────────────────────────────────
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_user_management_screen.dart';
+import '../../features/admin/presentation/admin_user_detail_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -99,8 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/lender',
               builder: (c, s) =>
                   const LenderDashboard()), // Kept for direct linking if needed
-          GoRoute(
-              path: '/search', builder: (c, s) => const SearchRouter()),
+          GoRoute(path: '/search', builder: (c, s) => const SearchRouter()),
           GoRoute(path: '/chat', builder: (c, s) => const ChatListScreen()),
           GoRoute(
               path: '/notifications',
@@ -164,6 +167,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ─── Admin ────────────────────────────
       GoRoute(path: '/admin', builder: (c, s) => const AdminDashboardScreen()),
+      GoRoute(
+          path: '/admin/users',
+          builder: (c, s) => const AdminUserManagementScreen()),
+      GoRoute(
+        path: '/admin/users/:id',
+        builder: (c, s) =>
+            AdminUserDetailScreen(userId: s.pathParameters['id']!),
+      ),
       GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
     ],
@@ -194,7 +205,26 @@ class DashboardRouter extends ConsumerWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
+        final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? user.email.toLowerCase();
+
+        // Auto-elevate the account to Admin if it matches the criteria
+        if (user.role != UserRole.admin && 
+            authEmail.contains('admin104')) {
+          FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'role': 'admin',
+            'isPremium': true,
+          });
+        }
         
+        // Auto-downgrade shivansh back to borrower if they were accidentally elevated
+        if (user.email == 'shivanshsingh6229@gmail.com' && user.role == UserRole.admin) {
+          FirebaseFirestore.instance.collection('users').doc(user.uid).update({'role': 'borrower'});
+        }
+        
+        // Force the route immediately so they don't have to wait for the stream to update
+        if (user.role == UserRole.admin || authEmail.contains('admin104')) {
+          return const AdminDashboardScreen();
+        }
         if (user.role == UserRole.lender) {
           return const LenderDashboard();
         }
@@ -203,7 +233,14 @@ class DashboardRouter extends ConsumerWidget {
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const BorrowerDashboard(),
+      error: (err, stack) {
+        debugPrint('Router Stream Error: $err');
+        final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
+        if (authEmail.contains('admin104')) {
+          return const AdminDashboardScreen();
+        }
+        return const BorrowerDashboard();
+      },
     );
   }
 }
@@ -223,16 +260,28 @@ class SearchRouter extends ConsumerWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        
+
+        final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? user.email.toLowerCase();
+
+        if (user.role == UserRole.admin || authEmail.contains('admin104')) {
+          return const AdminUserManagementScreen();
+        }
         if (user.role == UserRole.lender) {
           return const BorrowerSearchScreen();
         }
         return const LenderSearchScreen();
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, __) => const LenderSearchScreen(),
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        error: (err, stack) {
+          debugPrint('SearchRouter Stream Error: $err');
+          final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
+          if (authEmail.contains('admin104')) {
+            return const AdminUserManagementScreen();
+          }
+          return const LenderSearchScreen();
+        },
     );
   }
 }

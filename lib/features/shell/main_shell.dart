@@ -8,18 +8,61 @@ import '../../../core/theme/text_styles.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
 
+// ─── Tab model ───────────────────────────────────────────────────────────────
+class _TabItem {
+  final IconData icon;       // outline (inactive)
+  final IconData activeIcon; // filled (active)
+  final String label;
+  final String path;
+  final bool isCenter;
+
+  const _TabItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.path,
+    this.isCenter = false,
+  });
+}
+
+// ─── Shell ───────────────────────────────────────────────────────────────────
 class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
+  // Layout: Home | Search | [FAB = Match] | Chat | Profile
   static const _tabs = [
-    _TabItem(icon: Icons.home_rounded, label: 'Home', path: '/'),
-    _TabItem(icon: Icons.search_rounded, label: 'Search', path: '/search'),
-    _TabItem(icon: Icons.chat_bubble_rounded, label: 'Chat', path: '/chat'),
     _TabItem(
-        icon: Icons.notifications_rounded,
-        label: 'Alerts',
-        path: '/notifications'),
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+      path: '/',
+    ),
+    _TabItem(
+      icon: Icons.search_outlined,
+      activeIcon: Icons.search_rounded,
+      label: 'Search',
+      path: '/search',
+    ),
+    _TabItem(
+      icon: Icons.people_outline_rounded,
+      activeIcon: Icons.people_rounded,
+      label: 'Match',
+      path: '/match',
+      isCenter: true,
+    ),
+    _TabItem(
+      icon: Icons.chat_bubble_outline_rounded,
+      activeIcon: Icons.chat_bubble_rounded,
+      label: 'Chat',
+      path: '/chat',
+    ),
+    _TabItem(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+      path: '/profile',
+    ),
   ];
 
   int _currentIndex(BuildContext context) {
@@ -34,93 +77,169 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final idx = _currentIndex(context);
-    final userAsync = ref.watch(currentUserProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark, // dark icons on light bg
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
         extendBody: true,
         body: child,
-        bottomNavigationBar: _buildNavBar(context, idx, userAsync.valueOrNull),
-      ),
-    );
-  }
-
-  Widget _buildNavBar(BuildContext context, int idx, UserModel? user) {
-    return Container(
-      color: Colors.transparent,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding:
-              const EdgeInsets.only(left: 20, right: 20, bottom: 4, top: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                      color: AppColors.border.withValues(alpha: 0.6), width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.gold.withValues(alpha: 0.06),
-                      blurRadius: 24,
-                      offset: const Offset(0, 4),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                child: Row(
-                  children: _tabs.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final tab = entry.value;
-                    final isSelected = i == idx;
-                    return Expanded(
-                      child: _NavItem(
-                        icon: tab.icon,
-                        label: tab.label,
-                        isSelected: isSelected,
-                        onTap: () => context.go(tab.path),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ),
+        bottomNavigationBar: _PeerLendNavBar(
+          tabs: _tabs,
+          selectedIndex: idx,
+          onTap: (i) => context.go(_tabs[i].path),
         ),
       ),
     );
   }
 }
 
-class _TabItem {
-  final IconData icon;
-  final String label;
-  final String path;
-  const _TabItem({required this.icon, required this.label, required this.path});
+// ─── Nav Bar ─────────────────────────────────────────────────────────────────
+class _PeerLendNavBar extends StatelessWidget {
+  final List<_TabItem> tabs;
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  static const double _fabSize = 54.0;
+  static const double _fabOverflow = 18.0;
+  static const double _barHeight = 64.0;
+
+  const _PeerLendNavBar({
+    required this.tabs,
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = AppColors.gold;
+    final activeDark = const Color(0xFF3F3F46); // dark zinc for gradient
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+        child: SizedBox(
+          height: _barHeight + _fabOverflow,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              // ── Pill bar ─────────────────────────────────────────────────
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildBar(context, activeColor),
+              ),
+
+              // ── Floating center FAB ───────────────────────────────────────
+              Positioned(
+                top: 0,
+                child: _buildCenterFab(activeColor, activeDark),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBar(BuildContext context, Color emerald) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(36),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          height: _barHeight,
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.97),
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.8),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: tabs.asMap().entries.map((e) {
+              final i = e.key;
+              final tab = e.value;
+
+              // Empty slot for center FAB
+              if (tab.isCenter) {
+                return const Expanded(child: SizedBox());
+              }
+
+              return Expanded(
+                child: _NavRegularItem(
+                  tab: tab,
+                  isSelected: selectedIndex == i,
+                  activeColor: emerald,
+                  onTap: () => onTap(i),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterFab(Color activeColor, Color activeDark) {
+    final isActive = selectedIndex == 2;
+    final tab = tabs[2];
+
+    return GestureDetector(
+      onTap: () => onTap(2),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        width: _fabSize,
+        height: _fabSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [activeColor, activeDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: activeColor.withValues(alpha: isActive ? 0.45 : 0.20),
+              blurRadius: isActive ? 18 : 10,
+              spreadRadius: isActive ? 2 : 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          isActive ? tab.activeIcon : tab.icon,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+    );
+  }
 }
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
+// ─── Regular Nav Item ─────────────────────────────────────────────────────────
+class _NavRegularItem extends StatelessWidget {
+  final _TabItem tab;
   final bool isSelected;
+  final Color activeColor;
   final VoidCallback onTap;
 
-  const _NavItem({
-    required this.icon,
-    required this.label,
+  const _NavRegularItem({
+    required this.tab,
     required this.isSelected,
+    required this.activeColor,
     required this.onTap,
   });
 
@@ -130,40 +249,34 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
           AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              gradient: isSelected ? AppColors.goldGradient : null,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.gold.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      )
-                    ]
-                  : null,
+              color: isSelected
+                  ? activeColor.withValues(alpha: 0.10)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              icon,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
+              isSelected ? tab.activeIcon : tab.icon,
               size: 22,
+              color: isSelected ? activeColor : AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 180),
             style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.gold : AppColors.textSecondary,
-              fontSize: 10,
+              fontSize: 10.5,
+              color: isSelected ? activeColor : AppColors.textSecondary,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
-            child: Text(label),
+            child: Text(tab.label),
           ),
         ],
       ),

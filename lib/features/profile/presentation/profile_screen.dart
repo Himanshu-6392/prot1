@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -102,33 +102,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     if (pickedFile == null) return;
 
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 70,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop Profile Photo',
-          toolbarColor: AppColors.surface,
-          toolbarWidgetColor: AppColors.gold,
-          initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: true,
-        ),
-        IOSUiSettings(
-          title: 'Crop Profile Photo',
-          aspectRatioLockEnabled: true,
-        ),
-        WebUiSettings(
-          context: context,
-          presentStyle: WebPresentStyle.page,
-        ),
-      ],
-    );
+    XFile fileToUpload = pickedFile;
+    bool supportsCropping = kIsWeb || defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
 
-    if (croppedFile == null) return;
+    if (supportsCropping) {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 70,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Profile Photo',
+            toolbarColor: AppColors.surface,
+            toolbarWidgetColor: AppColors.gold,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Profile Photo',
+            aspectRatioLockEnabled: true,
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.page,
+          ),
+        ],
+      );
 
-    final bytes = await croppedFile.readAsBytes();
+      if (croppedFile == null) return;
+      fileToUpload = XFile(croppedFile.path);
+    }
+
+    final bytes = await fileToUpload.readAsBytes();
     if (bytes.isEmpty) return;
 
     await _uploadBytes(bytes);

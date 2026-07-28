@@ -224,24 +224,29 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
       padding: const EdgeInsets.all(20),
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection(AppConstants.colRequests)
+            .collection(AppConstants.colMatches)
             .where('borrowerId', isEqualTo: userId)
             .snapshots(),
-        builder: (context, snap) {
-          int activeCount = 0;
-          int matchedCount = 0;
+        builder: (context, matchSnap) {
+          int matchedCount = matchSnap.hasData ? matchSnap.data!.docs.length : 0;
+          
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection(AppConstants.colRequests)
+                .where('borrowerId', isEqualTo: userId)
+                .snapshots(),
+            builder: (context, reqSnap) {
+              int activeCount = 0;
 
-          if (snap.hasData) {
-            for (var doc in snap.data!.docs) {
-              final d = doc.data() as Map<String, dynamic>;
-              final status = d['status'] ?? 'open';
-              if (status == 'open') {
-                activeCount++;
-              } else if (status == 'matched' || status == 'accepted' || status == 'completed') {
-                matchedCount++;
+              if (reqSnap.hasData) {
+                for (var doc in reqSnap.data!.docs) {
+                  final d = doc.data() as Map<String, dynamic>;
+                  final status = d['status'] ?? 'open';
+                  if (status == 'open') {
+                    activeCount++;
+                  }
+                }
               }
-            }
-          }
 
           return Container(
             width: double.infinity,
@@ -303,7 +308,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                     Column(
                       children: [
                         Text(
-                          snap.hasData ? '$activeCount' : '-',
+                          reqSnap.hasData ? '$activeCount' : '-',
                           style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
                         ),
                         const SizedBox(height: 4),
@@ -314,7 +319,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                     Column(
                       children: [
                         Text(
-                          snap.hasData ? '$matchedCount' : '-',
+                          matchSnap.hasData ? '$matchedCount' : '-',
                           style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
                         ),
                         const SizedBox(height: 4),
@@ -349,6 +354,8 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               ],
             ),
           ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+            },
+          );
         },
       ),
     );
@@ -550,8 +557,8 @@ class _QuickActions extends ConsumerWidget {
           () => context.go('/search')),
       _Action('Post Request', Icons.add_circle_rounded, Colors.white, true,
           handlePostRequest),
-      _Action('Saved', Icons.bookmark_rounded, AppColors.textPrimary, false,
-          () => context.push('/saved-lenders')),
+      _Action('Matches', Icons.handshake_rounded, AppColors.textPrimary, false,
+          () => context.push('/match')),
       _Action('Chat', Icons.chat_bubble_rounded, AppColors.textPrimary, false,
           () => context.push('/chat')),
     ];

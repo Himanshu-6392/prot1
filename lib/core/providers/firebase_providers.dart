@@ -53,8 +53,27 @@ final userProfileProvider =
     FutureProvider.family<UserModel?, String>((ref, uid) async {
   final snap =
       await ref.watch(firestoreProvider).collection('users').doc(uid).get();
-  if (!snap.exists) return null;
-  return UserModel.fromMap(snap.data()!, snap.id);
+  if (snap.exists) {
+    return UserModel.fromMap(snap.data()!, snap.id);
+  }
+  
+  // Fallback for lenders (who might only exist in the lenders collection)
+  final lenderSnap =
+      await ref.watch(firestoreProvider).collection('lenders').doc(uid).get();
+  if (lenderSnap.exists) {
+    final data = lenderSnap.data()!;
+    return UserModel(
+      uid: uid,
+      name: data['businessName'] ?? 'Lender',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      role: UserRole.lender,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+  
+  return null;
 });
 
 // ─── All Users (Admin) ────────────────────────

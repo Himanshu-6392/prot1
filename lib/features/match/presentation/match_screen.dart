@@ -40,13 +40,30 @@ class MatchScreen extends ConsumerWidget {
         stream: FirebaseFirestore.instance
             .collection(AppConstants.colMatches)
             .where(isLender ? 'lenderId' : 'borrowerId', isEqualTo: user.uid)
-            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snap) {
+          if (snap.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Error loading matches: ${snap.error}', style: TextStyle(color: Colors.red)),
+              )
+            );
+          }
           if (!snap.hasData)
             return Center(
                 child: CircularProgressIndicator(color: AppColors.gold));
-          final docs = snap.data!.docs;
+          
+          final docs = snap.data!.docs.toList();
+          // Sort locally to avoid needing a composite index in Firestore
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = (aData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime = (bData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
+
           if (docs.isEmpty)
             return EmptyState(
               icon: isLender
@@ -82,6 +99,51 @@ class _MatchCard extends ConsumerWidget {
   final bool isLender;
   const _MatchCard({required this.match, required this.isLender});
 
+  Future<Map<String, String>> _fetchDetails() async {
+    String name = 'Unknown';
+    String req = 'Direct Request';
+
+    try {
+      if (isLender) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(match.borrowerId)
+            .get();
+        if (doc.exists) name = doc.data()?['name'] ?? 'Borrower';
+      } else {
+        final doc = await FirebaseFirestore.instance
+            .collection('lenders')
+            .doc(match.lenderId)
+            .get();
+        if (doc.exists && doc.data()?['businessName'] != null) {
+          name = doc.data()!['businessName'];
+        } else {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(match.lenderId)
+              .get();
+          if (userDoc.exists) name = userDoc.data()?['name'] ?? 'Lender';
+        }
+      }
+
+      if (match.requestId.isNotEmpty) {
+        final reqDoc = await FirebaseFirestore.instance
+            .collection('requests')
+            .doc(match.requestId)
+            .get();
+        if (reqDoc.exists) {
+          final amt = reqDoc.data()?['loanAmount'] ?? 0;
+          final type = reqDoc.data()?['collateralType'] ?? 'Unknown';
+          req = 'Loan: ${AppFormatters.formatINR(amt.toDouble())} ($type)';
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    return {'name': name, 'request': req};
+  }
+
   Future<void> _accept(BuildContext context) async {
     HapticFeedback.mediumImpact();
     final chatRoomId = '${match.id}_chat';
@@ -94,18 +156,35 @@ class _MatchCard extends ConsumerWidget {
       'updatedAt': DateTime.now(),
     });
 
-    // Create a notification for the lender
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(match.lenderId)
-        .collection('notifications')
-        .add({
-      'title': 'Offer Accepted! 🎉',
-      'body': 'Your offer of ₹${match.offeredAmount} was accepted! Start chatting to finalize the deal.',
-      'type': 'match',
-      'isRead': false,
-      'createdAt': DateTime.now(),
-    });
+    bool isBorrowerInitiated = match.offeredAmount == null;
+
+    if (isBorrowerInitiated) {
+      // Lender accepted borrower's direct request
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(match.borrowerId)
+          .collection('notifications')
+          .add({
+        'title': 'Request Accepted! 🎉',
+        'body': 'A lender accepted your direct request! Start chatting to finalize the deal.',
+        'type': 'match',
+        'isRead': false,
+        'createdAt': DateTime.now(),
+      });
+    } else {
+      // Borrower accepted lender's offer
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(match.lenderId)
+          .collection('notifications')
+          .add({
+        'title': 'Offer Accepted! 🎉',
+        'body': 'Your offer of ₹${match.offeredAmount} was accepted! Start chatting to finalize the deal.',
+        'type': 'match',
+        'isRead': false,
+        'createdAt': DateTime.now(),
+      });
+    }
 
     if (context.mounted) context.push('/chat/$chatRoomId');
   }
@@ -136,97 +215,122 @@ class _MatchCard extends ConsumerWidget {
                 : AppColors.border,
             width: match.status == MatchStatus.pending ? 1.5 : 1),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: statusColor.withOpacity(0.3)),
-            ),
-            child: Text(match.status.name.toUpperCase(),
-                style: AppTextStyles.tag.copyWith(color: statusColor)),
-          ),
-          Spacer(),
-          Text(AppFormatters.formatRelative(match.createdAt),
-              style: AppTextStyles.caption),
-        ]),
-        SizedBox(height: 14),
-        Text(
-            isLender
-                ? 'Borrower: ${match.borrowerId.substring(0, 8)}...'
-                : 'Lender: ${match.lenderId.substring(0, 8)}...',
-            style: AppTextStyles.labelLarge),
-        SizedBox(height: 4),
-        Text('Request: ${match.requestId.substring(0, 8)}...',
-            style: AppTextStyles.caption),
-        if (match.offeredAmount != null &&
-            match.offeredInterestRate != null) ...[
-          SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isLender ? 'Your Offer' : 'Lender\'s Offer',
-                    style: AppTextStyles.labelSmall
-                        .copyWith(color: AppColors.gold)),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        'Amount: ${AppFormatters.formatINR(match.offeredAmount!)}',
-                        style: AppTextStyles.labelMedium),
-                    Text('Rate: ${match.offeredInterestRate}%/mo',
-                        style: AppTextStyles.labelMedium),
-                  ],
+      child: FutureBuilder<Map<String, String>>(
+        future: _fetchDetails(),
+        builder: (context, snapshot) {
+          final details = snapshot.data ?? {'name': 'Loading...', 'request': '...'};
+          
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: statusColor.withOpacity(0.3)),
                 ),
-                if (match.offerMessage != null &&
-                    match.offerMessage!.isNotEmpty) ...[
-                  SizedBox(height: 8),
-                  Text('"${match.offerMessage}"',
-                      style: AppTextStyles.caption
-                          .copyWith(fontStyle: FontStyle.italic)),
-                ],
+                child: Text(match.status.name.toUpperCase(),
+                    style: AppTextStyles.tag.copyWith(color: statusColor)),
+              ),
+              Spacer(),
+              Text(AppFormatters.formatRelative(match.createdAt),
+                  style: AppTextStyles.caption),
+            ]),
+            SizedBox(height: 14),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surfaceAlt,
+                  child: Text(
+                    details['name']![0].toUpperCase(),
+                    style: AppTextStyles.h3.copyWith(color: isLender ? AppColors.emerald : AppColors.gold),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          isLender
+                              ? 'Borrower: ${details['name']}'
+                              : 'Lender: ${details['name']}',
+                          style: AppTextStyles.labelLarge),
+                      SizedBox(height: 4),
+                      Text(details['request']!, style: AppTextStyles.caption),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-        if (match.status == MatchStatus.pending && !isLender) ...[
-          SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-                child: AppButton(
-                    label: 'Accept',
-                    onPressed: () => _accept(context),
-                    icon: Icon(Icons.check_rounded, size: 16),
-                    color: AppColors.emerald)),
-            SizedBox(width: 10),
-            Expanded(
-                child: AppButton(
-                    label: 'Decline',
-                    onPressed: () => _decline(context),
-                    isOutlined: true,
-                    color: AppColors.error)),
-          ]),
-        ],
-        if ((match.status == MatchStatus.accepted) ||
-            (isLender && match.status == MatchStatus.pending)) ...[
-          SizedBox(height: 14),
-          AppButton(
-            label: 'Open Chat',
-            onPressed: () => context.push('/chat/${match.chatRoomId}'),
-            icon: Icon(Icons.chat_bubble_rounded, size: 16),
-          ),
-        ],
-      ]),
+            if (match.offeredAmount != null &&
+                match.offeredInterestRate != null) ...[
+              SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isLender ? 'Your Offer' : 'Lender\'s Offer',
+                        style: AppTextStyles.labelSmall
+                            .copyWith(color: AppColors.gold)),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                            'Amount: ${AppFormatters.formatINR(match.offeredAmount!)}',
+                            style: AppTextStyles.labelMedium),
+                        Text('Rate: ${match.offeredInterestRate}%/mo',
+                            style: AppTextStyles.labelMedium),
+                      ],
+                    ),
+                    if (match.offerMessage != null &&
+                        match.offerMessage!.isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      Text('"${match.offerMessage}"',
+                          style: AppTextStyles.caption
+                              .copyWith(fontStyle: FontStyle.italic)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            if (match.status == MatchStatus.pending && ((match.offeredAmount == null && isLender) || (match.offeredAmount != null && !isLender))) ...[
+              SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                    child: AppButton(
+                        label: 'Accept',
+                        onPressed: () => _accept(context),
+                        icon: Icon(Icons.check_rounded, size: 16),
+                        color: AppColors.emerald)),
+                SizedBox(width: 10),
+                Expanded(
+                    child: AppButton(
+                        label: 'Decline',
+                        onPressed: () => _decline(context),
+                        isOutlined: true,
+                        color: AppColors.error)),
+              ]),
+            ],
+            if (match.status == MatchStatus.accepted) ...[
+              SizedBox(height: 14),
+              AppButton(
+                label: 'Open Chat',
+                onPressed: () => context.push('/chat/${match.chatRoomId}'),
+                icon: Icon(Icons.chat_bubble_rounded, size: 16),
+              ),
+            ],
+          ]);
+        }
+      ),
     );
   }
 
@@ -592,6 +696,27 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Check if match already exists
+      final existingMatch = await FirebaseFirestore.instance
+          .collection(AppConstants.colMatches)
+          .where('borrowerId', isEqualTo: widget.requestData['borrowerId'])
+          .where('lenderId', isEqualTo: widget.lenderId)
+          .get();
+
+      if (existingMatch.docs.isNotEmpty) {
+        if (context.mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('You already have an active chat with this borrower.'),
+              backgroundColor: AppColors.info,
+            ),
+          );
+          context.pop();
+        }
+        return;
+      }
+
       final matchRef =
           FirebaseFirestore.instance.collection(AppConstants.colMatches).doc();
       final chatRoomId = '${matchRef.id}_chat';
@@ -601,7 +726,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
         borrowerId: widget.requestData['borrowerId'],
         lenderId: widget.lenderId,
         requestId: widget.requestId,
-        status: MatchStatus.pending,
+        status: MatchStatus.accepted, // Auto-accept to avoid "Waiting for approval"
         chatRoomId: chatRoomId,
         offeredAmount: amount,
         offeredInterestRate: rate,

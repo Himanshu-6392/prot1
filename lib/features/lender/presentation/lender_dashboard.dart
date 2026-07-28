@@ -397,16 +397,36 @@ class _LenderStatsRow extends ConsumerWidget {
                   value: snap.hasData ? '$activeOffers' : '...',
                   icon: Icons.receipt_long_rounded,
                   color: AppColors.emerald),
-              _StatCard2(
-                  label: 'Pending Requests',
-                  value: '0',
-                  icon: Icons.inbox_rounded,
-                  color: AppColors.info),
-              _StatCard2(
-                  label: 'Accepted Deals',
-                  value: '0',
-                  icon: Icons.handshake_rounded,
-                  color: AppColors.success),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection(AppConstants.colMatches)
+                    .where('lenderId', isEqualTo: userId)
+                    .where('status', isEqualTo: 'pending')
+                    .snapshots(),
+                builder: (context, snap) {
+                  final count = snap.hasData ? snap.data!.docs.length : 0;
+                  return _StatCard2(
+                      label: 'Pending Requests',
+                      value: count.toString(),
+                      icon: Icons.inbox_rounded,
+                      color: AppColors.info);
+                },
+              ),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection(AppConstants.colMatches)
+                    .where('lenderId', isEqualTo: userId)
+                    .where('status', isEqualTo: 'accepted')
+                    .snapshots(),
+                builder: (context, snap) {
+                  final count = snap.hasData ? snap.data!.docs.length : 0;
+                  return _StatCard2(
+                      label: 'Accepted Deals',
+                      value: count.toString(),
+                      icon: Icons.handshake_rounded,
+                      color: AppColors.success);
+                },
+              ),
             ],
           ),
         );
@@ -572,6 +592,7 @@ class _IncomingRequestsSliver extends ConsumerWidget {
               .where((d) {
                 final data = d.data() as Map<String, dynamic>;
                 if (data['borrowerName'] == 'Test User') return false; // HIDE DEMO REQUESTS
+                if (data['borrowerId'] == lenderId) return false; // HIDE OWN REQUESTS
                 final status = data['status'] ?? 'open';
                 return status == 'open';
               })
@@ -604,56 +625,73 @@ class _IncomingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/request/$id'),
-      child: Container(
+    return Dismissible(
+      key: Key(id),
+      direction: DismissDirection.endToStart,
+      background: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.error,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-                child: Text(
-              AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
-              style: AppTextStyles.amountMedium,
-            )),
-            TagChip(label: data['collateralType'] ?? '', color: AppColors.info),
-          ]),
-          SizedBox(height: 8),
-          Text(data['description'] ?? '',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-          SizedBox(height: 10),
-          Row(children: [
-            Icon(Icons.location_on_rounded,
-                color: AppColors.textMuted, size: 13),
-            SizedBox(width: 4),
-            Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
-            SizedBox(width: 12),
-            Icon(Icons.percent_rounded, color: AppColors.textMuted, size: 13),
-            SizedBox(width: 4),
-            Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo',
-                style: AppTextStyles.caption),
-            Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                gradient: AppColors.goldGradient,
-                borderRadius: BorderRadius.circular(6),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+      ),
+      onDismissed: (_) {
+        FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(id).delete();
+      },
+      child: GestureDetector(
+        onTap: () => context.push('/request/$id'),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(
+                  child: Text(
+                AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
+                style: AppTextStyles.amountMedium,
+              )),
+              TagChip(label: data['collateralType'] ?? '', color: AppColors.info),
+            ]),
+            SizedBox(height: 8),
+            Text(data['description'] ?? '',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+            SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.location_on_rounded,
+                  color: AppColors.textMuted, size: 13),
+              SizedBox(width: 4),
+              Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
+              SizedBox(width: 12),
+              Icon(Icons.percent_rounded, color: AppColors.textMuted, size: 13),
+              SizedBox(width: 4),
+              Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo',
+                  style: AppTextStyles.caption),
+              Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('Respond',
+                    style:
+                        AppTextStyles.labelSmall.copyWith(color: Colors.white)),
               ),
-              child: Text('Respond',
-                  style:
-                      AppTextStyles.labelSmall.copyWith(color: Colors.white)),
-            ),
+            ]),
           ]),
-        ]),
-      ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+        ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+      ),
     );
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/firebase_providers.dart';
+import '../providers/platform_settings_provider.dart';
 import '../../models/user_model.dart';
 
 // ─── Auth Feature ─────────────────────────────
@@ -14,6 +16,7 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/auth/presentation/kyc_borrower_screen.dart';
 import '../../features/auth/presentation/kyc_lender_screen.dart';
+import '../../features/auth/presentation/maintenance_screen.dart';
 
 // ─── Shell / Nav ──────────────────────────────
 import '../../features/shell/main_shell.dart';
@@ -55,25 +58,63 @@ import '../../features/admin/presentation/admin_user_management_screen.dart';
 import '../../features/admin/presentation/admin_user_detail_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 
+final isLoggingInProvider = StateProvider<bool>((ref) => false);
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final maintenanceMode = ref.watch(maintenanceModeProvider);
+  final userAsync = ref.watch(currentUserProvider);
+  final isLoggingIn = ref.watch(isLoggingInProvider);
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
+      // ── CRITICAL: Wait until auth state has resolved ───────────────
+      // If auth is still loading, do nothing — don't redirect yet.
+      // Without this, authState.valueOrNull = null (loading = not logged in)
+      // which makes the router wrongly think the user is a guest.
+      if (authState.isLoading) return null;
+
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
           loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding';
+      final isMaintenanceRoute = loc == '/maintenance';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
 
-      // Logged-in users should never see onboarding or login screens
-      if (isLoggedIn && isAuthRoute) return '/';
+      // Admin email — exempt from maintenance
+      final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
+      
+      // Determine if they are an admin via email OR via Firestore Role
+      final isAdmin = email.contains('admin104') || 
+                      (userAsync.valueOrNull?.role == UserRole.admin);
+
+      // ── Maintenance Mode Guard ─────────────────────────────────────
+      if (maintenanceMode && !isAdmin) {
+        // Wait for user document to load before deciding
+        if (isLoggedIn && userAsync.isLoading) return null;
+
+        if (!isLoggingIn) {
+          if (!isMaintenanceRoute) return '/maintenance';
+        }
+      }
+      if (!maintenanceMode && isMaintenanceRoute) return '/auth/login';
+      // ───────────────────────────────────────────────────────────────
+
+      // Logged-in users should never see auth/splash/onboarding screens
+      if (isLoggedIn && isAuthRoute && !isLoggingIn) return '/';
+
+      // Guest on splash: decide between onboarding and login
+      if (!isLoggedIn && loc == '/splash') {
+        final box = Hive.box('settings');
+        final hasSeenOnboarding = box.get('hasSeenOnboarding', defaultValue: false) as bool;
+        return hasSeenOnboarding ? '/auth/login' : '/onboarding';
+      }
 
       // Guests should not access protected routes
-      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
+      if (!isLoggedIn && !isAuthRoute && !isMaintenanceRoute) return '/auth/login';
 
       return null;
     },
@@ -81,6 +122,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ─── Splash & Onboarding ──────────────
       GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
+      GoRoute(path: '/maintenance', builder: (c, s) => const MaintenanceScreen()),
 
       // ─── Auth Routes ──────────────────────
       GoRoute(path: '/auth/login', builder: (c, s) => const LoginScreen()),
@@ -215,11 +257,7 @@ class DashboardRouter extends ConsumerWidget {
             'isPremium': true,
           });
         }
-        
-        // Auto-downgrade shivansh back to borrower if they were accidentally elevated
-        if (user.email == 'shivanshsingh6229@gmail.com' && user.role == UserRole.admin) {
-          FirebaseFirestore.instance.collection('users').doc(user.uid).update({'role': 'borrower'});
-        }
+
         
         // Force the route immediately so they don't have to wait for the stream to update
         if (user.role == UserRole.admin || authEmail.contains('admin104')) {

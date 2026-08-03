@@ -9,6 +9,7 @@ import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class UploadCollateralScreen extends ConsumerStatefulWidget {
   const UploadCollateralScreen({super.key});
@@ -52,6 +53,15 @@ class _UploadCollateralScreenState
     setState(() => _loading = true);
     // Simulate upload
     await Future.delayed(const Duration(seconds: 2));
+
+    // ── Log collateral upload ───────────────
+    ActivityLogService.log(
+      type: ActivityType.collateral,
+      title: '📎 Collateral Uploaded',
+      detail: '$_selectedType • ${_selectedCondition ?? ''} condition • ₹${_valueCtr.text}',
+      meta: {'type': _selectedType, 'condition': _selectedCondition, 'value': _valueCtr.text},
+    );
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✓ Collateral uploaded successfully!')));

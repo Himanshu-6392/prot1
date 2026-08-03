@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +6,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
+import '../../../main.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -35,68 +35,54 @@ class MainShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final idx = _currentIndex(context);
     final userAsync = ref.watch(currentUserProvider);
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark, // dark icons on light bg
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
         extendBody: true,
         body: child,
-        bottomNavigationBar: _buildNavBar(context, idx, userAsync.valueOrNull),
+        bottomNavigationBar:
+            _buildNavBar(context, idx, userAsync.valueOrNull, isDark),
       ),
     );
   }
 
-  Widget _buildNavBar(BuildContext context, int idx, UserModel? user) {
+  Widget _buildNavBar(
+      BuildContext context, int idx, UserModel? user, bool isDark) {
     return Container(
-      color: Colors.transparent,
+      // Completely seamless with the dark background
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF000000) : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.07)
+                : const Color(0xFFE5E7EB),
+            width: 0.5,
+          ),
+        ),
+      ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding:
-              const EdgeInsets.only(left: 20, right: 20, bottom: 4, top: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                      color: AppColors.border.withValues(alpha: 0.6), width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.gold.withValues(alpha: 0.06),
-                      blurRadius: 24,
-                      offset: const Offset(0, 4),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: _tabs.asMap().entries.map((entry) {
+              final i = entry.key;
+              final tab = entry.value;
+              final isSelected = i == idx;
+              return Expanded(
+                child: _NavItem(
+                  icon: tab.icon,
+                  label: tab.label,
+                  isSelected: isSelected,
+                  isDark: isDark,
+                  onTap: () => context.go(tab.path),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                child: Row(
-                  children: _tabs.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final tab = entry.value;
-                    final isSelected = i == idx;
-                    return Expanded(
-                      child: _NavItem(
-                        icon: tab.icon,
-                        label: tab.label,
-                        isSelected: isSelected,
-                        onTap: () => context.go(tab.path),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
+              );
+            }).toList(),
           ),
         ),
       ),
@@ -115,57 +101,75 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final activeIconColor = isDark ? Colors.white : const Color(0xFF111827);
+    final inactiveIconColor = isDark
+        ? const Color(0xFF3D3D3D)
+        : const Color(0xFFB0B0B0);
+    final activeLabelColor = isDark
+        ? const Color(0xFF52C41A)
+        : const Color(0xFF111827);
+    final inactiveLabelColor = isDark
+        ? const Color(0xFF3D3D3D)
+        : const Color(0xFFB0B0B0);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-            decoration: BoxDecoration(
-              gradient: isSelected ? AppColors.goldGradient : null,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.gold.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      )
-                    ]
-                  : null,
+      child: AnimatedScale(
+        scale: isSelected ? 1.04 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 4),
+            // Top indicator dot
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: isSelected ? 18 : 0,
+              height: isSelected ? 2.5 : 0,
+              decoration: BoxDecoration(
+                color: const Color(0xFF52C41A),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            child: Icon(
+            const SizedBox(height: 8),
+            // Icon
+            Icon(
               icon,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
+              color: isSelected ? activeIconColor : inactiveIconColor,
               size: 22,
             ),
-          ),
-          const SizedBox(height: 4),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.gold : AppColors.textSecondary,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            const SizedBox(height: 4),
+            // Label
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: isSelected ? activeLabelColor : inactiveLabelColor,
+                fontSize: 10,
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.1,
+              ),
+              child: Text(label),
             ),
-            child: Text(label),
-          ),
-        ],
+            const SizedBox(height: 4),
+          ],
+        ),
       ),
     );
   }

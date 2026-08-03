@@ -11,6 +11,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/loan_request_model.dart';
 import '../../../models/lender_model.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class PostRequestScreen extends StatelessWidget {
   const PostRequestScreen({super.key});
@@ -118,6 +119,19 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
           .read(firestoreProvider)
           .collection(AppConstants.colRequests)
           .add(request.toMap());
+
+      // ── Log loan request event ────────────────
+      ActivityLogService.log(
+        type: ActivityType.loanRequest,
+        title: '💰 New Loan Request Posted',
+        detail: '${userModel?.name ?? 'Unknown'} • ₹${request.loanAmount.toStringAsFixed(0)} for ${request.tenureMonths}mo',
+        meta: {
+          'amount': request.loanAmount,
+          'tenure': request.tenureMonths,
+          'collateral': request.collateralType,
+          'borrower': userModel?.name ?? '',
+        },
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

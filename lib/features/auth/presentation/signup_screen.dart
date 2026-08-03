@@ -10,6 +10,7 @@ import '../../../core/utils/constants.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -80,6 +81,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           .collection(AppConstants.colUsers)
           .doc(user.uid)
           .set(model.toMap());
+
+      // ── Log signup event ────────────────────────
+      await ActivityLogService.log(
+        type: ActivityType.signup,
+        title: '🆕 New User Signed Up',
+        detail: '${_nameCtr.text.trim()} (${_emailCtr.text.trim()})',
+        userId: user.uid,
+        meta: {'email': _emailCtr.text.trim(), 'name': _nameCtr.text.trim()},
+      );
 
       if (mounted) {
         if (isAdmin) {

@@ -10,6 +10,10 @@ import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/providers/platform_settings_provider.dart';
+import '../../../core/router/app_router.dart';
+import 'package:flutter/services.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -38,12 +42,70 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _loading = true;
       _errorMsg = null;
     });
+
+    ref.read(isLoggingInProvider.notifier).state = true;
+
     try {
-      await ref.read(firebaseAuthProvider).signInWithEmailAndPassword(
+      final cred = await ref.read(firebaseAuthProvider).signInWithEmailAndPassword(
             email: _emailCtr.text.trim(),
             password: _passwordCtr.text,
           );
 
+      // ── Maintenance Mode Check ─────────────────────────────────
+      final isInMaintenance = ref.read(maintenanceModeProvider);
+      
+      // Fetch user's role from Firestore to accurately determine admin status
+      final doc = await ref.read(firestoreProvider).collection('users').doc(cred.user!.uid).get();
+      final role = doc.data()?['role'];
+      final isAdmin = role == 'admin' || _emailCtr.text.trim().toLowerCase().contains('admin104');
+      
+      if (isInMaintenance && !isAdmin) {
+        // App is under maintenance and this user is not an admin
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Text('🔧', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 12),
+                  Text('Under Maintenance', style: AppTextStyles.h3),
+                ],
+              ),
+              content: Text(
+                'App is under maintenance and everything is oka go ahead',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    SystemNavigator.pop();
+                  },
+                  child: Text('OK', style: AppTextStyles.labelLarge.copyWith(color: AppColors.gold)),
+                )
+              ],
+            ),
+          );
+        }
+        await FirebaseAuth.instance.signOut();
+        ref.read(isLoggingInProvider.notifier).state = false;
+        return;
+      }
+      // ─────────────────────────────────────────────────────
+
+      ref.read(isLoggingInProvider.notifier).state = false;
+      // ── Log login event ───────────────────────
+      ActivityLogService.log(
+        type: ActivityType.login,
+        title: '🔑 User Logged In',
+        detail: _emailCtr.text.trim(),
+        userId: cred.user?.uid,
+        meta: {'email': _emailCtr.text.trim()},
+      );
       if (mounted) context.go('/');
     } on FirebaseAuthException catch (e) {
       // ─── ADMIN AUTO-CREATION FALLBACK ───
@@ -72,11 +134,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
+          ref.read(isLoggingInProvider.notifier).state = false;
           if (mounted) context.go('/');
           return;
         } on FirebaseAuthException catch (createErr) {
           // Account already exists in Firebase Auth but password is wrong
           if (createErr.code == 'email-already-in-use') {
+            ref.read(isLoggingInProvider.notifier).state = false;
             setState(() {
               _loading = false;
               _errorMsg =
@@ -90,6 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
       // ─────────────────────────────────────
 
+      ref.read(isLoggingInProvider.notifier).state = false;
       setState(() {
         _loading = false;
         _errorMsg = e.message;

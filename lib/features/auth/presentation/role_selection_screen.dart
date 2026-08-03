@@ -10,6 +10,7 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class _RoleCard extends StatelessWidget {
   final IconData icon;
@@ -129,6 +130,21 @@ class _RoleSelectionState extends ConsumerState<RoleSelectionScreen> {
         .collection(AppConstants.colUsers)
         .doc(user.uid)
         .update({'role': role.name, 'updatedAt': FieldValue.serverTimestamp()});
+
+    // ── Log role selection ─────────────────────
+    ActivityLogService.log(
+      type: role == UserRole.lender || role == UserRole.both
+          ? ActivityType.lenderJoin
+          : ActivityType.roleChange,
+      title: role == UserRole.lender
+          ? '🏦 New Lender Joined'
+          : role == UserRole.both
+              ? '🔄 User Joined as Borrower + Lender'
+              : '📝 New Borrower Joined',
+      detail: 'Role set to ${role.name}',
+      userId: user.uid,
+      meta: {'role': role.name},
+    );
 
     if (mounted) {
       if (_roles.contains(UserRole.lender)) {

@@ -6,6 +6,7 @@ import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../models/user_model.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class AdminUserDetailScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -58,6 +59,19 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
         'kycStatus': status.name,
         'isVerified': status == KycStatus.verified,
       });
+
+      // ── Log KYC action ────────────────────
+      ActivityLogService.log(
+        type: status == KycStatus.verified
+            ? ActivityType.kycApprove
+            : ActivityType.kycReject,
+        title: status == KycStatus.verified
+            ? '✅ KYC Approved'
+            : '❌ KYC Rejected',
+        detail: 'User ID: ${widget.userId}',
+        meta: {'targetUserId': widget.userId, 'status': status.name},
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('KYC updated to ${status.name}')));
@@ -80,6 +94,15 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
           .update({
         'isBlocked': block,
       });
+
+      // ── Log block/unblock action ────────────
+      ActivityLogService.log(
+        type: ActivityType.adminAction,
+        title: block ? '🚫 User Blocked' : '✅ User Unblocked',
+        detail: 'User ID: ${widget.userId}',
+        meta: {'targetUserId': widget.userId, 'blocked': block},
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(block ? 'User Blocked' : 'User Unblocked')));

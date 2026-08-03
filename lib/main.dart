@@ -108,12 +108,22 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp>
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
+    // Sync AppColors static palette with the active theme mode.
+    // This must happen BEFORE the widget tree is built so every
+    // widget reading AppColors.* picks up the correct values.
+    final themeMode = ref.watch(themeModeProvider);
+    if (themeMode == ThemeMode.dark) {
+      AppColors.setDark();
+    } else {
+      AppColors.setLight();
+    }
+
     return MaterialApp.router(
       title: 'PeerLend',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ref.watch(themeModeProvider),
+      themeMode: themeMode,
       routerConfig: router,
       locale: DevicePreview.locale(context),
       builder: (context, child) {

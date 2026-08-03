@@ -146,10 +146,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (c, s) =>
                   const LenderDashboard()), // Kept for direct linking if needed
           GoRoute(path: '/search', builder: (c, s) => const SearchRouter()),
+          GoRoute(path: '/match', builder: (c, s) => const MatchScreen()),
           GoRoute(path: '/chat', builder: (c, s) => const ChatListScreen()),
           GoRoute(
               path: '/notifications',
               builder: (c, s) => const NotificationsScreen()),
+          GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
         ],
       ),
 
@@ -173,7 +175,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ─── Match ────────────────────────────
-      GoRoute(path: '/match', builder: (c, s) => const MatchScreen()),
       GoRoute(
         path: '/request/:id',
         builder: (c, s) =>
@@ -217,7 +218,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (c, s) =>
             AdminUserDetailScreen(userId: s.pathParameters['id']!),
       ),
-      GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(

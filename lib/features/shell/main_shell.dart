@@ -8,18 +8,61 @@ import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
 import '../../../main.dart';
 
+// ─── Tab model ───────────────────────────────────────────────────────────────
+class _TabItem {
+  final IconData icon;       // outline (inactive)
+  final IconData activeIcon; // filled (active)
+  final String label;
+  final String path;
+  final bool isCenter;
+
+  const _TabItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.path,
+    this.isCenter = false,
+  });
+}
+
+// ─── Shell ───────────────────────────────────────────────────────────────────
 class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
+  // Layout: Home | Search | [FAB = Match] | Chat | Profile
   static const _tabs = [
-    _TabItem(icon: Icons.home_rounded, label: 'Home', path: '/'),
-    _TabItem(icon: Icons.search_rounded, label: 'Search', path: '/search'),
-    _TabItem(icon: Icons.chat_bubble_rounded, label: 'Chat', path: '/chat'),
     _TabItem(
-        icon: Icons.notifications_rounded,
-        label: 'Alerts',
-        path: '/notifications'),
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+      path: '/',
+    ),
+    _TabItem(
+      icon: Icons.search_outlined,
+      activeIcon: Icons.search_rounded,
+      label: 'Search',
+      path: '/search',
+    ),
+    _TabItem(
+      icon: Icons.people_outline_rounded,
+      activeIcon: Icons.people_rounded,
+      label: 'Match',
+      path: '/match',
+      isCenter: true,
+    ),
+    _TabItem(
+      icon: Icons.chat_bubble_outline_rounded,
+      activeIcon: Icons.chat_bubble_rounded,
+      label: 'Chat',
+      path: '/chat',
+    ),
+    _TabItem(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+      path: '/profile',
+    ),
   ];
 
   int _currentIndex(BuildContext context) {
@@ -43,43 +86,105 @@ class MainShell extends ConsumerWidget {
         backgroundColor: AppColors.bg,
         extendBody: true,
         body: child,
-        bottomNavigationBar:
-            _buildNavBar(context, idx, userAsync.valueOrNull, isDark),
+        bottomNavigationBar: _PeerLendNavBar(
+          tabs: _tabs,
+          selectedIndex: idx,
+          onTap: (i) => context.go(_tabs[i].path),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Nav Bar ─────────────────────────────────────────────────────────────────
+class _PeerLendNavBar extends StatelessWidget {
+  final List<_TabItem> tabs;
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  static const double _fabSize = 54.0;
+  static const double _fabOverflow = 18.0;
+  static const double _barHeight = 64.0;
+
+  const _PeerLendNavBar({
+    required this.tabs,
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = AppColors.gold;
+    final activeDark = const Color(0xFF3F3F46); // dark zinc for gradient
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+        child: SizedBox(
+          height: _barHeight + _fabOverflow,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              // ── Pill bar ─────────────────────────────────────────────────
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildBar(context, activeColor),
+              ),
+
+              // ── Floating center FAB ───────────────────────────────────────
+              Positioned(
+                top: 0,
+                child: _buildCenterFab(activeColor, activeDark),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildNavBar(
-      BuildContext context, int idx, UserModel? user, bool isDark) {
-    return Container(
-      // Completely seamless with the dark background
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF000000) : Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.07)
-                : const Color(0xFFE5E7EB),
-            width: 0.5,
+  Widget _buildBar(BuildContext context, Color emerald) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(36),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          height: _barHeight,
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.97),
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.8),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
-            children: _tabs.asMap().entries.map((entry) {
-              final i = entry.key;
-              final tab = entry.value;
-              final isSelected = i == idx;
+            children: tabs.asMap().entries.map((e) {
+              final i = e.key;
+              final tab = e.value;
+
+              // Empty slot for center FAB
+              if (tab.isCenter) {
+                return const Expanded(child: SizedBox());
+              }
+
               return Expanded(
-                child: _NavItem(
-                  icon: tab.icon,
-                  label: tab.label,
-                  isSelected: isSelected,
-                  isDark: isDark,
-                  onTap: () => context.go(tab.path),
+                child: _NavRegularItem(
+                  tab: tab,
+                  isSelected: selectedIndex == i,
+                  activeColor: emerald,
+                  onTap: () => onTap(i),
                 ),
               );
             }).toList(),
@@ -88,27 +193,63 @@ class MainShell extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildCenterFab(Color activeColor, Color activeDark) {
+    final isActive = selectedIndex == 2;
+    final tab = tabs[2];
+
+    return GestureDetector(
+      onTap: () => onTap(2),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        width: _fabSize,
+        height: _fabSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [activeColor, activeDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: activeColor.withValues(alpha: isActive ? 0.45 : 0.20),
+              blurRadius: isActive ? 18 : 10,
+              spreadRadius: isActive ? 2 : 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          isActive ? tab.activeIcon : tab.icon,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+    );
+  }
 }
 
-class _TabItem {
-  final IconData icon;
-  final String label;
-  final String path;
-  const _TabItem({required this.icon, required this.label, required this.path});
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
+// ─── Regular Nav Item ─────────────────────────────────────────────────────────
+class _NavRegularItem extends StatelessWidget {
+  final _TabItem tab;
   final bool isSelected;
+<<<<<<< HEAD
   final bool isDark;
+=======
+  final Color activeColor;
+>>>>>>> origin/ui-updates
   final VoidCallback onTap;
 
-  const _NavItem({
-    required this.icon,
-    required this.label,
+  const _NavRegularItem({
+    required this.tab,
     required this.isSelected,
+<<<<<<< HEAD
     required this.isDark,
+=======
+    required this.activeColor,
+>>>>>>> origin/ui-updates
     required this.onTap,
   });
 
@@ -128,6 +269,7 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
+<<<<<<< HEAD
       child: AnimatedScale(
         scale: isSelected ? 1.04 : 1.0,
         duration: const Duration(milliseconds: 180),
@@ -151,8 +293,28 @@ class _NavItem extends StatelessWidget {
             Icon(
               icon,
               color: isSelected ? activeIconColor : inactiveIconColor,
-              size: 22,
+=======
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? activeColor.withValues(alpha: 0.10)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(
+              isSelected ? tab.activeIcon : tab.icon,
+>>>>>>> origin/ui-updates
+              size: 22,
+              color: isSelected ? activeColor : AppColors.textSecondary,
+            ),
+<<<<<<< HEAD
             const SizedBox(height: 4),
             // Label
             AnimatedDefaultTextStyle(
@@ -170,6 +332,20 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 4),
           ],
         ),
+=======
+          ),
+          const SizedBox(height: 2),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 180),
+            style: AppTextStyles.labelSmall.copyWith(
+              fontSize: 10.5,
+              color: isSelected ? activeColor : AppColors.textSecondary,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            ),
+            child: Text(tab.label),
+          ),
+        ],
+>>>>>>> origin/ui-updates
       ),
     );
   }

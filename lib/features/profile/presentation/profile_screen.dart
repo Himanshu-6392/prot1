@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -36,6 +38,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late AnimationController _pulseController;
   bool _isUploading = false;
   double _uploadProgress = 0;
+  String _debugMsg = '';
 
   @override
   void initState() {
@@ -59,6 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (_) => const _PhotoPickerSheet(),
     );
     if (source != null && mounted) {
@@ -67,17 +71,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    Uint8List? bytes;
+    XFile? pickedFile;
 
     if (kIsWeb) {
-      // ── Web: use file_picker (directly triggers <input type="file">) ──
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-        withData: true,
-      );
-      if (result == null || result.files.isEmpty) return;
-      bytes = result.files.first.bytes;
+      // ── Web: use image_picker ──
+      pickedFile = await ImagePicker().pickImage(source: source);
     } else {
       // ── Native Android/iOS: use image_picker + permissions ──
       if (source == ImageSource.camera) {
@@ -96,45 +94,93 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           }
         }
       }
-      final picked = await ImagePicker().pickImage(
+      pickedFile = await ImagePicker().pickImage(
         source: source,
         imageQuality: 80,
         maxWidth: 800,
       );
-      if (picked == null) return;
-      bytes = await picked.readAsBytes();
     }
 
-    if (bytes == null || bytes.isEmpty) return;
+    if (pickedFile == null) return;
+
+    XFile fileToUpload = pickedFile;
+    bool supportsCropping = kIsWeb || defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+
+    if (supportsCropping) {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 70,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Profile Photo',
+            toolbarColor: AppColors.surface,
+            toolbarWidgetColor: AppColors.gold,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Profile Photo',
+            aspectRatioLockEnabled: true,
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.page,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) return;
+      fileToUpload = XFile(croppedFile.path);
+    }
+
+    final bytes = await fileToUpload.readAsBytes();
+    if (bytes.isEmpty) return;
+
     await _uploadBytes(bytes);
   }
 
   Future<void> _uploadBytes(Uint8List bytes) async {
+    print('Starting upload with bytes length: ${bytes.length}');
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      print('User is not logged in!');
+      return;
+    }
 
     setState(() {
       _isUploading = true;
       _uploadProgress = 0;
+      _debugMsg = 'Size: ${bytes.length}b';
     });
 
     try {
       final storageRef =
           FirebaseStorage.instance.ref().child('profile_photos/$uid.jpg');
 
-      final uploadTask = storageRef.putData(
-        bytes,
-        SettableMetadata(contentType: 'image/jpeg'),
+      final base64Image = base64Encode(bytes);
+      final uploadTask = storageRef.putString(
+        base64Image,
+        format: PutStringFormat.base64,
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
       );
+      
+      setState(() { _debugMsg = 'Started'; });
 
       uploadTask.snapshotEvents.listen((snap) {
         if (!mounted) return;
         setState(() {
           _uploadProgress = snap.bytesTransferred / snap.totalBytes;
+          _debugMsg = 'State: ${snap.state.name}';
         });
+      }, onError: (e) {
+        if (mounted) setState(() { _debugMsg = 'Err: $e'; });
       });
 
       await uploadTask;
+      setState(() { _debugMsg = 'Done'; });
+      
       final downloadUrl = await storageRef.getDownloadURL();
 
       await FirebaseFirestore.instance
@@ -381,9 +427,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       return Container(
         color: AppColors.surfaceAlt,
         child: Center(
-          child: Text(
-            '${(_uploadProgress * 100).toInt()}%',
-            style: AppTextStyles.h4.copyWith(color: AppColors.gold),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${(_uploadProgress * 100).toInt()}%',
+                style: AppTextStyles.h4.copyWith(color: AppColors.gold, fontSize: 16),
+              ),
+              Text(
+                _debugMsg,
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 8),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
@@ -1303,7 +1359,8 @@ Future<void> showGlobalEditProfileDialog(
                   // Gender Dropdown
                   DropdownButtonFormField<String>(
                     value: selectedGender,
-                    dropdownColor: AppColors.surfaceAlt,
+                    dropdownColor: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
                     style: AppTextStyles.bodyMedium,
                     icon: Icon(Icons.arrow_drop_down_rounded,
                         color: AppColors.textMuted),

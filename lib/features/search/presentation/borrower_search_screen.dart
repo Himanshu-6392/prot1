@@ -240,6 +240,12 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                       final data = d.data() as Map<String, dynamic>;
                       if (data['borrowerName'] == 'Test User')
                         return false; // HIDE DEMO REQUESTS
+                        
+                      final currentUser = ref.read(currentUserProvider).valueOrNull;
+                      if (currentUser != null && data['borrowerId'] == currentUser.uid) {
+                        return false; // HIDE OWN REQUESTS
+                      }
+                      
                       final status =
                           data['status'] ?? LoanRequestStatus.open.name;
                       if (status != LoanRequestStatus.open.name) return false;

@@ -10,6 +10,7 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/lender_model.dart';
+import '../../../models/match_model.dart';
 import '../../../core/providers/firebase_providers.dart';
 
 class LenderProfileScreen extends ConsumerWidget {
@@ -68,8 +69,9 @@ class LenderProfileScreen extends ConsumerWidget {
               }
               final lender = LenderModel.fromMap(
                   snap.data!.data() as Map<String, dynamic>, snap.data!.id);
+              final currentUserId = ref.read(currentUserProvider).valueOrNull?.uid;
               return _LenderProfileBody(
-                  lender: lender, ref: ref, context: context);
+                  lender: lender, ref: ref, context: context, currentUserId: currentUserId);
             },
           ),
         ],
@@ -82,9 +84,10 @@ class _LenderProfileBody extends StatelessWidget {
   final LenderModel lender;
   final WidgetRef ref;
   final BuildContext context;
+  final String? currentUserId;
 
   const _LenderProfileBody(
-      {required this.lender, required this.ref, required this.context});
+      {required this.lender, required this.ref, required this.context, this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +303,23 @@ class _LenderProfileBody extends StatelessWidget {
 
                 SizedBox(height: 16), // Reduced spacing
 
-                // Modern Floating Action Dock
+                // Modern Floating Action Dock — hide if viewing own profile
+                if (lender.userId == currentUserId) SizedBox(height: 16),
+                if (lender.userId == currentUserId) Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(40),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'This is your own lender profile',
+                      style: AppTextStyles.labelMedium.copyWith(color: AppColors.textMuted),
+                    ),
+                  ),
+                ),
+                if (lender.userId != currentUserId) // Modern Floating Action Dock
                 ClipRRect(
                   borderRadius: BorderRadius.circular(40),
                   child: BackdropFilter(
@@ -380,13 +399,101 @@ class _LenderProfileBody extends StatelessWidget {
                           Expanded(
                             flex: 5,
                             child: InkWell(
-                              onTap: () {
+                              onTap: () async {
                                 final currentUser =
                                     ref.read(currentUserProvider).valueOrNull;
                                 if (currentUser?.isVerified != true) {
                                   _showVerificationDialog(context);
                                 } else {
-                                  context.push('/match?lenderId=${lender.id}');
+                                  // Show loading
+                                  showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => Center(
+                                          child: CircularProgressIndicator(
+                                              color: AppColors.emerald)));
+
+                                  try {
+                                    // Get borrower's open requests
+                                    final reqSnap = await FirebaseFirestore.instance
+                                        .collection(AppConstants.colRequests)
+                                        .where('borrowerId', isEqualTo: currentUser!.uid)
+                                        .where('status', isEqualTo: 'open')
+                                        .get();
+
+                                    String requestId = '';
+                                    if (reqSnap.docs.isNotEmpty) {
+                                      // Sort locally to get the latest one without needing a composite index
+                                      final docs = reqSnap.docs.toList();
+                                      docs.sort((a, b) {
+                                        final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                                        final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                                        return bTime.compareTo(aTime); // Descending
+                                      });
+                                      requestId = docs.first.id;
+                                    }
+
+                                    // Check if match already exists
+                                    final existingMatch = await FirebaseFirestore.instance
+                                        .collection(AppConstants.colMatches)
+                                        .where('borrowerId', isEqualTo: currentUser.uid)
+                                        .where('lenderId', isEqualTo: lender.id)
+                                        .get();
+
+                                    if (existingMatch.docs.isNotEmpty) {
+                                      if (context.mounted) {
+                                        Navigator.pop(context); // close loading
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('You already have a chat with ${lender.businessName}'),
+                                            backgroundColor: AppColors.info,
+                                          ),
+                                        );
+                                        final existingId = existingMatch.docs.first.id;
+                                        final chatRoomId = existingMatch.docs.first.data()['chatRoomId'] ?? '${existingId}_chat';
+                                        context.push('/chat/$chatRoomId');
+                                      }
+                                      return;
+                                    }
+
+                                    // Create match
+                                    final matchRef = FirebaseFirestore.instance
+                                        .collection(AppConstants.colMatches)
+                                        .doc();
+                                    final chatRoomId = '${matchRef.id}_chat';
+                                    final match = MatchModel(
+                                      id: matchRef.id,
+                                      borrowerId: currentUser.uid,
+                                      lenderId: lender.id,
+                                      requestId: requestId,
+                                      chatRoomId: chatRoomId,
+                                      status: MatchStatus.accepted, // Auto-accept to avoid "Waiting for approval"
+                                      createdAt: DateTime.now(),
+                                      updatedAt: DateTime.now(),
+                                    );
+                                    await matchRef.set(match.toMap());
+
+                                    if (context.mounted) {
+                                      Navigator.pop(context); // close loading
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Request sent instantly to ${lender.businessName}'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                      context.push('/chat/$chatRoomId');
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to send request: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
                                 }
                               },
                               borderRadius: BorderRadius.circular(30),

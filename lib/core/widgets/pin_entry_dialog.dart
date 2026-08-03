@@ -27,6 +27,7 @@ Future<bool> showPinDialog(
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withOpacity(0.6),
     useSafeArea: true,
+    useRootNavigator: true,
     isDismissible: canDismiss,
     enableDrag: canDismiss,
     builder: (ctx) => PopScope(
@@ -49,6 +50,7 @@ Future<bool> showChangePinFlow(BuildContext context, WidgetRef ref) async {
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withOpacity(0.6),
     useSafeArea: true,
+    useRootNavigator: true,
     isDismissible: true,
     enableDrag: true,
     builder: (ctx) => const _VerifyOldPinSheet(),
@@ -62,6 +64,7 @@ Future<bool> showChangePinFlow(BuildContext context, WidgetRef ref) async {
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withOpacity(0.6),
     useSafeArea: true,
+    useRootNavigator: true,
     isDismissible: false,
     enableDrag: false,
     builder: (ctx) => const PopScope(canPop: false, child: _SetNewPinSheet()),

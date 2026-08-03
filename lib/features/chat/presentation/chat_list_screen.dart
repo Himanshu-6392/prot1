@@ -1,14 +1,19 @@
-import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
-import '../../../core/widgets/app_widgets.dart';
+
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/user_model.dart';
@@ -28,22 +33,7 @@ String _sectionLabel(DateTime? dt) {
   return 'Older';
 }
 
-// Dark theme-consistent avatar gradients
-final _avatarGradients = [
-  [const Color(0xFF18181B), const Color(0xFF3F3F46)],
-  [const Color(0xFF1C1917), const Color(0xFF44403C)],
-  [const Color(0xFF0F172A), const Color(0xFF334155)],
-  [const Color(0xFF171717), const Color(0xFF404040)],
-  [const Color(0xFF1E1B4B), const Color(0xFF4338CA)],
-  [const Color(0xFF18181B), const Color(0xFF52525B)],
-  [const Color(0xFF14532D), const Color(0xFF15803D)],
-  [const Color(0xFF0C0A09), const Color(0xFF292524)],
-];
 
-List<Color> _gradientFor(String name) {
-  final idx = name.isNotEmpty ? name.codeUnitAt(0) % _avatarGradients.length : 0;
-  return _avatarGradients[idx];
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHAT LIST SCREEN
@@ -54,25 +44,12 @@ class ChatListScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends ConsumerState<ChatListScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   String _searchQuery = '';
-  bool _showSearch = false;
   final _searchFocusNode = FocusNode();
-
-  static const _tabs = ['All', 'Unread', 'Active', 'Pending'];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() => setState(() {}));
-  }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
@@ -86,148 +63,124 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) => [_buildSliverAppBar()],
-        body: TabBarView(
-          controller: _tabController,
-          physics: const BouncingScrollPhysics(),
-          children: _tabs.map((tab) => _ChatListBody(
-            uid: authUser.uid,
-            filter: tab,
-            searchQuery: _searchQuery,
-          )).toList(),
-        ),
-      ),
-    );
-  }
-
-  // ── Sliver App Bar ──────────────────────────────────────────────────────────
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      backgroundColor: AppColors.bg,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      pinned: true,
-      floating: true,
-      expandedHeight: 170,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.pin,
-        background: _buildHeader(context),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(52),
-        child: _buildTabBar(),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      color: AppColors.bg,
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20,
-        left: 20,
-        right: 20,
-        bottom: 52, // Clears the TabBar area so they don't overlap
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      body: Stack(
         children: [
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: 220.ms,
-              child: _showSearch
-                  ? _SearchBar(
-                      key: const ValueKey('search'),
-                      focusNode: _searchFocusNode,
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      onClose: () => setState(() {
-                        _showSearch = false;
-                        _searchQuery = '';
-                      }),
-                    )
-                  : Column(
-                      key: const ValueKey('title'),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text('Your chats',
-                            style: AppTextStyles.h1.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w300,
-                              letterSpacing: -1,
-                            )),
-                        Text('Messages',
-                            style: AppTextStyles.h1.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1,
-                              height: 1.1,
-                            )),
-                      ],
-                    ),
+
+
+          // ── Main Content ─────────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Header (matches Search page exactly)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Two-line title
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Your',
+                                    style: AppTextStyles.h1.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w300,
+                                      letterSpacing: -1,
+                                    )),
+                                Text('Messages',
+                                    style: AppTextStyles.h1.copyWith(
+                                      color: AppColors.gold,
+                                      letterSpacing: -1,
+                                      height: 1.1,
+                                    )),
+                              ],
+                            ),
+                          ),
+                          // Filter icon (top-right)
+                          GestureDetector(
+                            onTap: () => _showOptionsMenu(context),
+                            child: Container(
+                              width: 42, height: 42,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(13),
+                                border: Border.all(
+                                    color: AppColors.border.withValues(alpha: 0.5)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(Icons.tune_rounded,
+                                  color: AppColors.textSecondary, size: 20),
+                            ),
+                          ),
+                        ],
+                      )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: 0.2, end: 0),
+
+                      const SizedBox(height: 16),
+
+                      // Solid Rounded Search Bar
+                      TextField(
+                        style: AppTextStyles.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: 'Search conversations...',
+                          hintStyle: AppTextStyles.bodyLarge
+                              .copyWith(color: AppColors.textMuted),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Icon(Icons.search_rounded,
+                                color: AppColors.gold, size: 24),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                        ),
+                        onChanged: (v) => setState(() => _searchQuery = v),
+                      ),
+
+
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                // ── Chat List ───────────────────────────────────────────────
+                Expanded(
+                  child: _ChatListBody(
+                    uid: authUser.uid,
+                    filter: 'All',
+                    searchQuery: _searchQuery,
+                  ),
+                ),
+              ],
             ),
           ),
-          if (!_showSearch) ...[
-            _HeaderIconBtn(
-              icon: Icons.search_rounded,
-              onTap: () {
-                setState(() => _showSearch = true);
-                Future.delayed(50.ms, () => _searchFocusNode.requestFocus());
-              },
-            ),
-            const SizedBox(width: 8),
-            _HeaderIconBtn(
-              icon: Icons.tune_rounded,
-              onTap: () => _showOptionsMenu(context),
-            ),
-          ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      color: AppColors.bg,
-      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 10, top: 4),
-      child: Row(
-        children: _tabs.asMap().entries.map((e) {
-          final i = e.key;
-          final label = e.value;
-          final selected = _tabController.index == i;
-          return GestureDetector(
-            onTap: () => _tabController.animateTo(i),
-            child: AnimatedContainer(
-              duration: 220.ms,
-              curve: Curves.easeOut,
-              margin: const EdgeInsets.only(right: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.gold : AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: selected ? AppColors.gold : AppColors.border,
-                  width: 1,
-                ),
-                boxShadow: selected
-                    ? [BoxShadow(
-                        color: AppColors.gold.withValues(alpha: 0.25),
-                        blurRadius: 12, offset: const Offset(0, 4))]
-                    : [BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6, offset: const Offset(0, 2))],
-              ),
-              child: Text(label,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: 12.5,
-                    color: selected ? Colors.white : AppColors.textSecondary,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  )),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -278,7 +231,10 @@ class _ChatListBody extends ConsumerWidget {
 
         var docs = snap.data!.docs.where((d) {
           final data = d.data() as Map<String, dynamic>;
-          return data['borrowerId'] == uid || data['lenderId'] == uid;
+          final lId = data['lenderId'] as String? ?? '';
+          final bId = data['borrowerId'] as String? ?? '';
+          // Must involve this user AND must not be a self-match
+          return (lId == uid || bId == uid) && lId != bId && lId.isNotEmpty && bId.isNotEmpty;
         }).toList();
 
         docs.sort((a, b) {
@@ -302,12 +258,6 @@ class _ChatListBody extends ConsumerWidget {
           return _EmptyState(filter: filter);
         }
 
-        // Active conversations for pinned strip
-        final activeMatches = matches
-            .where((m) => m.status == MatchStatus.accepted)
-            .take(5)
-            .toList();
-
         // Group by date section
         final Map<String, List<MatchModel>> grouped = {};
         for (final m in matches) {
@@ -320,15 +270,6 @@ class _ChatListBody extends ConsumerWidget {
         return CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // ── Pinned / Active contacts strip (only on 'All' tab)
-            if (filter == 'All' && activeMatches.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _PinnedStrip(
-                  matches: activeMatches,
-                  uid: uid,
-                ),
-              ),
-
             // ── Grouped conversation list
             for (final section in sections) ...[
               SliverToBoxAdapter(
@@ -367,160 +308,6 @@ class _ChatListBody extends ConsumerWidget {
   }
 }
 
-// ─── Pinned / Active Strip ────────────────────────────────────────────────────
-class _PinnedStrip extends ConsumerWidget {
-  final List<MatchModel> matches;
-  final String uid;
-
-  const _PinnedStrip({required this.matches, required this.uid});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
-          child: Row(
-            children: [
-              Container(
-                width: 3, height: 14,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('Active',
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  )),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 88,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: matches.length,
-            itemBuilder: (context, i) {
-              final match = matches[i];
-              final isLender = match.lenderId == uid;
-              final peerId = isLender ? match.borrowerId : match.lenderId;
-              return _PinnedAvatar(
-                match: match,
-                peerId: peerId,
-              ).animate(delay: Duration(milliseconds: i * 60))
-               .fadeIn(duration: 250.ms)
-               .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1));
-            },
-          ),
-        ),
-        const SizedBox(height: 6),
-        Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
-}
-
-class _PinnedAvatar extends ConsumerWidget {
-  final MatchModel match;
-  final String peerId;
-
-  const _PinnedAvatar({required this.match, required this.peerId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final peerAsync = ref.watch(userProfileProvider(peerId));
-    return peerAsync.when(
-      data: (peer) {
-        final name = peer?.name ?? 'User';
-        final dp = peer?.photoUrl;
-        final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-        final grad = _gradientFor(name);
-        final firstName = name.split(' ').first;
-
-        return GestureDetector(
-          onTap: () => context.push('/chat/${match.chatRoomId}', extra: peer),
-          child: Container(
-            width: 64,
-            margin: const EdgeInsets.only(right: 14),
-            child: Column(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: 52, height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: dp == null
-                            ? LinearGradient(
-                                colors: grad,
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        image: dp != null
-                            ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover)
-                            : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: grad[0].withValues(alpha: 0.4),
-                            blurRadius: 10, offset: const Offset(0, 3),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: dp == null
-                          ? Center(child: Text(initial,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700)))
-                          : null,
-                    ),
-                    // Pulsing online dot
-                    Positioned(
-                      right: 1, bottom: 1,
-                      child: _PulsingDot(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(firstName,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => Container(
-        width: 64, margin: const EdgeInsets.only(right: 14),
-        child: Column(children: [
-          Container(width: 52, height: 52,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surfaceAlt)),
-          const SizedBox(height: 5),
-          Container(height: 10, width: 40,
-              decoration: BoxDecoration(color: AppColors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(5))),
-        ]),
-      ),
-      error: (_, __) => const SizedBox(width: 64),
-    );
-  }
-}
 
 // ─── Pulsing Online Dot ───────────────────────────────────────────────────────
 class _PulsingDot extends StatelessWidget {
@@ -553,23 +340,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-      child: Row(
-        children: [
-          Text(label,
-              style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textMuted,
-                letterSpacing: 0.8,
-              )),
-          const SizedBox(width: 10),
-          Expanded(child: Divider(
-            color: AppColors.border.withValues(alpha: 0.6),
-            height: 1,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Text(label,
+          style: AppTextStyles.labelSmall.copyWith(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textMuted,
+            letterSpacing: 1.2,
           )),
-        ],
-      ),
     );
   }
 }
@@ -601,7 +379,6 @@ class _ChatCard extends ConsumerWidget {
         final dp = peer?.photoUrl;
         final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
         final isPending = match.status == MatchStatus.pending;
-        final grad = _gradientFor(name);
 
         if (searchQuery.isNotEmpty &&
             !name.toLowerCase().contains(searchQuery.toLowerCase())) {
@@ -612,13 +389,9 @@ class _ChatCard extends ConsumerWidget {
           key: ValueKey('dismiss_${match.id}'),
           // ── Swipe RIGHT → Mark Unread ──────────────────────────────────
           background: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(20),
-            ),
+            color: AppColors.gold,
             alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 24),
+            padding: const EdgeInsets.only(left: 28),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -633,13 +406,9 @@ class _ChatCard extends ConsumerWidget {
           ),
           // ── Swipe LEFT → Delete ────────────────────────────────────────
           secondaryBackground: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(20),
-            ),
+            color: AppColors.error,
             alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 24),
+            padding: const EdgeInsets.only(right: 28),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -679,37 +448,17 @@ class _ChatCard extends ConsumerWidget {
               HapticFeedback.mediumImpact();
               _showContextMenu(context, ref);
             },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isPending
-                      ? AppColors.gold.withValues(alpha: 0.2)
-                      : AppColors.border.withValues(alpha: 0.6),
-                  width: isPending ? 1.5 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10, offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () =>
-                      context.push('/chat/${match.chatRoomId}', extra: peer),
-                  splashColor: AppColors.gold.withValues(alpha: 0.04),
-                  highlightColor: AppColors.gold.withValues(alpha: 0.02),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
+            child: Material(
+              color: AppColors.surface,
+              child: InkWell(
+                onTap: () =>
+                    context.push('/chat/${match.chatRoomId}', extra: peer),
+                splashColor: AppColors.emerald.withValues(alpha: 0.04),
+                highlightColor: AppColors.emerald.withValues(alpha: 0.02),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  child: Row(
+                    children: [
                         // ── Avatar ──────────────────────────────────────
                         Stack(
                           children: [
@@ -717,12 +466,9 @@ class _ChatCard extends ConsumerWidget {
                               width: 54, height: 54,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                gradient: dp == null
-                                    ? LinearGradient(
-                                        colors: grad,
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
+                                color: dp == null ? Colors.white : null,
+                                border: dp == null 
+                                    ? Border.all(color: AppColors.textPrimary, width: 1.5)
                                     : null,
                                 image: dp != null
                                     ? DecorationImage(
@@ -731,17 +477,17 @@ class _ChatCard extends ConsumerWidget {
                                     : null,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: grad[0].withValues(alpha: 0.3),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 10, offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
                               child: dp == null
                                   ? Center(child: Text(initial,
-                                      style: const TextStyle(
-                                          color: Colors.white,
+                                      style: TextStyle(
+                                          color: AppColors.textPrimary,
                                           fontSize: 22,
-                                          fontWeight: FontWeight.w700)))
+                                          fontWeight: FontWeight.w600)))
                                   : null,
                             ),
                             // Status dot
@@ -972,11 +718,10 @@ class _ChatCard extends ConsumerWidget {
                 ),
               ),
             ),
-          ),
-        )
-            .animate(delay: Duration(milliseconds: index * 50))
-            .fadeIn(duration: 280.ms)
-            .slideX(begin: 0.03, end: 0, curve: Curves.easeOut);
+          )
+              .animate(delay: Duration(milliseconds: index * 50))
+              .fadeIn(duration: 280.ms)
+              .slideX(begin: 0.03, end: 0, curve: Curves.easeOut);
       },
 
       loading: () => Container(
@@ -1304,6 +1049,76 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   final _scrollCtr = ScrollController();
   bool _sending = false;
   bool _hasText = false;
+  bool _uploading = false;
+  double _uploadProgress = 0.0;
+
+  Future<void> _sharePhoto() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked == null) return;
+    
+    await _uploadMedia(picked.path, await picked.readAsBytes(), MessageType.image, picked.name);
+  }
+
+  Future<void> _shareDocument() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || result.files.isEmpty) return;
+    
+    final file = result.files.first;
+    final bytes = file.bytes ?? (file.path != null ? await File(file.path!).readAsBytes() : null);
+    if (bytes == null) return;
+    
+    await _uploadMedia(file.path ?? file.name, bytes, MessageType.document, file.name);
+  }
+
+  Future<void> _uploadMedia(String path, Uint8List bytes, MessageType type, String fileName) async {
+    final authUser = ref.read(authStateProvider).valueOrNull;
+    if (authUser == null) return;
+
+    setState(() {
+      _uploading = true;
+      _uploadProgress = 0.0;
+    });
+
+    try {
+      final ext = fileName.contains('.') ? fileName.split('.').last : (type == MessageType.image ? 'jpg' : 'bin');
+      final mediaId = const Uuid().v4();
+      final ref = FirebaseStorage.instance.ref().child('chat_media/${widget.roomId}/$mediaId.$ext');
+      
+      final uploadTask = ref.putData(bytes);
+      uploadTask.snapshotEvents.listen((event) {
+        setState(() {
+          _uploadProgress = event.bytesTransferred / event.totalBytes;
+        });
+      });
+
+      final snapshot = await uploadTask;
+      final url = await snapshot.ref.getDownloadURL();
+
+      await _messagesRef.add({
+        'senderId': authUser.uid,
+        'content': type == MessageType.image ? 'Sent a photo' : 'Sent a document',
+        'type': type.name,
+        'mediaUrl': url,
+        'fileName': fileName,
+        'isRead': false,
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploading = false;
+        });
+        if (_scrollCtr.hasClients) {
+          _scrollCtr.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        }
+      }
+    }
+  }
 
   CollectionReference<Map<String, dynamic>> get _messagesRef =>
       FirebaseFirestore.instance
@@ -1348,7 +1163,6 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final name = widget.peerUser?.name ?? 'Private Message';
     final dp = widget.peerUser?.photoUrl;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-    final grad = _gradientFor(name);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
@@ -1369,21 +1183,21 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             width: 40, height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: dp == null
-                  ? LinearGradient(colors: grad,
-                      begin: Alignment.topLeft, end: Alignment.bottomRight)
+              color: dp == null ? Colors.white : null,
+              border: dp == null
+                  ? Border.all(color: AppColors.textPrimary, width: 1.5)
                   : null,
               image: dp != null
                   ? DecorationImage(image: NetworkImage(dp), fit: BoxFit.cover)
                   : null,
               boxShadow: [BoxShadow(
-                color: grad[0].withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8, offset: const Offset(0, 2),
               )],
             ),
             child: dp == null
-                ? Center(child: Text(initial, style: const TextStyle(
-                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)))
+                ? Center(child: Text(initial, style: TextStyle(
+                    color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)))
                 : null,
           ),
           const SizedBox(width: 10),
@@ -1407,11 +1221,6 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ]),
         actions: [
           IconButton(
-            icon: Icon(Icons.videocam_outlined,
-                color: AppColors.textSecondary, size: 22),
-            onPressed: () {},
-          ),
-          IconButton(
             icon: Icon(Icons.more_vert_rounded,
                 color: AppColors.textSecondary, size: 22),
             onPressed: () => _showChatOptions(context),
@@ -1419,6 +1228,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ],
       ),
       body: Column(children: [
+        if (_uploading) LinearProgressIndicator(value: _uploadProgress, color: AppColors.gold, backgroundColor: AppColors.surfaceAlt),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _messagesRef.orderBy('sentAt', descending: true).snapshots(),
@@ -1529,7 +1339,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                         hintText: 'Type a message...',
                         hintStyle: AppTextStyles.bodyMedium
                             .copyWith(color: AppColors.textMuted),
-                        border: InputBorder.none, isDense: true,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       ),
                     ),
@@ -1591,19 +1405,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       builder: (_) => _BottomSheet(title: 'Chat Options', children: [
         _SheetOption(icon: Icons.image_outlined, label: 'Share Photo',
             iconColor: AppColors.info,
-            onTap: () { Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Photo sharing coming soon!'))); }),
+            onTap: () { Navigator.pop(context); _sharePhoto(); }),
         _SheetOption(icon: Icons.attach_file_rounded, label: 'Share Document',
             iconColor: AppColors.gold,
-            onTap: () { Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Document sharing coming soon!'))); }),
-        _SheetOption(icon: Icons.calendar_today_rounded, label: 'Schedule Meeting',
-            iconColor: AppColors.emerald,
-            onTap: () { Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Meeting scheduler coming soon!'))); }),
+            onTap: () { Navigator.pop(context); _shareDocument(); }),
+
         _SheetOption(icon: Icons.delete_outline_rounded, label: 'Delete Chat',
             iconColor: AppColors.error,
             onTap: () {
@@ -1715,10 +1521,39 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(message.content, style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textPrimary, fontSize: 14.5, height: 1.4,
-            )),
-            const SizedBox(height: 4),
+            if (message.type == MessageType.image && message.mediaUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(message.mediaUrl!, width: 220, fit: BoxFit.cover),
+              ),
+              const SizedBox(height: 6),
+            ] else if (message.type == MessageType.document && message.mediaUrl != null) ...[
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse(message.mediaUrl!), mode: LaunchMode.externalApplication),
+                child: Container(
+                  width: 220,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.insert_drive_file_rounded, color: AppColors.gold, size: 28),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(message.fileName ?? 'Document', 
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary), 
+                        maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ] else ...[
+              Text(message.content, style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textPrimary, fontSize: 14.5, height: 1.4,
+              )),
+              const SizedBox(height: 4),
+            ],
             Row(mainAxisSize: MainAxisSize.min, children: [
               Text(AppFormatters.formatTime(message.sentAt),
                   style: AppTextStyles.caption.copyWith(

@@ -62,6 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (_) => const _PhotoPickerSheet(),
     );
     if (source != null && mounted) {

@@ -133,7 +133,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ─── Match ────────────────────────────
-      GoRoute(path: '/match', builder: (c, s) => const MatchScreen()),
       GoRoute(
         path: '/request/:id',
         builder: (c, s) =>

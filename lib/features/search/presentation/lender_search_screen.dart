@@ -108,58 +108,47 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: AppColors.border.withValues(alpha: 0.5)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: TextField(
-                            controller: _searchCtr,
-                            style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
-                              hintText: 'Search lenders, cities...',
-                              hintStyle: AppTextStyles.bodyLarge
-                                  .copyWith(color: AppColors.textMuted),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(left: 8.0),
-                                child: Icon(Icons.search_rounded,
-                                    color: AppColors.gold, size: 24),
-                              ),
-                              suffixIcon: _searchCtr.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(Icons.clear_rounded,
-                                          color: AppColors.textSecondary,
-                                          size: 20),
-                                      onPressed: () {
-                                        _searchCtr.clear();
-                                        setState(() {});
-                                      })
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
+                    child: TextField(
+                      controller: _searchCtr,
+                      style: AppTextStyles.bodyLarge,
+                      decoration: InputDecoration(
+                        hintText: 'Search lenders, cities...',
+                        hintStyle: AppTextStyles.bodyLarge
+                            .copyWith(color: AppColors.textMuted),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Icon(Icons.search_rounded,
+                              color: AppColors.gold, size: 24),
                         ),
+                        suffixIcon: _searchCtr.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear_rounded,
+                                    color: AppColors.textSecondary,
+                                    size: 20),
+                                onPressed: () {
+                                  _searchCtr.clear();
+                                  setState(() {});
+                                })
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
-                    )
-                        .animate()
-                        .fadeIn(delay: 100.ms)
-                        .slideY(begin: 0.2, end: 0),
+                      onChanged: (_) => setState(() {}),
+                    ),
                   ),
                 ),
 

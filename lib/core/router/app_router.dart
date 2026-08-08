@@ -64,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding';
+          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
@@ -75,12 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Guests should not access protected routes
       if (!isLoggedIn && !isAuthRoute) return '/auth/login';
 
+
       return null;
     },
     routes: [
       // ─── Splash & Onboarding ──────────────
       GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
+      GoRoute(path: '/auth/onboarding', builder: (c, s) => const OnboardingScreen()),
 
       // ─── Auth Routes ──────────────────────
       GoRoute(path: '/auth/login', builder: (c, s) => const LoginScreen()),

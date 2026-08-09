@@ -33,14 +33,14 @@ final _slides = [
         "We're here to help you connect with lenders & borrowers. No middlemen, no hidden fees.",
   ),
   _Slide(
-    lottieUrl: 'assets/animations/onboarding_2.json', // Shield/Security
+    lottieUrl: 'assets/animations/onboarding_2.json',
     fallbackIcon: Icons.shield_rounded,
     title: 'Secure & Transparent',
     subtitle:
         'Verified users and transparent terms ensure your money is always safe.',
   ),
   _Slide(
-    lottieUrl: 'assets/animations/onboarding_3.json', // Rocket/Growth
+    lottieUrl: 'assets/animations/onboarding_3.json',
     fallbackIcon: Icons.rocket_launch_rounded,
     title: 'Flexible Options',
     subtitle:
@@ -211,15 +211,13 @@ class _SlideView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
+    return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Lottie Animation
           SizedBox(
-            width: 200,
-            height: 200,
+            width: double.infinity,
+            height: 320,
             child: Lottie.asset(
               slide.lottieUrl,
               repeat: true,
@@ -242,38 +240,43 @@ class _SlideView extends StatelessWidget {
               .scale(duration: 600.ms, curve: Curves.easeOutBack)
               .fadeIn(),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
 
-          Text(
-            slide.title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87,
-              height: 1.2,
-            ),
-            textAlign: TextAlign.center,
-          )
-              .animate(key: ValueKey('title_$idx'), delay: 100.ms)
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              slide.title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+                height: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            )
+                .animate(key: ValueKey('title_$idx'), delay: 100.ms)
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack),
+          ),
 
           const SizedBox(height: 16),
 
-          Text(
-            slide.subtitle,
-            style: GoogleFonts.inter(
-              fontSize: 15,
-              color: Colors.black54,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          )
-              .animate(key: ValueKey('sub_$idx'), delay: 200.ms)
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              slide.subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
+            )
+                .animate(key: ValueKey('sub_$idx'), delay: 200.ms)
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+          ),
         ],
-      ),
     );
   }
 }

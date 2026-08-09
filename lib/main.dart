@@ -12,10 +12,12 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/colors.dart';
 import 'firebase_options.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
 Future<void> main() async {
+  Animate.restartOnHotReload = true;
   WidgetsFlutterBinding.ensureInitialized();
 
   // Lock portrait and landscape

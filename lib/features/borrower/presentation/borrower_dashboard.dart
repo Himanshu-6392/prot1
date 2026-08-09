@@ -11,10 +11,13 @@ import '../../../core/widgets/shimmer_widgets.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/interactive_empty_state.dart';
 import 'dart:ui';
+import 'dart:async';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
+import 'dart:math' as math;
 import '../../../models/user_model.dart';
 import '../../../models/loan_request_model.dart';
 
@@ -31,7 +34,6 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check once after the first frame whether the user needs to set a PIN
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkPinSetup());
   }
 
@@ -52,7 +54,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
       backgroundColor: AppColors.bg,
       body: Stack(
         children: [
-          // Background Gradient Mesh
+          // Background Gradient Mesh — gently pulsing blobs
           Positioned(
             top: -100,
             right: -50,
@@ -61,9 +63,10 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.emerald.withValues(alpha: 0.05),
+                color: AppColors.emerald.withValues(alpha: 0.06),
               ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.05, 1.05), duration: 4000.ms, curve: Curves.easeInOut),
           ),
           Positioned(
             top: 200,
@@ -73,30 +76,33 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.gold.withValues(alpha: 0.05),
+                color: AppColors.gold.withValues(alpha: 0.06),
               ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+              .scale(begin: const Offset(1.05, 1.05), end: const Offset(0.95, 0.95), duration: 5000.ms, curve: Curves.easeInOut),
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
             child: Container(color: Colors.transparent),
           ),
-          
           SafeArea(
             bottom: false,
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // ─── App Bar ─────────────────────────
                 SliverToBoxAdapter(child: _buildHeader(context, user)),
-
-                // ─── Portfolio Hero Card ─────────────
-                SliverToBoxAdapter(child: _buildPortfolioCard(uid)),
-
-                // ─── Quick Actions ──────────────────
-                SliverToBoxAdapter(child: _QuickActions()),
-
-                // ─── My Requests ───────────────────
+                SliverToBoxAdapter(
+                  child: _buildPortfolioCard(uid)
+                      .animate()
+                      .fadeIn(delay: 200.ms, duration: 500.ms)
+                      .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
+                ),
+                SliverToBoxAdapter(
+                  child: _QuickActions()
+                      .animate()
+                      .fadeIn(delay: 300.ms, duration: 400.ms)
+                      .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
+                ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
@@ -104,28 +110,34 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                       title: 'My Requests',
                       isExpandable: true,
                       isExpanded: _requestsExpanded,
-                      onToggle: () =>
-                          setState(() => _requestsExpanded = !_requestsExpanded),
+                      onToggle: () => setState(() => _requestsExpanded = !_requestsExpanded),
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
                 ),
                 if (_requestsExpanded) _MyRequestsSliver(userId: uid),
-
-                // ─── Nearby Lenders ────────────────
                 if (user?.role != UserRole.lender) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
                       child: SectionHeader(
-                          title: 'Lenders Near You',
-                          onSeeAll: () => context.go('/search')),
-                    ),
+                        title: 'Lenders Near You',
+                        onSeeAll: () => context.go('/search'),
+                      ),
+                    ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
                   ),
-                  SliverToBoxAdapter(child: _NearbyLendersRow()),
+                  SliverToBoxAdapter(
+                    child: _NearbyLendersRow()
+                        .animate()
+                        .fadeIn(delay: 500.ms, duration: 500.ms)
+                        .slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
+                  ),
                 ],
-
-
-
+                SliverToBoxAdapter(
+                  child: const _FinancialTipsRow()
+                      .animate()
+                      .fadeIn(delay: 600.ms, duration: 500.ms)
+                      .slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
+                ),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
             ),
@@ -149,71 +161,112 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: AppTextStyles.h1.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: -1,
-                  ),
-                ),
-                Text(
-                  firstName,
-                  style: AppTextStyles.h1.copyWith(
-                    color: AppColors.gold,
-                    letterSpacing: -1,
-                    height: 1.1,
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
-          ),
-
-
-          const SizedBox(width: 16),
-          // Avatar
-          GestureDetector(
-            onTap: () => context.push('/profile'),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppColors.goldGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.gold.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      greeting,
+                      style: AppTextStyles.h1.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    Text(
+                      firstName,
+                      style: AppTextStyles.h1.copyWith(
+                        color: AppColors.gold,
+                        letterSpacing: -1,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
               ),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.surface, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    initial,
-                    style: AppTextStyles.h3.copyWith(
-                      foreground: Paint()
-                        ..shader = AppColors.goldGradient
-                            .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+
+              const SizedBox(width: 16),
+              // Avatar
+              GestureDetector(
+                onTap: () => context.push('/profile'),
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppColors.goldGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.gold.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.surface, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: AppTextStyles.h3.copyWith(
+                          foreground: Paint()
+                            ..shader = AppColors.goldGradient
+                                .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ).animate().fadeIn(delay: 200.ms),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          // ─── Live Activity Notification Pill ───
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
-          ).animate().fadeIn(delay: 200.ms),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.notifications_active_rounded, size: 14, color: AppColors.emerald),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '2 lenders viewed your profile recently',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textMuted),
+              ],
+            ),
+          ).animate().fadeIn(delay: 500.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutBack),
         ],
       ),
     );
@@ -229,7 +282,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
             .snapshots(),
         builder: (context, matchSnap) {
           int matchedCount = matchSnap.hasData ? matchSnap.data!.docs.length : 0;
-          
+
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection(AppConstants.colRequests)
@@ -248,112 +301,103 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                 }
               }
 
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: AppColors.goldGradient,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.insights_rounded, color: Colors.white, size: 20),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.insights_rounded, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'YOUR PROFILE STATS',
+                          style: AppTextStyles.tag.copyWith(
+                            color: Colors.white70,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
+                              const SizedBox(width: 4),
+                              Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'YOUR PROFILE STATS',
-                      style: AppTextStyles.tag.copyWith(
-                        color: Colors.white70,
-                        letterSpacing: 1.5,
-                      ),
+                    const SizedBox(height: 32),
+
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const _TrustScoreGauge(score: 742), // 742 out of 1000
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              reqSnap.hasData ? '$activeCount' : '-',
+                              style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
+                            ),
+                            Text('Active', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                          ],
+                        ),
+                        const SizedBox(width: 24),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              matchSnap.hasData ? '$matchedCount' : '-',
+                              style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
+                            ),
+                            Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                          ],
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
-                          const SizedBox(width: 4),
-                          Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
-                        ],
+
+                    const SizedBox(height: 32),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: AppButton(
+                        label: 'Post New Request',
+                        onPressed: () => context.push('/post-request'),
+                        color: AppColors.emerald,
+                        icon: const Icon(Icons.add_rounded, size: 18),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          reqSnap.hasData ? '$activeCount' : '-',
-                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Active', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                      ],
-                    ),
-                    Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.15)),
-                    Column(
-                      children: [
-                        Text(
-                          matchSnap.hasData ? '$matchedCount' : '-',
-                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                      ],
-                    ),
-                    Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.15)),
-                    Column(
-                      children: [
-                        Text(
-                          '124',
-                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 32),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Views', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 32),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton(
-                    label: 'Post New Request',
-                    onPressed: () => context.push('/post-request'),
-                    color: AppColors.emerald,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
             },
           );
         },
@@ -362,7 +406,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
   }
 }
 
-// ──────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _StatsRow extends ConsumerWidget {
   final String userId;
   const _StatsRow({required this.userId});
@@ -490,7 +534,7 @@ class _StatCard extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              '••••',
+                              'â€¢â€¢â€¢â€¢',
                               style: AppTextStyles.h1.copyWith(
                                 fontSize: 32,
                                 height: 1,
@@ -514,141 +558,94 @@ class _StatCard extends ConsumerWidget {
   }
 }
 
-// ──────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _QuickActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).valueOrNull;
-    final isVerified = user?.isVerified == true;
-
-    void handlePostRequest() {
-      if (!isVerified) {
-        showDialog(
-          context: context,
-          builder: (c) => AlertDialog(
-            backgroundColor: AppColors.surfaceAlt,
-            title: Text('Verification Required', style: AppTextStyles.h3),
-            content: Text(
-                'You must complete KYC verification before posting a loan request.',
-                style: AppTextStyles.bodyMedium),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(c),
-                  child: Text('Cancel', style: AppTextStyles.bodyMedium)),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(c);
-                  context.push('/kyc');
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 8),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildPillAction(
+                context: context,
+                icon: Icons.pending_actions_rounded,
+                label: 'Matches',
+                onTap: () => context.push('/match'),
+              ),
+              Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
+              _buildPillAction(
+                context: context,
+                icon: Icons.analytics_outlined,
+                label: 'Analytics',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Analytics dashboard coming soon')),
+                  );
                 },
-                child: Text('Verify Now',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.gold, fontWeight: FontWeight.bold)),
+              ),
+              Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
+              _buildPillAction(
+                context: context,
+                icon: Icons.calculate_outlined,
+                label: 'Rate Calc',
+                onTap: () => context.push('/calculator'),
               ),
             ],
           ),
-        );
-      } else {
-        context.push('/post-request');
-      }
-    }
-
-    final actions = [
-      _Action('Find Lenders', Icons.search_rounded, AppColors.textPrimary, false,
-          () => context.go('/search')),
-      _Action('Post Request', Icons.add_circle_rounded, Colors.white, true,
-          handlePostRequest),
-      _Action('Matches', Icons.handshake_rounded, AppColors.textPrimary, false,
-          () => context.push('/match')),
-      _Action('Chat', Icons.chat_bubble_rounded, AppColors.textPrimary, false,
-          () => context.push('/chat')),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: actions.map((a) => _QuickActionBtn(action: a)).toList(),
-      ),
+        ),
+      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
     );
   }
-}
 
-class _Action {
-  final String label;
-  final IconData icon;
-  final Color iconColor;
-  final bool isPrimary;
-  final VoidCallback onTap;
-  const _Action(this.label, this.icon, this.iconColor, this.isPrimary, this.onTap);
-}
-
-class _QuickActionBtn extends StatelessWidget {
-  final _Action action;
-  const _QuickActionBtn({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: action.onTap,
-      child: SizedBox(
-        width: 76,
-        child: Column(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: action.isPrimary 
-                    ? AppColors.emerald 
-                    : AppColors.surface.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(18),
-                border: action.isPrimary 
-                    ? null 
-                    : Border.all(color: AppColors.border.withValues(alpha: 0.3), width: 1),
-                boxShadow: action.isPrimary
-                    ? [
-                        BoxShadow(
-                          color: AppColors.emerald.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
+  Widget _buildPillAction({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30), // Keeps ripple contained to the section
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: AppColors.textPrimary),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              child: Center(
-                child: Icon(action.icon, color: action.iconColor, size: 24),
-              ),
-            ).animate().scale(
-                begin: const Offset(0.9, 0.9),
-                curve: Curves.easeOutBack,
-                duration: 400.ms),
-            const SizedBox(height: 10),
-            Text(
-              action.label,
-              style: AppTextStyles.caption.copyWith(
-                  color: action.isPrimary ? AppColors.textPrimary : AppColors.textSecondary, 
-                  fontWeight: action.isPrimary ? FontWeight.w700 : FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 100.ms),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ──────────────────────────────────────────────
-
-
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _MyRequestsSliver extends ConsumerWidget {
   final String userId;
   const _MyRequestsSliver({required this.userId});
@@ -696,46 +693,10 @@ class _MyRequestsSliver extends ConsumerWidget {
           if (docs.length > 5) docs = docs.sublist(0, 5);
 
           if (docs.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.description_outlined, size: 22, color: AppColors.textMuted),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('No requests yet', style: AppTextStyles.labelLarge),
-                          const SizedBox(height: 2),
-                          Text('Post your first loan request above.', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            return const InteractiveEmptyState(
+              title: 'No requests yet',
+              subtitle: 'Post your first loan request to get started.',
+              lottieUrl: 'assets/animations/onboarding_2.json',
             );
           }
           return Column(
@@ -800,7 +761,7 @@ class _RequestCardState extends State<_RequestCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Tappable header ─────────────────────────
+                // â”€â”€ Tappable header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 InkWell(
                   onTap: () => setState(() => _expanded = !_expanded),
                   splashColor: statusColor.withOpacity(0.08),
@@ -831,7 +792,7 @@ class _RequestCardState extends State<_RequestCard> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                '${AppFormatters.formatTenure(req.tenureMonths)} · ${req.maxInterestRatePerMonth}%/mo',
+                                '${AppFormatters.formatTenure(req.tenureMonths)} Â· ${req.maxInterestRatePerMonth}%/mo',
                                 style: AppTextStyles.caption
                                     .copyWith(color: AppColors.textSecondary),
                               ),
@@ -853,7 +814,7 @@ class _RequestCardState extends State<_RequestCard> {
                   ),
                 ),
 
-                // ── Expandable body ──────────────────────────
+                // â”€â”€ Expandable body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (_expanded)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -884,7 +845,7 @@ class _RequestCardState extends State<_RequestCard> {
                                     color: AppColors.warning),
                                 if (req.isVerified)
                                   TagChip(
-                                      label: '✓ Verified',
+                                      label: 'âœ“ Verified',
                                       color: AppColors.emerald),
                               ],
                             ),
@@ -967,7 +928,7 @@ class _RequestCardState extends State<_RequestCard> {
   }
 }
 
-// ──────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _NearbyLendersRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -975,23 +936,24 @@ class _NearbyLendersRow extends ConsumerWidget {
       stream: FirebaseFirestore.instance
           .collection(AppConstants.colLenders)
           .where('isActive', isEqualTo: true)
-          // .orderBy('isFeatured', descending: true)
-          // .limit(6)
           .snapshots(),
       builder: (context, snap) {
         if (!snap.hasData) {
-          return SizedBox(
-            height: 170,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4,
-              separatorBuilder: (_, __) => SizedBox(width: 12),
-              itemBuilder: (_, __) =>
-                  ShimmerBox(width: 160, height: 160, borderRadius: 16),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: List.generate(
+                3,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ShimmerBox(
+                      width: double.infinity, height: 58, borderRadius: 14),
+                ),
+              ),
             ),
           );
         }
+
         var docs = snap.data!.docs.toList();
         docs = docs.where((d) {
           final data = d.data() as Map<String, dynamic>;
@@ -1005,72 +967,109 @@ class _NearbyLendersRow extends ConsumerWidget {
               (b.data() as Map<String, dynamic>)['isFeatured'] == true ? 1 : 0;
           return bFeat.compareTo(aFeat);
         });
-        if (docs.length > 6) docs = docs.sublist(0, 6);
+        if (docs.length > 5) docs = docs.sublist(0, 5);
 
         if (docs.isEmpty) {
           return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Text('No lenders available near you right now.',
                 style: TextStyle(color: Colors.grey)),
           );
         }
 
         return SizedBox(
-          height: 180,
+          height: 110,
           child: ListView.separated(
-            clipBehavior: Clip.none,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 24, right: 24),
+            clipBehavior: Clip.none,
             itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (context, index) => const SizedBox(width: 16),
             itemBuilder: (context, i) {
               final data = docs[i].data() as Map<String, dynamic>;
+              final name = data['businessName'] ?? 'Lender';
+              final initial = name[0].toUpperCase();
+              final isVerified = data['isVerified'] == true;
+
               return GestureDetector(
                 onTap: () => context.push('/lender-profile/${docs[i].id}'),
-                child: NeumorphicContainer(
-                  width: 160,
-                  padding: const EdgeInsets.all(14),
-                  borderRadius: 24,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.goldGradient,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                              child: Text(
-                            (data['businessName'] ?? 'L')[0].toUpperCase(),
-                            style:
-                                AppTextStyles.h4.copyWith(color: Colors.white),
-                          )),
+                child: Column(
+                  children: [
+                    // Avatar Ring
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [AppColors.gold, AppColors.emerald],
                         ),
-                        Spacer(),
-                        if (data['isVerified'] == true)
-                          Icon(Icons.verified_rounded,
-                              color: AppColors.emerald, size: 16),
-                      ]),
-                      SizedBox(height: 10),
-                      Text(data['businessName'] ?? '',
-                          style: AppTextStyles.labelLarge,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      SizedBox(height: 2),
-                      Text(data['city'] ?? '', style: AppTextStyles.caption),
-                      Spacer(),
-                      Text(
-                        '${data['interestRatePerMonth'] ?? '-'}% / mo',
-                        style: AppTextStyles.amountSmall.copyWith(fontSize: 14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.gold.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.surface,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: Image.network(
+                              'https://picsum.photos/seed/${name.replaceAll(' ', '')}/200/200',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                color: AppColors.bg,
+                                child: Center(
+                                  child: Text(
+                                    initial,
+                                    style: AppTextStyles.h2.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Name and Verified Badge
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          name.split(' ').first, // Only first name for stories
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (isVerified) ...[
+                          const SizedBox(width: 2),
+                          Icon(Icons.verified_rounded, size: 12, color: AppColors.emerald),
+                        ]
+                      ],
+                    ),
+                  ],
                 ),
-              );
+              ).animate().fadeIn(duration: 300.ms, delay: (i * 80).ms).scale(
+                  begin: const Offset(0.8, 0.8), end: const Offset(1, 1), curve: Curves.easeOutBack);
             },
           ),
         );
@@ -1079,4 +1078,240 @@ class _NearbyLendersRow extends ConsumerWidget {
   }
 }
 
+// ──────────────────────────────────────────────
+class _FinancialTipsRow extends StatefulWidget {
+  const _FinancialTipsRow();
+
+  @override
+  State<_FinancialTipsRow> createState() => _FinancialTipsRowState();
+}
+
+class _FinancialTipsRowState extends State<_FinancialTipsRow> {
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+      if (!_scrollController.hasClients) return;
+      
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      
+      if (maxScroll == 0) return; // Not enough content to scroll
+
+      // Card width is 260 + 16 (separator) = 276
+      final targetScroll = currentScroll + 276.0;
+      
+      if (targetScroll > maxScroll) {
+        // Rewind to start
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 600), curve: Curves.easeInOutCubic);
+      } else {
+        _scrollController.animateTo(targetScroll, duration: const Duration(milliseconds: 600), curve: Curves.easeInOutCubic);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tips = [
+      {
+        'title': 'Boost Trust Score',
+        'desc': 'Verify your income to unlock lower rates.',
+        'icon': Icons.trending_up_rounded,
+        'colors': [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
+      },
+      {
+        'title': 'Collateral Types',
+        'desc': 'Using digital gold drops rates by 2%.',
+        'icon': Icons.diamond_rounded,
+        'colors': [const Color(0xFFF59E0B), const Color(0xFFEF4444)]
+      },
+      {
+        'title': 'Fast Matching',
+        'desc': 'Complete your profile to get matches 3x faster.',
+        'icon': Icons.bolt_rounded,
+        'colors': [const Color(0xFF10B981), const Color(0xFF3B82F6)]
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: SectionHeader(title: 'Financial Tips', isExpandable: false),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              clipBehavior: Clip.none,
+              itemCount: tips.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
+              itemBuilder: (context, i) {
+                final colors = tips[i]['colors'] as List<Color>;
+                return Container(
+                  width: 260,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: colors,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors[0].withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(tips[i]['icon'] as IconData,
+                            color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              tips[i]['title'] as String,
+                              style: AppTextStyles.h4.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              tips[i]['desc'] as String,
+                              style: AppTextStyles.caption.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 11),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().scale(
+                    begin: const Offset(0.9, 0.9),
+                    duration: 400.ms,
+                    delay: (i * 100).ms,
+                    curve: Curves.easeOutBack);
+              },
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 200.ms);
+  }
+}
+
+// ──────────────────────────────────────────────
+class _TrustScoreGauge extends StatelessWidget {
+  final int score;
+  const _TrustScoreGauge({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: score / 1000.0),
+      duration: const Duration(milliseconds: 1500),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return CustomPaint(
+          size: const Size(120, 60), 
+          painter: _TrustScorePainter(percentage: value),
+          child: SizedBox(
+            width: 120,
+            height: 60,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  (value * 1000).toInt().toString(),
+                  style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24, height: 1.0),
+                ),
+                Text(
+                  'Trust Score',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TrustScorePainter extends CustomPainter {
+  final double percentage;
+  _TrustScorePainter({required this.percentage});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height * 2);
+    final startAngle = math.pi;
+    final sweepAngle = math.pi;
+
+    // Background track
+    final trackPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, startAngle, sweepAngle, false, trackPaint);
+
+    // Progress arc
+    final progressPaint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF34D399), Color(0xFFF59E0B)], // Emerald to Gold
+      ).createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, startAngle, sweepAngle * percentage, false, progressPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrustScorePainter oldDelegate) {
+    return oldDelegate.percentage != percentage;
+  }
+}
 

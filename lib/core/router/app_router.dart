@@ -55,6 +55,9 @@ import '../../features/admin/presentation/admin_user_management_screen.dart';
 import '../../features/admin/presentation/admin_user_detail_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 
+// ─── Calculator ──────────────────────────────
+import '../../features/calculator/presentation/rate_calculator_screen.dart';
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
@@ -179,6 +182,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             AdminUserDetailScreen(userId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
+      GoRoute(path: '/calculator', builder: (c, s) => const RateCalculatorScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),

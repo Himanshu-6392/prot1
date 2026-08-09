@@ -82,7 +82,7 @@ class MainShell extends ConsumerWidget {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        extendBody: true,
+        extendBody: false,
         body: child,
         bottomNavigationBar: _PeerLendNavBar(
           tabs: _tabs,
@@ -100,10 +100,6 @@ class _PeerLendNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
-  static const double _fabSize = 54.0;
-  static const double _fabOverflow = 18.0;
-  static const double _barHeight = 64.0;
-
   const _PeerLendNavBar({
     required this.tabs,
     required this.selectedIndex,
@@ -112,76 +108,40 @@ class _PeerLendNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = AppColors.gold;
-    final activeDark = const Color(0xFF3F3F46); // dark zinc for gradient
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
-        child: SizedBox(
-          height: _barHeight + _fabOverflow,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
-            children: [
-              // ── Pill bar ─────────────────────────────────────────────────
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBar(context, activeColor),
-              ),
-
-              // ── Floating center FAB ───────────────────────────────────────
-              Positioned(
-                top: 0,
-                child: _buildCenterFab(activeColor, activeDark),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 16,
+            offset: const Offset(0, -2),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildBar(BuildContext context, Color emerald) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(36),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          height: _barHeight,
-          decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.97),
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.8),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
           child: Row(
-            children: tabs.asMap().entries.map((e) {
-              final i = e.key;
-              final tab = e.value;
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: tabs.asMap().entries.map((entry) {
+              final i = entry.key;
+              final tab = entry.value;
+              final isActive = selectedIndex == i;
 
-              // Empty slot for center FAB
               if (tab.isCenter) {
-                return const Expanded(child: SizedBox());
+                return _NavCenterItem(
+                  tab: tab,
+                  isActive: isActive,
+                  onTap: () => onTap(i),
+                );
               }
 
               return Expanded(
-                child: _NavRegularItem(
+                child: _NavTabItem(
                   tab: tab,
-                  isSelected: selectedIndex == i,
-                  activeColor: emerald,
+                  isActive: isActive,
                   onTap: () => onTap(i),
                 ),
               );
@@ -191,94 +151,147 @@ class _PeerLendNavBar extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCenterFab(Color activeColor, Color activeDark) {
-    final isActive = selectedIndex == 2;
-    final tab = tabs[2];
+// ─── Regular Tab Item ─────────────────────────────────────────────────────────
+class _NavTabItem extends StatelessWidget {
+  final _TabItem tab;
+  final bool isActive;
+  final VoidCallback onTap;
 
+  const _NavTabItem({
+    required this.tab,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? AppColors.emerald : const Color(0xFFAAAAAA);
     return GestureDetector(
-      onTap: () => onTap(2),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        width: _fabSize,
-        height: _fabSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [activeColor, activeDark],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: activeColor.withValues(alpha: isActive ? 0.45 : 0.20),
-              blurRadius: isActive ? 18 : 10,
-              spreadRadius: isActive ? 2 : 0,
-              offset: const Offset(0, 4),
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        height: 64,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                isActive ? tab.activeIcon : tab.icon,
+                key: ValueKey(isActive),
+                size: 24,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+                letterSpacing: 0.1,
+              ),
+              child: Text(tab.label),
             ),
           ],
-        ),
-        child: Icon(
-          isActive ? tab.activeIcon : tab.icon,
-          color: Colors.white,
-          size: 24,
         ),
       ),
     );
   }
 }
 
-// ─── Regular Nav Item ─────────────────────────────────────────────────────────
-class _NavRegularItem extends StatelessWidget {
+// ─── Center FAB Item ──────────────────────────────────────────────────────────
+class _NavCenterItem extends StatefulWidget {
   final _TabItem tab;
-  final bool isSelected;
-  final Color activeColor;
+  final bool isActive;
   final VoidCallback onTap;
 
-  const _NavRegularItem({
+  const _NavCenterItem({
     required this.tab,
-    required this.isSelected,
-    required this.activeColor,
+    required this.isActive,
     required this.onTap,
   });
 
   @override
+  State<_NavCenterItem> createState() => _NavCenterItemState();
+}
+
+class _NavCenterItemState extends State<_NavCenterItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.88)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(_) => _ctrl.forward();
+  void _onTapUp(_) {
+    _ctrl.reverse();
+    widget.onTap();
+  }
+  void _onTapCancel() => _ctrl.reverse();
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? activeColor.withValues(alpha: 0.10)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isSelected ? tab.activeIcon : tab.icon,
-              size: 22,
-              color: isSelected ? activeColor : AppColors.textSecondary,
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: SizedBox(
+        width: 72,
+        height: 64,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _scale,
+            builder: (_, child) =>
+                Transform.scale(scale: _scale.value, child: child),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6EE75A), Color(0xFF1DB954)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.emerald.withValues(
+                        alpha: widget.isActive ? 0.50 : 0.28),
+                    blurRadius: widget.isActive ? 18 : 10,
+                    spreadRadius: widget.isActive ? 1 : 0,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                widget.isActive ? widget.tab.activeIcon : widget.tab.icon,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
           ),
-          const SizedBox(height: 2),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 180),
-            style: AppTextStyles.labelSmall.copyWith(
-              fontSize: 10.5,
-              color: isSelected ? activeColor : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
-            child: Text(tab.label),
-          ),
-        ],
+        ),
       ),
     );
   }

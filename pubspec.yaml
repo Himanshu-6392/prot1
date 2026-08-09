@@ -90,7 +90,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/animations/
+    - assets/animations/onboarding_1.json
+    - assets/animations/onboarding_2.json
+    - assets/animations/onboarding_3.json
+    - assets/animations/finance_logo.json
     - assets/icons/
 
 

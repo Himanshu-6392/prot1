@@ -404,9 +404,6 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
                       ],
                     ),
                   ),
-                  
-                  // Chevron indicating fluid expansion
-                  Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: AppColors.textMuted),
                 ],
               ),
               
@@ -510,19 +507,65 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
                       const SizedBox(height: 12),
                       Center(child: Text('Tip: Swipe card to quickly Accept or Decline', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted))),
                     ],
-                    if (widget.match.status == MatchStatus.accepted) ...[
-                      const SizedBox(height: 20),
-                      // 3. Shimmering "Open Chat" Button
-                      AppButton(
-                        label: 'Open Chat',
-                        onPressed: () => context.push('/chat/${widget.match.chatRoomId}'),
-                        icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                        color: AppColors.gold,
-                      ).animate(onPlay: (c) => c.repeat(reverse: false)).shimmer(duration: 2.seconds, color: Colors.white24, delay: 1.seconds),
-                    ],
                   ],
                 ),
               ),
+              
+              if (widget.match.status == MatchStatus.accepted) ...[
+                const SizedBox(height: 20),
+                // 3. Dynamic "Open Chat" Button
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFFA855F7), Color(0xFFEC4899)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFA855F7).withValues(alpha: 0.4),
+                        blurRadius: 24,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => context.push('/chat/${widget.match.chatRoomId}'),
+                      splashColor: Colors.white24,
+                      highlightColor: Colors.white12,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.forum_rounded, color: Colors.white, size: 24)
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .scaleXY(begin: 1.0, end: 1.15, duration: 1000.ms),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Open Chat',
+                            style: AppTextStyles.h3.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20)
+                              .animate(onPlay: (c) => c.repeat())
+                              .moveX(begin: -4, end: 4, duration: 1200.ms)
+                              .fadeIn(duration: 600.ms).fadeOut(delay: 600.ms),
+                        ],
+                      ),
+                    ),
+                  ),
+                ).animate(onPlay: (c) => c.repeat(reverse: false)).shimmer(duration: 2500.ms, color: Colors.white24, delay: 1.seconds),
+              ],
             ]);
           }
         ),
@@ -582,12 +625,27 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
 // ─────────────────────────────────────────────────────
 // Request Detail Screen
 // ─────────────────────────────────────────────────────
-class RequestDetailScreen extends ConsumerWidget {
+class RequestDetailScreen extends ConsumerStatefulWidget {
   final String requestId;
   const RequestDetailScreen({super.key, required this.requestId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RequestDetailScreen> createState() => _RequestDetailScreenState();
+}
+
+class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
+  bool _viewLogged = false;
+
+  void _logView(String borrowerId, String viewerId) {
+    if (_viewLogged) return;
+    _viewLogged = true;
+    FirebaseFirestore.instance.collection('users').doc(borrowerId).update({
+      'profileViewers': FieldValue.arrayUnion([viewerId])
+    }).catchError((_) {}); // ignore errors if field doesn't exist etc
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -602,7 +660,7 @@ class RequestDetailScreen extends ConsumerWidget {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection(AppConstants.colRequests)
-            .doc(requestId)
+            .doc(widget.requestId)
             .snapshots(),
         builder: (context, snap) {
           if (!snap.hasData)
@@ -615,6 +673,12 @@ class RequestDetailScreen extends ConsumerWidget {
 
           final user = ref.watch(currentUserProvider).valueOrNull;
           final isOwner = user?.uid == data['borrowerId'];
+
+          if (user != null && !isOwner) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _logView(data['borrowerId'], user.uid);
+            });
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -774,7 +838,7 @@ class RequestDetailScreen extends ConsumerWidget {
                     label: 'Send Offer to Borrower',
                     onPressed: () {
                       if (user == null) return;
-                      _showMakeOfferSheet(context, user.uid, data, requestId);
+                      _showMakeOfferSheet(context, user.uid, data, widget.requestId);
                     },
                     icon: const Icon(Icons.send_rounded, size: 18),
                   ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
@@ -806,7 +870,7 @@ class RequestDetailScreen extends ConsumerWidget {
 
                       if (confirm == true) {
                         try {
-                          await FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(requestId).delete();
+                          await FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(widget.requestId).delete();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Request deleted successfully', style: AppTextStyles.caption.copyWith(color: Colors.white)), backgroundColor: AppColors.gold));
                             Navigator.pop(context); // Fallback if context.pop() fails

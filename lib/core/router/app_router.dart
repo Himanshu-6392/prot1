@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
+          loc == '/auth/login' || loc == '/auth/signup' || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';

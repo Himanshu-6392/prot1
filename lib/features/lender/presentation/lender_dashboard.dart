@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/interactive_empty_state.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/market_insights_card.dart';
 import '../../../models/user_model.dart';
 import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
@@ -80,8 +83,42 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
           SafeArea(
             bottom: false,
             child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
               slivers: [
+                CupertinoSliverRefreshControl(
+                  onRefresh: () async {
+                    // Simulate refresh
+                    await Future.delayed(const Duration(seconds: 1));
+                  },
+                  builder: (context, refreshState, pulledExtent, refreshTriggerPullDistance, refreshIndicatorExtent) {
+                    final double percentage = (pulledExtent / refreshTriggerPullDistance).clamp(0.0, 1.0);
+                    final isRefreshing = refreshState == RefreshIndicatorMode.refresh || refreshState == RefreshIndicatorMode.armed;
+                    return Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
+                        ),
+                        child: Center(
+                          child: isRefreshing
+                              ? Icon(Icons.sync_rounded, color: AppColors.emerald, size: 24)
+                                  .animate(onPlay: (c) => c.repeat())
+                                  .rotate(duration: 1.seconds)
+                              : Transform.rotate(
+                                  angle: percentage * 2 * math.pi,
+                                  child: Icon(Icons.sync_rounded, color: AppColors.emerald.withValues(alpha: percentage), size: 24),
+                                ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 SliverToBoxAdapter(child: _LenderHeader(user: user)),
                 SliverToBoxAdapter(
                     child: _LenderPortfolioCard(userId: user?.uid ?? '')),
@@ -96,6 +133,9 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
                   ),
                 ),
                 _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
+                SliverToBoxAdapter(
+                  child: const MarketInsightsCard(),
+                ),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
             ),
@@ -155,16 +195,58 @@ class _LenderHeader extends ConsumerWidget {
           ),
 
           const SizedBox(width: 16),
+          // Notification Bell
+          GestureDetector(
+            onTap: () {
+              context.push('/notifications');
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary, size: 24),
+                  Positioned(
+                    right: 12,
+                    top: 12,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ).animate(onPlay: (c) => c.repeat()).fade(duration: 1.seconds, curve: Curves.easeInOut),
+                  ),
+                ],
+              ),
+            ),
+          ).animate().fadeIn(delay: 150.ms),
+          const SizedBox(width: 8),
+          
+          // Avatar
           GestureDetector(
             onTap: () => context.push('/profile'),
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: AppColors.emeraldGradient,
+                gradient: AppColors.goldGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.emerald.withValues(alpha: 0.3),
+                    color: AppColors.gold.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
@@ -182,9 +264,7 @@ class _LenderHeader extends ConsumerWidget {
                   child: Text(
                     initial,
                     style: AppTextStyles.h3.copyWith(
-                      foreground: Paint()
-                        ..shader = AppColors.emeraldGradient
-                            .createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 50.0)),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -232,12 +312,11 @@ class _LenderPortfolioCard extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+              gradient: AppColors.goldGradient,
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.emerald.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -251,71 +330,89 @@ class _LenderPortfolioCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.emerald.withValues(alpha: 0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.account_balance_wallet_rounded, color: AppColors.emerald, size: 20),
+                      child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Text(
                       'AVAILABLE CAPITAL',
                       style: AppTextStyles.tag.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Colors.white70,
                         letterSpacing: 1.5,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  snap.hasData
-                      ? AppFormatters.formatINR(availableCapital)
-                      : '...',
-                  style: AppTextStyles.displaySmall.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1,
-                    foreground: Paint()
-                      ..shader = AppColors.emeraldGradient
-                          .createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 50.0)),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _CardStat('Active Offers', '$activeOffers', AppColors.textPrimary),
-                    _CardStat('Matches', '$totalMatches', AppColors.textPrimary),
-                    GestureDetector(
-                      onTap: () => context.push('/create-offer'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.emeraldGradient,
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.emerald.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'NEW OFFER',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
+                          const SizedBox(width: 4),
+                          Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
+                        ],
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 32),
+                
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          snap.hasData ? AppFormatters.formatINR(availableCapital) : '...',
+                          style: AppTextStyles.displaySmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$activeOffers',
+                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
+                        ),
+                        Text('Active Offers', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                      ],
+                    ),
+                    const SizedBox(width: 24),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$totalMatches',
+                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
+                        ),
+                        Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    label: 'Create New Offer',
+                    onPressed: () => context.push('/create-offer'),
+                    color: AppColors.emerald,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                  ),
                 ),
               ],
             ),
@@ -482,39 +579,123 @@ class _StatCard2 extends StatelessWidget {
   }
 }
 
-class _ManageSection extends ConsumerWidget {
+class _ManageSection extends StatefulWidget {
   final String userId;
   const _ManageSection({required this.userId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<_ManageSection> createState() => _ManageSectionState();
+}
+
+class _ManageSectionState extends State<_ManageSection> {
+  static bool _browseBadge = false;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(children: [
-        Expanded(
-            child: _ActionTile(
-          icon: Icons.person_search_rounded,
-          label: 'Browse Borrowers',
-          color: AppColors.gold,
-          onTap: () => context.push('/borrower-search'),
-        )),
-        SizedBox(width: 12),
-        Expanded(
-            child: _ActionTile(
-          icon: Icons.edit_note_rounded,
-          label: 'Edit Offer',
-          color: AppColors.emerald,
-          onTap: () => context.push('/create-offer'),
-        )),
-        SizedBox(width: 12),
-        Expanded(
-            child: _ActionTile(
-          icon: Icons.receipt_long_rounded,
-          label: 'My Offers',
-          color: AppColors.info,
-          onTap: () => context.push('/match'),
-        )),
-      ]),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 8),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildPillAction(
+                context: context,
+                icon: Icons.person_search_rounded,
+                label: 'Browse',
+                onTap: () async {
+                  if (_browseBadge) setState(() => _browseBadge = false);
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  if (context.mounted) context.push('/borrower-search');
+                },
+                showBadge: _browseBadge,
+              ),
+              Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3)),
+              _buildPillAction(
+                context: context,
+                icon: Icons.receipt_long_rounded,
+                label: 'My Offers',
+                onTap: () async {
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  if (context.mounted) context.push('/match');
+                },
+              ),
+              Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3)),
+              _buildPillAction(
+                context: context,
+                icon: Icons.switch_account_rounded,
+                label: 'Switch Role',
+                onTap: () async {
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  if (context.mounted) context.push('/auth/role-selection');
+                },
+              ),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+    );
+  }
+
+  Widget _buildPillAction({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool showBadge = false,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: AppColors.textPrimary.withOpacity(0.7), size: 22),
+                if (showBadge)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -79,14 +79,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     ),
                   ],
                 ),
-                child: Icon(Icons.account_balance_wallet_rounded,
+                child: const Icon(Icons.account_balance_wallet_rounded,
                     color: Colors.white, size: 48),
               )
                   .animate()
                   .scale(duration: 600.ms, curve: Curves.elasticOut)
                   .fadeIn(duration: 400.ms),
 
-              SizedBox(height: 28),
+              const SizedBox(height: 28),
 
               Text('PeerLend',
                       style: AppTextStyles.displaySmall.copyWith(
@@ -97,7 +97,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   .fadeIn(duration: 500.ms)
                   .slideY(begin: 0.3, end: 0),
 
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
 
               Text('Secure Lending, Peer to Peer',
                       style: AppTextStyles.bodyMedium
@@ -105,7 +105,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   .animate(delay: 500.ms)
                   .fadeIn(duration: 400.ms),
 
-              SizedBox(height: 80),
+              const SizedBox(height: 80),
 
               SizedBox(
                 width: 28,

@@ -109,7 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       )),
             ),
 
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -120,17 +120,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeInOut,
                       ),
-                      icon: Icon(Icons.arrow_forward_rounded, size: 18),
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                     )
                   : AppButton(
                       label: 'Get Started',
                       onPressed: () =>
                           _markOnboardingDone(context, '/auth/login'),
-                      icon: Icon(Icons.rocket_launch_rounded, size: 18),
+                      icon: const Icon(Icons.rocket_launch_rounded, size: 18),
                     ),
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             if (_current < _slides.length - 1)
               TextButton(
@@ -178,13 +178,13 @@ class _SlideView extends StatelessWidget {
               .animate(key: ValueKey('icon_$idx'))
               .scale(duration: 500.ms, curve: Curves.elasticOut)
               .fadeIn(),
-          SizedBox(height: 40),
+          const SizedBox(height: 40),
           Text(slide.title,
                   style: AppTextStyles.h1, textAlign: TextAlign.center)
               .animate(key: ValueKey('title_$idx'), delay: 100.ms)
               .fadeIn(duration: 400.ms)
               .slideY(begin: 0.3, end: 0),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
             slide.subtitle,
             style: AppTextStyles.bodyLarge

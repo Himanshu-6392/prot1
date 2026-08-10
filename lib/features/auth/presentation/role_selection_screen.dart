@@ -67,7 +67,7 @@ class _RoleCard extends StatelessWidget {
               child: Icon(icon,
                   color: isSelected ? color : AppColors.textMuted, size: 28),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +76,7 @@ class _RoleCard extends StatelessWidget {
                       style: AppTextStyles.h3.copyWith(
                         color: isSelected ? color : AppColors.textPrimary,
                       )),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(description,
                       style: AppTextStyles.bodySmall
                           .copyWith(color: AppColors.textSecondary)),

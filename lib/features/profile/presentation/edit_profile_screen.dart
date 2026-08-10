@@ -182,7 +182,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
             // Gender Dropdown
             DropdownButtonFormField<String>(
-              value: selectedGender,
+              initialValue: selectedGender,
               dropdownColor: AppColors.surfaceAlt,
               style: AppTextStyles.bodyMedium,
               icon: Icon(Icons.arrow_drop_down_rounded,

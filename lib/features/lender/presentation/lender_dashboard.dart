@@ -497,7 +497,7 @@ class _ManageSection extends ConsumerWidget {
           color: AppColors.gold,
           onTap: () => context.push('/borrower-search'),
         )),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
             child: _ActionTile(
           icon: Icons.edit_note_rounded,
@@ -505,7 +505,7 @@ class _ManageSection extends ConsumerWidget {
           color: AppColors.emerald,
           onTap: () => context.push('/create-offer'),
         )),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
             child: _ActionTile(
           icon: Icons.receipt_long_rounded,
@@ -556,7 +556,7 @@ class _ActionTile extends StatelessWidget {
                 border: Border.all(color: color.withValues(alpha: 0.2))),
             child: Icon(icon, color: color, size: 24),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(label,
               style: AppTextStyles.labelSmall
                   .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
@@ -584,7 +584,7 @@ class _IncomingRequestsSliver extends ConsumerWidget {
         builder: (context, snap) {
           if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
           if (!snap.hasData) {
-            return Column(
+            return const Column(
                 children: [RequestCardShimmer(), RequestCardShimmer()]);
           }
           final allDocs = snap.data!.docs;
@@ -600,7 +600,7 @@ class _IncomingRequestsSliver extends ConsumerWidget {
               .toList();
 
           if (docs.isEmpty) {
-            return EmptyState(
+            return const EmptyState(
               icon: Icons.inbox_outlined,
               title: 'No open requests',
               subtitle: 'New borrower requests will appear here.',
@@ -660,24 +660,24 @@ class _IncomingCard extends StatelessWidget {
               )),
               TagChip(label: data['collateralType'] ?? '', color: AppColors.info),
             ]),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(data['description'] ?? '',
                 style: AppTextStyles.bodySmall
                     .copyWith(color: AppColors.textSecondary),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(children: [
               Icon(Icons.location_on_rounded,
                   color: AppColors.textMuted, size: 13),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Icon(Icons.percent_rounded, color: AppColors.textMuted, size: 13),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo',
                   style: AppTextStyles.caption),
-              Spacer(),
+              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,7 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:ui';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -160,6 +161,54 @@ class AdminDashboardScreen extends ConsumerWidget {
                                       strokeWidth: 2))),
                           error: (e, _) => const SizedBox.shrink(),
                         ),
+                  ),
+                ),
+
+                // ── Section: Quick Actions ─────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => context.push('/admin/users'),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.gold.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(Icons.people_alt_rounded, color: AppColors.gold, size: 20),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('User Directory', style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary)),
+                                        Text('Search, filter, and manage all users', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -350,9 +399,9 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
   void _showAdminProfileDialog() {
     final user = FirebaseAuth.instance.currentUser;
     final nameCtrl = TextEditingController(text: user?.displayName ?? '');
-    String? _newPhotoUrl = user?.photoURL;
-    bool _uploadingPhoto = false;
-    bool _saving = false;
+    String? newPhotoUrl = user?.photoURL;
+    bool uploadingPhoto = false;
+    bool saving = false;
 
     showDialog(
       context: context,
@@ -371,7 +420,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
               );
               if (picked == null) return;
 
-              setDialogState(() => _uploadingPhoto = true);
+              setDialogState(() => uploadingPhoto = true);
 
               final uid = user!.uid;
               final ref = FirebaseStorage.instance
@@ -388,11 +437,11 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
               await user.updatePhotoURL(downloadUrl);
 
               setDialogState(() {
-                _newPhotoUrl = downloadUrl;
-                _uploadingPhoto = false;
+                newPhotoUrl = downloadUrl;
+                uploadingPhoto = false;
               });
             } catch (e) {
-              setDialogState(() => _uploadingPhoto = false);
+              setDialogState(() => uploadingPhoto = false);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text('Upload failed: $e'),
@@ -460,7 +509,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                     // ── Avatar with upload button ───────────
                     Center(
                       child: GestureDetector(
-                        onTap: _uploadingPhoto ? null : pickAndUpload,
+                        onTap: uploadingPhoto ? null : pickAndUpload,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
@@ -468,8 +517,8 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                             CircleAvatar(
                               radius: 44,
                               backgroundColor: const Color(0xFF10B981).withOpacity(0.15),
-                              backgroundImage: _newPhotoUrl != null ? NetworkImage(_newPhotoUrl!) : null,
-                              child: _newPhotoUrl == null
+                              backgroundImage: newPhotoUrl != null ? NetworkImage(newPhotoUrl!) : null,
+                              child: newPhotoUrl == null
                                   ? Text(
                                       (nameCtrl.text.isNotEmpty ? nameCtrl.text[0] : user?.displayName?.isNotEmpty == true ? user!.displayName![0] : 'A').toUpperCase(),
                                       style: const TextStyle(color: Color(0xFF10B981), fontSize: 30, fontWeight: FontWeight.w700),
@@ -478,7 +527,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                             ),
 
                             // Upload overlay
-                            if (_uploadingPhoto)
+                            if (uploadingPhoto)
                               Container(
                                 width: 88, height: 88,
                                 decoration: BoxDecoration(
@@ -494,7 +543,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                               ),
 
                             // Camera badge
-                            if (!_uploadingPhoto)
+                            if (!uploadingPhoto)
                               Positioned(
                                 bottom: 2, right: 2,
                                 child: Container(
@@ -517,8 +566,8 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
 
                     Center(
                       child: Text(
-                        _uploadingPhoto ? 'Uploading...' : 'Tap to change photo',
-                        style: TextStyle(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w500),
+                        uploadingPhoto ? 'Uploading...' : 'Tap to change photo',
+                        style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w500),
                       ),
                     ),
 
@@ -578,15 +627,15 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: GestureDetector(
-                            onTap: (_saving || _uploadingPhoto) ? null : () async {
-                              setDialogState(() => _saving = true);
+                            onTap: (saving || uploadingPhoto) ? null : () async {
+                              setDialogState(() => saving = true);
                               final name = nameCtrl.text.trim();
                               try {
                                 if (name.isNotEmpty) {
                                   await user?.updateDisplayName(name);
                                 }
-                                if (_newPhotoUrl != null && _newPhotoUrl != user?.photoURL) {
-                                  await user?.updatePhotoURL(_newPhotoUrl);
+                                if (newPhotoUrl != null && newPhotoUrl != user?.photoURL) {
+                                  await user?.updatePhotoURL(newPhotoUrl);
                                 }
                                 // Also update Firestore user doc
                                 if (user != null) {
@@ -595,7 +644,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                                       .doc(user.uid)
                                       .update({
                                     if (name.isNotEmpty) 'name': name,
-                                    if (_newPhotoUrl != null) 'photoUrl': _newPhotoUrl,
+                                    if (newPhotoUrl != null) 'photoUrl': newPhotoUrl,
                                   });
                                 }
                                 if (mounted) {
@@ -608,7 +657,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                                   ));
                                 }
                               } catch (e) {
-                                setDialogState(() => _saving = false);
+                                setDialogState(() => saving = false);
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                     content: Text('Error: $e'),
@@ -626,7 +675,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                                 boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
                               ),
                               child: Center(
-                                child: (_saving || _uploadingPhoto)
+                                child: (saving || uploadingPhoto)
                                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                     : const Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -700,12 +749,12 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
   void _showSetNewPasswordDialog() {
     final newPassCtrl = TextEditingController();
     final confirmPassCtrl = TextEditingController();
-    bool _showNew = false;
-    bool _showConfirm = false;
-    bool _saving = false;
-    String _error = '';
+    bool showNew = false;
+    bool showConfirm = false;
+    bool saving = false;
+    String error = '';
 
-    int _strength(String p) {
+    int strength0(String p) {
       int s = 0;
       if (p.length >= 8) s++;
       if (RegExp(r'[A-Z]').hasMatch(p)) s++;
@@ -714,14 +763,14 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
       return s;
     }
 
-    Color _strengthColor(int s) {
+    Color strengthColor0(int s) {
       if (s <= 1) return const Color(0xFFEF4444);
       if (s == 2) return const Color(0xFFF59E0B);
       if (s == 3) return const Color(0xFF3B82F6);
       return const Color(0xFF10B981);
     }
 
-    String _strengthLabel(int s) {
+    String strengthLabel0(int s) {
       if (s <= 1) return 'Weak';
       if (s == 2) return 'Fair';
       if (s == 3) return 'Good';
@@ -734,9 +783,9 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final strength = _strength(newPassCtrl.text);
-          final strengthColor = _strengthColor(strength);
-          final strengthLabel = _strengthLabel(strength);
+          final strength = strength0(newPassCtrl.text);
+          final strengthColor = strengthColor0(strength);
+          final strengthLabel = strengthLabel0(strength);
 
           return Dialog(
             backgroundColor: Colors.transparent,
@@ -776,11 +825,11 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Set New Password', style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-                              Row(
+                              const Row(
                                 children: [
-                                  const Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
-                                  const SizedBox(width: 4),
-                                  Text('Identity verified', style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w500)),
+                                  Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
+                                  SizedBox(width: 4),
+                                  Text('Identity verified', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w500)),
                                 ],
                               ),
                             ],
@@ -808,16 +857,16 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                       ),
                       child: TextField(
                         controller: newPassCtrl,
-                        obscureText: !_showNew,
-                        onChanged: (_) => setDialogState(() { _error = ''; }),
+                        obscureText: !showNew,
+                        onChanged: (_) => setDialogState(() { error = ''; }),
                         style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.lock_outline, size: 18, color: AppColors.textMuted),
                           hintText: 'New password',
                           hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
                           suffixIcon: IconButton(
-                            icon: Icon(_showNew ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: AppColors.textMuted),
-                            onPressed: () => setDialogState(() => _showNew = !_showNew),
+                            icon: Icon(showNew ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: AppColors.textMuted),
+                            onPressed: () => setDialogState(() => showNew = !showNew),
                           ),
                           contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           border: InputBorder.none,
@@ -865,16 +914,16 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                       ),
                       child: TextField(
                         controller: confirmPassCtrl,
-                        obscureText: !_showConfirm,
-                        onChanged: (_) => setDialogState(() { _error = ''; }),
+                        obscureText: !showConfirm,
+                        onChanged: (_) => setDialogState(() { error = ''; }),
                         style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.lock_clock_outlined, size: 18, color: AppColors.textMuted),
                           hintText: 'Confirm new password',
                           hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
                           suffixIcon: IconButton(
-                            icon: Icon(_showConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: AppColors.textMuted),
-                            onPressed: () => setDialogState(() => _showConfirm = !_showConfirm),
+                            icon: Icon(showConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: AppColors.textMuted),
+                            onPressed: () => setDialogState(() => showConfirm = !showConfirm),
                           ),
                           contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           border: InputBorder.none,
@@ -935,7 +984,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                     ),
 
                     // ── Error message ────────────────────────
-                    if (_error.isNotEmpty) ...[
+                    if (error.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -944,7 +993,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                           children: [
                             Icon(Icons.error_outline, size: 14, color: AppColors.error),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(_error, style: TextStyle(color: AppColors.error, fontSize: 12))),
+                            Expanded(child: Text(error, style: TextStyle(color: AppColors.error, fontSize: 12))),
                           ],
                         ),
                       ),
@@ -959,28 +1008,28 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                       children: [
                         // Primary: Update Password (full width)
                         GestureDetector(
-                          onTap: _saving ? null : () async {
+                          onTap: saving ? null : () async {
                             final newPass = newPassCtrl.text;
                             final confirm = confirmPassCtrl.text;
 
                             if (newPass.length < 8) {
-                              setDialogState(() => _error = 'Password must be at least 8 characters.');
+                              setDialogState(() => error = 'Password must be at least 8 characters.');
                               return;
                             }
                             if (!RegExp(r'[A-Z]').hasMatch(newPass)) {
-                              setDialogState(() => _error = 'Add at least one uppercase letter.');
+                              setDialogState(() => error = 'Add at least one uppercase letter.');
                               return;
                             }
                             if (!RegExp(r'[0-9]').hasMatch(newPass)) {
-                              setDialogState(() => _error = 'Add at least one number.');
+                              setDialogState(() => error = 'Add at least one number.');
                               return;
                             }
                             if (newPass != confirm) {
-                              setDialogState(() => _error = 'Passwords do not match.');
+                              setDialogState(() => error = 'Passwords do not match.');
                               return;
                             }
 
-                            setDialogState(() => _saving = true);
+                            setDialogState(() => saving = true);
                             try {
                               await FirebaseAuth.instance.currentUser?.updatePassword(newPass);
                               if (mounted) {
@@ -997,9 +1046,9 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                               if (e.code == 'requires-recent-login') {
                                 msg = 'Session expired. Please sign out and sign in again.';
                               }
-                              setDialogState(() { _saving = false; _error = msg; });
+                              setDialogState(() { saving = false; error = msg; });
                             } catch (e) {
-                              setDialogState(() { _saving = false; _error = e.toString(); });
+                              setDialogState(() { saving = false; error = e.toString(); });
                             }
                           },
                           child: Container(
@@ -1010,7 +1059,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                               boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
                             ),
                             child: Center(
-                              child: _saving
+                              child: saving
                                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                   : const Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -1542,7 +1591,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: _maintenanceMode ? 'Platform is in maintenance' : 'Platform is live',
                   trailing: Switch(
                     value: _maintenanceMode,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) async {
                       setState(() => _maintenanceMode = val);
                       await _saveSetting('maintenanceMode', val);
@@ -1674,7 +1723,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: _twoFA ? 'Enabled' : 'Disabled',
                   trailing: Switch(
                     value: _twoFA,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) => _show2FADialog(val),
                   ),
                 ),
@@ -1688,7 +1737,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: 'Notify on new KYC submissions',
                   trailing: Switch(
                     value: _notifKyc,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) async {
                       setState(() => _notifKyc = val);
                       await _saveSetting('notifKyc', val);
@@ -1702,7 +1751,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: 'Notify on new loan requests',
                   trailing: Switch(
                     value: _notifLoans,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) async {
                       setState(() => _notifLoans = val);
                       await _saveSetting('notifLoans', val);
@@ -1716,7 +1765,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: 'Notify on user disputes',
                   trailing: Switch(
                     value: _notifDisputes,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) async {
                       setState(() => _notifDisputes = val);
                       await _saveSetting('notifDisputes', val);
@@ -1730,7 +1779,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   subtitle: 'Receive a weekly platform summary',
                   trailing: Switch(
                     value: _emailDigest,
-                    activeColor: AppColors.emerald,
+                    activeThumbColor: AppColors.emerald,
                     onChanged: (val) async {
                       setState(() => _emailDigest = val);
                       await _saveSetting('emailDigest', val);
@@ -1881,7 +1930,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   width: 38, height: 38,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
+                      colors: [AppColors.gold, AppColors.goldLight],
                       begin: Alignment.topLeft, end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(10),
@@ -1931,7 +1980,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
                         const SizedBox(height: 12),
                         Text('Loading activity...', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
                       ]),
@@ -2080,6 +2129,7 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
     if (diff.inDays < 7)      return '${diff.inDays}d ago';
     return '${dt.day}/${dt.month}/${dt.year}';
   }
+}
 
 
 // ─────────────────────────────────────────────
@@ -2207,7 +2257,7 @@ class _PendingActionsSection extends StatelessWidget {
                   label: 'KYC Reviews Pending',
                   count: pendingKycDocs.length,
                   color: AppColors.warning,
-                  onTap: () => _showPendingSheet(
+                  onTap: () => showPendingSheet(
                     context,
                     title: 'KYC Pending',
                     docs: pendingKycDocs,
@@ -2220,7 +2270,7 @@ class _PendingActionsSection extends StatelessWidget {
                   label: 'Blocked Accounts',
                   count: blockedDocs.length,
                   color: AppColors.error,
-                  onTap: () => _showPendingSheet(
+                  onTap: () => showPendingSheet(
                     context,
                     title: 'Blocked Accounts',
                     docs: blockedDocs,
@@ -2233,7 +2283,7 @@ class _PendingActionsSection extends StatelessWidget {
                   label: 'Unverified Users',
                   count: unverifiedDocs.length,
                   color: AppColors.info,
-                  onTap: () => _showPendingSheet(
+                  onTap: () => showPendingSheet(
                     context,
                     title: 'Unverified Users',
                     docs: unverifiedDocs,
@@ -2247,7 +2297,7 @@ class _PendingActionsSection extends StatelessWidget {
     );
   }
 
-  void _showPendingSheet(
+  void showPendingSheet(
     BuildContext context, {
     required String title,
     required List<QueryDocumentSnapshot> docs,
@@ -2357,11 +2407,11 @@ class _PendingUserRow extends StatefulWidget {
 }
 
 class _PendingUserRowState extends State<_PendingUserRow> {
-  bool _loading = false;
+  bool loading = false;
 
-  Future<void> _act(Map<String, dynamic> updates,
+  Future<void> act(Map<String, dynamic> updates,
       {String? successMsg}) async {
-    setState(() => _loading = true);
+    setState(() => loading = true);
     try {
       await FirebaseFirestore.instance
           .collection(AppConstants.colUsers)
@@ -2384,11 +2434,11 @@ class _PendingUserRowState extends State<_PendingUserRow> {
         ));
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  void _navigateToKycReview(BuildContext context) {
+  void navigateToKycReview(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => AdminKycReviewScreen(
         uid: widget.uid,
@@ -2405,7 +2455,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
     final isKyc = widget.type == _PendingType.kyc;
 
     return GestureDetector(
-      onTap: isKyc ? () => _navigateToKycReview(context) : null,
+      onTap: isKyc ? () => navigateToKycReview(context) : null,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -2449,7 +2499,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
                     ],
                   ),
                 ),
-                if (_loading)
+                if (loading)
                   const SizedBox(
                       width: 20,
                       height: 20,
@@ -2461,7 +2511,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
             ),
             const SizedBox(height: 12),
             // Action buttons (differ by type; KYC goes to detail screen)
-            if (!_loading && !isKyc) ..._buildActions(),
+            if (!loading && !isKyc) ...buildActions(),
             // For KYC: show a subtle hint
             if (isKyc)
               Text(
@@ -2475,7 +2525,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
     );
   }
 
-  List<Widget> _buildActions() {
+  List<Widget> buildActions() {
     switch (widget.type) {
       case _PendingType.kyc:
         return [
@@ -2484,7 +2534,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
               child: _ActionBtn(
                 label: 'Approve KYC',
                 color: AppColors.emerald,
-                onTap: () => _act({
+                onTap: () => act({
                   'kycStatus': 'verified',
                   'isVerified': true,
                 }, successMsg: 'KYC approved for ${widget.data['name']}'),
@@ -2496,7 +2546,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
                 label: 'Reject KYC',
                 color: AppColors.error,
                 outlined: true,
-                onTap: () => _act({
+                onTap: () => act({
                   'kycStatus': 'rejected',
                   'isVerified': false,
                 }, successMsg: 'KYC rejected for ${widget.data['name']}'),
@@ -2509,7 +2559,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
           _ActionBtn(
             label: 'Unblock User',
             color: AppColors.emerald,
-            onTap: () => _act({
+            onTap: () => act({
               'isBlocked': false,
             }, successMsg: '${widget.data['name']} has been unblocked'),
           ),
@@ -2521,7 +2571,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
               child: _ActionBtn(
                 label: 'Verify',
                 color: AppColors.info,
-                onTap: () => _act({
+                onTap: () => act({
                   'kycStatus': 'verified',
                   'isVerified': true,
                 }, successMsg: '${widget.data['name']} verified'),
@@ -2533,7 +2583,7 @@ class _PendingUserRowState extends State<_PendingUserRow> {
                 label: 'Block',
                 color: AppColors.error,
                 outlined: true,
-                onTap: () => _act({
+                onTap: () => act({
                   'isBlocked': true,
                 }, successMsg: '${widget.data['name']} blocked'),
               ),
@@ -2658,7 +2708,7 @@ class _PendingTile extends StatelessWidget {
 class _PlatformHealthChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return AdminPlatformHealthChart();
+    return const AdminPlatformHealthChart();
   }
 }
 
@@ -2847,18 +2897,18 @@ class _TopUsersSection extends StatefulWidget {
 
 class _TopUsersSectionState extends State<_TopUsersSection>
     with SingleTickerProviderStateMixin {
-  late TabController _tab;
+  late TabController tab;
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
-    _tab.addListener(() => setState(() {}));
+    tab = TabController(length: 2, vsync: this);
+    tab.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _tab.dispose();
+    tab.dispose();
     super.dispose();
   }
 
@@ -2878,7 +2928,7 @@ class _TopUsersSectionState extends State<_TopUsersSection>
               borderRadius: BorderRadius.circular(12),
             ),
             child: TabBar(
-              controller: _tab,
+              controller: tab,
               labelPadding: EdgeInsets.zero,
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
@@ -2909,9 +2959,9 @@ class _TopUsersSectionState extends State<_TopUsersSection>
           // Tab content
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            child: _tab.index == 0
-                ? _TopRoleList(role: 'lender', key: const ValueKey('lenders'))
-                : _TopRoleList(
+            child: tab.index == 0
+                ? AdminTopRoleList(role: 'lender', key: const ValueKey('lenders'))
+                : AdminTopRoleList(
                     role: 'borrower', key: const ValueKey('borrowers')),
           ),
         ],
@@ -2920,9 +2970,9 @@ class _TopUsersSectionState extends State<_TopUsersSection>
   }
 }
 
-class _TopRoleList extends StatelessWidget {
+class AdminTopRoleList extends StatelessWidget {
   final String role;
-  const _TopRoleList({required this.role, super.key});
+  const AdminTopRoleList({required this.role, super.key});
 
   @override
   Widget build(BuildContext context) {

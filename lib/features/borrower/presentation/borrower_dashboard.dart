@@ -655,8 +655,9 @@ class _MyRequestsSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (userId.isEmpty)
+    if (userId.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverToBoxAdapter(
       child: StreamBuilder<QuerySnapshot>(
@@ -666,7 +667,7 @@ class _MyRequestsSliver extends ConsumerWidget {
             .snapshots(),
         builder: (context, snap) {
           if (!snap.hasData) {
-            return Column(children: [
+            return const Column(children: [
               RequestCardShimmer(),
               RequestCardShimmer(),
             ]);
@@ -986,9 +987,9 @@ class _NearbyLendersRow extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: 4,
-              separatorBuilder: (_, __) => SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (_, __) =>
-                  ShimmerBox(width: 160, height: 160, borderRadius: 16),
+                  const ShimmerBox(width: 160, height: 160, borderRadius: 16),
             ),
           );
         }
@@ -1050,19 +1051,19 @@ class _NearbyLendersRow extends ConsumerWidget {
                                 AppTextStyles.h4.copyWith(color: Colors.white),
                           )),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         if (data['isVerified'] == true)
                           Icon(Icons.verified_rounded,
                               color: AppColors.emerald, size: 16),
                       ]),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(data['businessName'] ?? '',
                           style: AppTextStyles.labelLarge,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(data['city'] ?? '', style: AppTextStyles.caption),
-                      Spacer(),
+                      const Spacer(),
                       Text(
                         '${data['interestRatePerMonth'] ?? '-'}% / mo',
                         style: AppTextStyles.amountSmall.copyWith(fontSize: 14),

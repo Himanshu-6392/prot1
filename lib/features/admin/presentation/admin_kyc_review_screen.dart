@@ -255,7 +255,7 @@ class _AdminKycReviewScreenState extends State<AdminKycReviewScreen> {
 
                   // ── Selfie section ──
                   if (selfieUrl != null && selfieUrl.isNotEmpty) ...[
-                    _SectionTitle(label: 'Selfie Photo'),
+                    const _SectionTitle(label: 'Selfie Photo'),
                     const SizedBox(height: 10),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
@@ -298,14 +298,14 @@ class _AdminKycReviewScreenState extends State<AdminKycReviewScreen> {
                     ).animate().fadeIn(duration: 400.ms),
                     const SizedBox(height: 24),
                   ] else ...[
-                    _SectionTitle(label: 'Selfie Photo'),
+                    const _SectionTitle(label: 'Selfie Photo'),
                     const SizedBox(height: 10),
-                    _EmptyDocBox(label: 'No selfie uploaded'),
+                    const _EmptyDocBox(label: 'No selfie uploaded'),
                     const SizedBox(height: 24),
                   ],
 
                   // ── Identity documents ──
-                  _SectionTitle(label: 'Identity Documents'),
+                  const _SectionTitle(label: 'Identity Documents'),
                   const SizedBox(height: 10),
                   Column(
                     children: [
@@ -328,7 +328,7 @@ class _AdminKycReviewScreenState extends State<AdminKycReviewScreen> {
                           value: address,
                         ),
                       if (aadhaar == null && pan == null && address == null)
-                        _EmptyDocBox(label: 'No identity documents submitted'),
+                        const _EmptyDocBox(label: 'No identity documents submitted'),
                     ],
                   ).animate().fadeIn(delay: 100.ms),
 
@@ -339,7 +339,7 @@ class _AdminKycReviewScreenState extends State<AdminKycReviewScreen> {
                           ifsc != null ||
                           gst != null)) ...[
                     const SizedBox(height: 24),
-                    _SectionTitle(label: 'Banking & Business Details'),
+                    const _SectionTitle(label: 'Banking & Business Details'),
                     const SizedBox(height: 10),
                     Column(
                       children: [

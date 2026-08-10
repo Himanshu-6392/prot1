@@ -94,7 +94,7 @@ class _AdminPlatformHealthChartState extends State<AdminPlatformHealthChart> {
         .listen((snap) {
       bool changed = false;
       for (final change in snap.docChanges) {
-        final data = change.doc.data() as Map<String, dynamic>?;
+        final data = change.doc.data();
         if (data == null) continue;
         final dateStr = _getDateString(data['createdAt']);
         if (dateStr == null) continue;
@@ -121,7 +121,7 @@ class _AdminPlatformHealthChartState extends State<AdminPlatformHealthChart> {
         .listen((snap) {
       bool changed = false;
       for (final change in snap.docChanges) {
-        final data = change.doc.data() as Map<String, dynamic>?;
+        final data = change.doc.data();
         if (data == null) continue;
         final dateStr = _getDateString(data['createdAt']);
         if (dateStr == null) continue;

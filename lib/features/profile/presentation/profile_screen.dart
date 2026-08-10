@@ -1,18 +1,15 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -830,8 +827,9 @@ class _MenuSection extends ConsumerWidget {
                   label: 'Edit Profile',
                   color: AppColors.info,
                   onTap: () {
-                    if (user != null)
+                    if (user != null) {
                       showGlobalEditProfileDialog(context, user!);
+                    }
                   },
                 ),
                 _buildDivider(),
@@ -1143,7 +1141,7 @@ void _showSettingsDialog(BuildContext context) {
               title: Text('Dark Mode', style: AppTextStyles.bodyLarge),
               subtitle: Text('Toggle app theme', style: AppTextStyles.caption),
               value: AppColors.isDarkMode,
-              activeColor: AppColors.emerald,
+              activeThumbColor: AppColors.emerald,
               onChanged: (val) {
                 AppColors.toggleTheme(context);
                 Navigator.pop(ctx);
@@ -1358,7 +1356,7 @@ Future<void> showGlobalEditProfileDialog(
 
                   // Gender Dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedGender,
+                    initialValue: selectedGender,
                     dropdownColor: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     style: AppTextStyles.bodyMedium,
@@ -1752,7 +1750,7 @@ Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
                                   bankCtr.text =
                                       bankNameFromApi; // Auto-update bank name
                                 }
-                              } on DioException catch (e) {
+                              } on DioException {
                                 setState(() => isSaving = false);
                                 ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                                   content: const Text(

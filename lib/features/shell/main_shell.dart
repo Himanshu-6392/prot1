@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -235,65 +236,21 @@ class _PeerLendNavBar extends StatelessWidget {
 class _NavRegularItem extends StatelessWidget {
   final _TabItem tab;
   final bool isSelected;
-<<<<<<< HEAD
-  final bool isDark;
-=======
   final Color activeColor;
->>>>>>> origin/ui-updates
   final VoidCallback onTap;
 
   const _NavRegularItem({
     required this.tab,
     required this.isSelected,
-<<<<<<< HEAD
-    required this.isDark,
-=======
     required this.activeColor,
->>>>>>> origin/ui-updates
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final activeIconColor = isDark ? Colors.white : const Color(0xFF111827);
-    final inactiveIconColor = isDark
-        ? const Color(0xFF3D3D3D)
-        : const Color(0xFFB0B0B0);
-    final activeLabelColor = isDark
-        ? const Color(0xFF52C41A)
-        : const Color(0xFF111827);
-    final inactiveLabelColor = isDark
-        ? const Color(0xFF3D3D3D)
-        : const Color(0xFFB0B0B0);
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-<<<<<<< HEAD
-      child: AnimatedScale(
-        scale: isSelected ? 1.04 : 1.0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 4),
-            // Top indicator dot
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: isSelected ? 18 : 0,
-              height: isSelected ? 2.5 : 0,
-              decoration: BoxDecoration(
-                color: const Color(0xFF52C41A),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Icon
-            Icon(
-              icon,
-              color: isSelected ? activeIconColor : inactiveIconColor,
-=======
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
@@ -310,29 +267,9 @@ class _NavRegularItem extends StatelessWidget {
             ),
             child: Icon(
               isSelected ? tab.activeIcon : tab.icon,
->>>>>>> origin/ui-updates
               size: 22,
               color: isSelected ? activeColor : AppColors.textSecondary,
             ),
-<<<<<<< HEAD
-            const SizedBox(height: 4),
-            // Label
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: isSelected ? activeLabelColor : inactiveLabelColor,
-                fontSize: 10,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
-                letterSpacing: 0.1,
-              ),
-              child: Text(label),
-            ),
-            const SizedBox(height: 4),
-          ],
-        ),
-=======
           ),
           const SizedBox(height: 2),
           AnimatedDefaultTextStyle(
@@ -345,7 +282,6 @@ class _NavRegularItem extends StatelessWidget {
             child: Text(tab.label),
           ),
         ],
->>>>>>> origin/ui-updates
       ),
     );
   }

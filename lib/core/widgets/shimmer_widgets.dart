@@ -8,7 +8,7 @@ class ShimmerBox extends StatelessWidget {
   final double height;
   final double borderRadius;
 
-  ShimmerBox({
+  const ShimmerBox({
     super.key,
     required this.width,
     required this.height,
@@ -34,7 +34,7 @@ class ShimmerBox extends StatelessWidget {
 
 /// Shimmer for a lender card
 class LenderCardShimmer extends StatelessWidget {
-  LenderCardShimmer({super.key});
+  const LenderCardShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class LenderCardShimmer extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
@@ -84,7 +84,7 @@ class LenderCardShimmer extends StatelessWidget {
 
 /// Shimmer for a borrower request card
 class RequestCardShimmer extends StatelessWidget {
-  RequestCardShimmer({super.key});
+  const RequestCardShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +96,7 @@ class RequestCardShimmer extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [

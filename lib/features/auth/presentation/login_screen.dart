@@ -58,8 +58,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final doc = await ref.read(firestoreProvider).collection('users').doc(cred.user!.uid).get();
       final role = doc.data()?['role'];
       final isAdmin = role == 'admin' || _emailCtr.text.trim().toLowerCase().contains('admin104');
+
+      // ── Blocked Account Check ──────────────────────────────────
+      final isBlocked = doc.data()?['isBlocked'] == true;
+      if (isBlocked && !isAdmin) {
+        await FirebaseAuth.instance.signOut();
+        ref.read(isLoggingInProvider.notifier).state = false;
+        if (mounted) context.pushReplacement('/suspended');
+        return;
+      }
+      // ─────────────────────────────────────────────────────────
       
       if (isInMaintenance && !isAdmin) {
+
         // App is under maintenance and this user is not an admin
         if (mounted) {
           await showDialog(

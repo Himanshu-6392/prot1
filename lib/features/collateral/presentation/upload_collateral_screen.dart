@@ -10,6 +10,8 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/services/activity_log_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/providers/firebase_providers.dart';
 
 class UploadCollateralScreen extends ConsumerStatefulWidget {
   const UploadCollateralScreen({super.key});
@@ -51,21 +53,53 @@ class _UploadCollateralScreenState
       return;
     }
     setState(() => _loading = true);
-    // Simulate upload
-    await Future.delayed(const Duration(seconds: 2));
 
-    // ── Log collateral upload ───────────────
-    ActivityLogService.log(
-      type: ActivityType.collateral,
-      title: '📎 Collateral Uploaded',
-      detail: '$_selectedType • ${_selectedCondition ?? ''} condition • ₹${_valueCtr.text}',
-      meta: {'type': _selectedType, 'condition': _selectedCondition, 'value': _valueCtr.text},
-    );
+    try {
+      final user = ref.read(firebaseAuthProvider).currentUser;
+      if (user == null) {
+        setState(() => _loading = false);
+        return;
+      }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✓ Collateral uploaded successfully!')));
-      context.pop();
+      // Simulate photo upload by creating dummy URLs for the photos
+      // In a real app, you would upload to Firebase Storage here
+      final photoUrls = _photos.map((f) => 'https://picsum.photos/seed/${f.hashCode}/800/600').toList();
+
+      final docRef = ref.read(firestoreProvider).collection('collaterals').doc();
+      await docRef.set({
+        'id': docRef.id,
+        'userId': user.uid,
+        'type': _selectedType,
+        'serialNumber': _serialCtr.text.trim(),
+        'condition': _selectedCondition,
+        'estimatedValue': double.tryParse(_valueCtr.text.trim()) ?? 0.0,
+        'description': _descCtr.text.trim(),
+        'photoUrls': photoUrls,
+        'status': 'pending_verification',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // ── Log collateral upload ───────────────
+      ActivityLogService.log(
+        type: ActivityType.collateral,
+        title: '📎 Collateral Uploaded',
+        detail: '$_selectedType • ${_selectedCondition ?? ''} condition • ₹${_valueCtr.text}',
+        userId: user.uid,
+        meta: {'type': _selectedType, 'condition': _selectedCondition, 'value': _valueCtr.text, 'collateralId': docRef.id},
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Collateral uploaded successfully!')));
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error uploading collateral: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -74,7 +108,7 @@ class _UploadCollateralScreenState
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Upload Collateral'),
+        title: const Text('Upload Collateral'),
         leading: AppIconButton(
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
@@ -96,7 +130,7 @@ class _UploadCollateralScreenState
               ),
               child: Row(children: [
                 Icon(Icons.info_rounded, color: AppColors.info, size: 18),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                     child: Text(
                   'Clear photos and accurate details help lenders make faster decisions.',
@@ -106,14 +140,14 @@ class _UploadCollateralScreenState
               ]),
             ).animate().fadeIn(),
 
-            SizedBox(height: 24),
-            _SectionLabel('Item Details'),
+            const SizedBox(height: 24),
+            const _SectionLabel('Item Details'),
 
             // Type
             DropdownButtonFormField<String>(
-              value: _selectedType,
+              initialValue: _selectedType,
               dropdownColor: AppColors.surface,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                   labelText: 'Item Type',
                   prefixIcon: Icon(Icons.category_rounded)),
               items: AppConstants.collateralTypes
@@ -123,21 +157,21 @@ class _UploadCollateralScreenState
               validator: (v) => v == null ? 'Select item type' : null,
             ).animate().fadeIn(delay: 50.ms),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _serialCtr,
               style: AppTextStyles.bodyLarge,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                   labelText: 'Serial / IMEI Number',
                   prefixIcon: Icon(Icons.numbers_rounded)),
               validator: (v) => AppValidators.required(v, 'Serial number'),
             ).animate().fadeIn(delay: 80.ms),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedCondition,
+              initialValue: _selectedCondition,
               dropdownColor: AppColors.surface,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                   labelText: 'Condition', prefixIcon: Icon(Icons.star_rounded)),
               items: _conditions
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -146,20 +180,20 @@ class _UploadCollateralScreenState
               validator: (v) => v == null ? 'Select condition' : null,
             ).animate().fadeIn(delay: 100.ms),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _valueCtr,
               keyboardType: TextInputType.number,
               style: AppTextStyles.bodyLarge,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Current Market Value (₹)',
                 prefixIcon: Icon(Icons.currency_rupee_rounded),
               ),
               validator: AppValidators.amount,
             ).animate().fadeIn(delay: 120.ms),
 
-            SizedBox(height: 24),
-            _SectionLabel('Photos (up to 6)'),
+            const SizedBox(height: 24),
+            const _SectionLabel('Photos (up to 6)'),
 
             // Photo grid
             GridView.builder(
@@ -188,7 +222,7 @@ class _UploadCollateralScreenState
                           children: [
                             Icon(Icons.add_photo_alternate_rounded,
                                 color: AppColors.gold, size: 28),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text('Add Photo', style: AppTextStyles.caption),
                           ]),
                     ),
@@ -211,7 +245,7 @@ class _UploadCollateralScreenState
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
                               color: AppColors.error, shape: BoxShape.circle),
-                          child: Icon(Icons.close_rounded,
+                          child: const Icon(Icons.close_rounded,
                               color: Colors.white, size: 14),
                         ),
                       )),
@@ -219,13 +253,13 @@ class _UploadCollateralScreenState
               },
             ).animate().fadeIn(delay: 140.ms),
 
-            SizedBox(height: 20),
-            _SectionLabel('Description'),
+            const SizedBox(height: 20),
+            const _SectionLabel('Description'),
             TextFormField(
               controller: _descCtr,
               maxLines: 3,
               style: AppTextStyles.bodyLarge,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Describe the item (age, brand, specs...)',
                 alignLabelWithHint: true,
                 prefixIcon: Icon(Icons.notes_rounded),
@@ -233,15 +267,15 @@ class _UploadCollateralScreenState
               validator: (v) => AppValidators.required(v, 'Description'),
             ).animate().fadeIn(delay: 160.ms),
 
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
             AppButton(
                     label: 'Upload Collateral',
                     onPressed: _submit,
                     isLoading: _loading,
-                    icon: Icon(Icons.cloud_upload_rounded, size: 18))
+                    icon: const Icon(Icons.cloud_upload_rounded, size: 18))
                 .animate()
                 .fadeIn(delay: 200.ms),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
           ]),
         ),
       ),

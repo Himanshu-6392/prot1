@@ -76,9 +76,9 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                           icon: Icons.arrow_back_rounded,
                           onPressed: () => context.pop(),
                           bgColor: AppColors.surfaceAlt),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text('Lender KYC', style: AppTextStyles.h1),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text('Verified lenders get priority in search results',
                           style: AppTextStyles.bodyMedium
                               .copyWith(color: AppColors.textSecondary)),
@@ -96,24 +96,24 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                         _StepIndicator(
                             step: _step,
                             steps: const ['Identity', 'Banking', 'Business']),
-                        SizedBox(height: 28),
+                        const SizedBox(height: 28),
 
                         if (_step == 0) ...[
                           TextFormField(
                             controller: _aadhaarCtr,
                             keyboardType: TextInputType.number,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelText: 'Aadhaar Number',
                                 prefixIcon: Icon(Icons.badge_rounded)),
                             validator: AppValidators.aadhaar,
                           ).animate().fadeIn().slideY(begin: 0.15, end: 0),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _panCtr,
                             textCapitalization: TextCapitalization.characters,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelText: 'PAN Number',
                                 prefixIcon: Icon(Icons.credit_card_rounded)),
                             validator: AppValidators.pan,
@@ -127,19 +127,19 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                           TextFormField(
                             controller: _bankNameCtr,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelText: 'Bank Name',
                                 prefixIcon:
                                     Icon(Icons.account_balance_rounded)),
                             validator: (v) =>
                                 AppValidators.required(v, 'Bank name'),
                           ).animate().fadeIn().slideY(begin: 0.15, end: 0),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _accCtr,
                             keyboardType: TextInputType.number,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelText: 'Account Number',
                                 prefixIcon: Icon(Icons.numbers_rounded)),
                             validator: (v) =>
@@ -148,12 +148,12 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                               .animate()
                               .fadeIn(delay: 100.ms)
                               .slideY(begin: 0.15, end: 0),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _ifscCtr,
                             textCapitalization: TextCapitalization.characters,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelText: 'IFSC Code',
                                 prefixIcon: Icon(Icons.code_rounded)),
                             validator: (v) =>
@@ -169,7 +169,7 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                             controller: _gstCtr,
                             textCapitalization: TextCapitalization.characters,
                             style: AppTextStyles.bodyLarge,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'GST Number (optional)',
                               prefixIcon: Icon(Icons.business_rounded),
                               helperText:
@@ -177,7 +177,7 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                             ),
                             validator: AppValidators.gst,
                           ).animate().fadeIn().slideY(begin: 0.15, end: 0),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -192,13 +192,13 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                                   Row(children: [
                                     Icon(Icons.verified_rounded,
                                         color: AppColors.emerald, size: 18),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Text('What you get with verification:',
                                         style: AppTextStyles.labelLarge
                                             .copyWith(
                                                 color: AppColors.emerald)),
                                   ]),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   for (final f in [
                                     'Verified badge on your profile',
                                     'Higher ranking in search results',
@@ -210,7 +210,7 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                                       child: Row(children: [
                                         Icon(Icons.check_rounded,
                                             color: AppColors.emerald, size: 14),
-                                        SizedBox(width: 8),
+                                        const SizedBox(width: 8),
                                         Text(f,
                                             style: AppTextStyles.bodySmall
                                                 .copyWith(
@@ -222,22 +222,22 @@ class _KycLenderScreenState extends ConsumerState<KycLenderScreen> {
                           ).animate().fadeIn(delay: 150.ms),
                         ],
 
-                        SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
                         if (_step < 2)
                           AppButton(
                               label: 'Next',
                               onPressed: () => setState(() => _step++),
-                              icon: Icon(Icons.arrow_forward_rounded, size: 18))
+                              icon: const Icon(Icons.arrow_forward_rounded, size: 18))
                         else
                           AppButton(
                               label: 'Submit KYC',
                               onPressed: _submit,
                               isLoading: _loading,
-                              icon: Icon(Icons.verified_rounded, size: 18)),
+                              icon: const Icon(Icons.verified_rounded, size: 18)),
 
                         if (_step > 0) ...[
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           AppButton(
                               label: 'Back',
                               onPressed: () => setState(() => _step--),
@@ -281,7 +281,7 @@ class _StepIndicator extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text(e.value,
                   style: AppTextStyles.caption.copyWith(
                     color: active

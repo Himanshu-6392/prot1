@@ -144,7 +144,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: Row(children: [
                       Icon(Icons.error_rounded,
                           color: AppColors.error, size: 18),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                           child: Text(_errorMsg!,
                               style: AppTextStyles.bodySmall
@@ -156,7 +156,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 TextFormField(
                   controller: _nameCtr,
                   style: AppTextStyles.bodyLarge,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Full Name',
                     prefixIcon: Icon(Icons.person_rounded),
                   ),
@@ -164,21 +164,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   textCapitalization: TextCapitalization.words,
                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.15, end: 0),
 
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Email
                 TextFormField(
                   controller: _emailCtr,
                   style: AppTextStyles.bodyLarge,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Email Address',
                     prefixIcon: Icon(Icons.email_rounded),
                   ),
                   validator: AppValidators.email,
                 ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.15, end: 0),
 
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Password field
                 TextFormField(
@@ -187,7 +187,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   style: AppTextStyles.bodyLarge,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_rounded),
+                    prefixIcon: const Icon(Icons.lock_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(_obscurePass
                           ? Icons.visibility_rounded
@@ -200,12 +200,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   validator: AppValidators.password,
                 ).animate().fadeIn(delay: 280.ms).slideY(begin: 0.15, end: 0),
 
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // City dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedCity,
-                  decoration: InputDecoration(
+                  initialValue: _selectedCity,
+                  decoration: const InputDecoration(
                     labelText: 'City',
                     prefixIcon: Icon(Icons.location_city_rounded),
                   ),
@@ -222,16 +222,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       v == null ? 'Please select your city' : null,
                 ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.15, end: 0),
 
-                SizedBox(height: 32),
+                const SizedBox(height: 32),
 
                 AppButton(
                   label: 'Sign Up',
                   onPressed: _submit,
                   isLoading: _loading,
-                  icon: Icon(Icons.person_add_rounded, size: 18),
+                  icon: const Icon(Icons.person_add_rounded, size: 18),
                 ).animate().fadeIn(delay: 350.ms),
 
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 Center(
                   child: Text(

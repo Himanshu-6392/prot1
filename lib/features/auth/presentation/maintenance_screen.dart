@@ -106,8 +106,8 @@ class MaintenanceScreen extends ConsumerWidget {
                         width: 8,
                         height: 8,
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF6366F1),
                           shape: BoxShape.circle,
                         ),
                       )

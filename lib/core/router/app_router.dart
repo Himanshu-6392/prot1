@@ -17,6 +17,7 @@ import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/auth/presentation/kyc_borrower_screen.dart';
 import '../../features/auth/presentation/kyc_lender_screen.dart';
 import '../../features/auth/presentation/maintenance_screen.dart';
+import '../../features/auth/presentation/account_suspended_screen.dart';
 
 // ─── Shell / Nav ──────────────────────────────
 import '../../features/shell/main_shell.dart';
@@ -219,9 +220,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             AdminUserDetailScreen(userId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
+      GoRoute(path: '/suspended', builder: (c, s) => const AccountSuspendedScreen()),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+    errorBuilder: (context, state) => const Scaffold(
+      backgroundColor: Color(0xFF0A0E1A),
       body: Center(
         child: Text(
           'Page not found',
@@ -258,7 +260,15 @@ class DashboardRouter extends ConsumerWidget {
           });
         }
 
-        
+        // ── Real-time Block Guard ─────────────────────────────────
+        // If a non-admin user's account is blocked (even while active),
+        // immediately redirect them to the suspended screen.
+        final isAdmin = user.role == UserRole.admin || authEmail.contains('admin104');
+        if (user.isBlocked == true && !isAdmin) {
+          return const AccountSuspendedScreen();
+        }
+        // ─────────────────────────────────────────────────────────
+
         // Force the route immediately so they don't have to wait for the stream to update
         if (user.role == UserRole.admin || authEmail.contains('admin104')) {
           return const AdminDashboardScreen();
@@ -268,6 +278,7 @@ class DashboardRouter extends ConsumerWidget {
         }
         return const BorrowerDashboard();
       },
+
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

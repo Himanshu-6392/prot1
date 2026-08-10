@@ -39,57 +39,7 @@ Future<void> main() async {
   // Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-  // --- TEMPORARY DB CLEANUP ---
-  try {
-    final matchSnap = await FirebaseFirestore.instance.collection('matches').get();
-    
-    // Deduplicate matches based on borrowerId + lenderId
-    final Map<String, List<QueryDocumentSnapshot>> matchGroups = {};
-    for (final doc in matchSnap.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final String bId = data['borrowerId'] ?? '';
-      final String lId = data['lenderId'] ?? '';
-      final key = '${bId}_$lId';
-      if (!matchGroups.containsKey(key)) {
-        matchGroups[key] = [];
-      }
-      matchGroups[key]!.add(doc);
-    }
-    
-    // Clean up orphaned matches
-    for (final key in matchGroups.keys) {
-      final docs = matchGroups[key]!;
-      // Delete duplicates first
-      if (docs.length > 1) {
-        docs.sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final tA = (aData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-          final tB = (bData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-          return tB.compareTo(tA);
-        });
-        
-        for (int i = 1; i < docs.length; i++) {
-          await docs[i].reference.delete();
-        }
-      }
-      
-      // For the remaining match, check if lender exists
-      final remainingDoc = docs.first;
-      final lenderId = (remainingDoc.data() as Map<String, dynamic>)['lenderId'] ?? '';
-      
-      final lenderDoc = await FirebaseFirestore.instance.collection('lenders').doc(lenderId).get();
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(lenderId).get();
-      
-      if (!lenderDoc.exists && !userDoc.exists) {
-        await remainingDoc.reference.delete();
-        print('Deleted orphaned match with unknown lender: ${remainingDoc.id}');
-      }
-    }
-  } catch (e) {
-    print('Cleanup error: $e');
-  }
-  // -----------------------------
+
 
   // Hive local cache
   print('Initializing Hive...');

@@ -428,7 +428,7 @@ class _ChatCard extends ConsumerWidget {
             // Mark unread — just visual feedback for now
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Marked as unread'),
+                content: const Text('Marked as unread'),
                 backgroundColor: AppColors.gold,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -883,7 +883,7 @@ class _SearchBar extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final VoidCallback onClose;
 
-  const _SearchBar({super.key, required this.focusNode,
+  const _SearchBar({required this.focusNode,
       required this.onChanged, required this.onClose});
 
   @override
@@ -1272,7 +1272,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   final showDate = i == docs.length - 1;
 
                   return Column(children: [
-                    if (showDate) _DateDivider(label: 'Today'),
+                    if (showDate) const _DateDivider(label: 'Today'),
                     _MessageBubble(message: msg, isMe: isMe)
                         .animate()
                         .fadeIn(duration: 200.ms)

@@ -140,6 +140,7 @@ class _MatchCard extends ConsumerStatefulWidget {
 
 class _MatchCardState extends ConsumerState<_MatchCard> {
   late final Future<Map<String, String>> _detailsFuture;
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -192,7 +193,7 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
     return {'name': name, 'request': req};
   }
 
-  Future<void> _accept() async {
+  Future<bool> _accept() async {
     HapticFeedback.mediumImpact();
     final chatRoomId = '${widget.match.id}_chat';
     await FirebaseFirestore.instance
@@ -233,9 +234,10 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
     }
 
     if (mounted) context.push('/chat/$chatRoomId');
+    return true;
   }
 
-  Future<void> _decline() async {
+  Future<bool> _decline() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -258,8 +260,8 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
         ],
       ),
     );
-    if (confirmed != true) return;
-    if (!mounted) return;
+    if (confirmed != true) return false;
+    if (!mounted) return false;
     await FirebaseFirestore.instance
         .collection(AppConstants.colMatches)
         .doc(widget.match.id)
@@ -267,6 +269,7 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
       'status': MatchStatus.declined.name,
       'updatedAt': DateTime.now(),
     });
+    return true;
   }
 
   IconData _statusIcon(MatchStatus s) => switch (s) {
@@ -287,217 +290,295 @@ class _MatchCardState extends ConsumerState<_MatchCard> {
   Widget build(BuildContext context) {
     final statusColor = _statusColor(widget.match.status);
     final isPending = widget.match.status == MatchStatus.pending;
+    final isActionable = isPending && ((widget.match.offeredAmount == null && widget.isLender) || (widget.match.offeredAmount != null && !widget.isLender));
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.cardGradient,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-            color: isPending
-                ? AppColors.gold.withOpacity(0.5)
-                : AppColors.border.withOpacity(0.6),
-            width: isPending ? 1.5 : 1),
-        boxShadow: [
-          BoxShadow(
-            color: isPending ? AppColors.gold.withOpacity(0.12) : AppColors.borderGlow,
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          )
-        ],
-      ),
-      child: FutureBuilder<Map<String, String>>(
-        future: _detailsFuture,
-        builder: (context, snapshot) {
-          final details = snapshot.data ?? {'name': 'Loading...', 'request': '...'};
-          final name = details['name']!;
-          final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-          
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_statusIcon(widget.match.status), size: 14, color: statusColor),
-                    const SizedBox(width: 6),
-                    Text(widget.match.status.name.toUpperCase(),
-                        style: AppTextStyles.tag.copyWith(color: statusColor, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Icon(Icons.access_time_rounded, size: 14, color: AppColors.textMuted),
-              const SizedBox(width: 4),
-              Text(AppFormatters.formatRelative(widget.match.createdAt),
-                  style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500)),
-            ]),
-            const SizedBox(height: 16),
-            Row(
-              children: [
+    // 5. Swipe-to-Action (Tinder-style) wrapper logic is at the bottom
+    Widget cardContent = GestureDetector(
+      onTap: () => setState(() => _isExpanded = !_isExpanded), // 4. Fluid Expansion Trigger
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface, // Clean white card
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+              color: isPending
+                  ? AppColors.gold.withOpacity(0.5)
+                  : AppColors.border.withOpacity(0.6),
+              width: isPending ? 1.5 : 1),
+          // Static shadow here, dynamic Pulse shadow applied externally later
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.borderGlow,
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: FutureBuilder<Map<String, String>>(
+          future: _detailsFuture,
+          builder: (context, snapshot) {
+            final details = snapshot.data ?? {'name': 'Loading...', 'request': '...'};
+            final name = details['name']!;
+            final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+            
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: widget.isLender 
-                          ? [AppColors.emerald.withOpacity(0.2), AppColors.emerald.withOpacity(0.05)] 
-                          : [AppColors.gold.withOpacity(0.2), AppColors.gold.withOpacity(0.05)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                      color: widget.isLender ? AppColors.emerald.withOpacity(0.3) : AppColors.gold.withOpacity(0.3),
-                      width: 1.5,
-                    ),
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.2)),
                   ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: AppTextStyles.h2.copyWith(
-                        color: widget.isLender ? AppColors.emeraldDark : AppColors.gold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                          widget.isLender
-                              ? 'Borrower: $name'
-                              : 'Lender: $name',
-                          style: AppTextStyles.h3.copyWith(fontSize: 16),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 4),
-                      Text(details['request']!, 
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Icon(_statusIcon(widget.match.status), size: 14, color: statusColor),
+                      const SizedBox(width: 6),
+                      Text(widget.match.status.name.toUpperCase(),
+                          style: AppTextStyles.tag.copyWith(color: statusColor, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
-              ],
-            ),
-            if (widget.match.offeredAmount != null &&
-                widget.match.offeredInterestRate != null) ...[
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceHigh.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border.withOpacity(0.5)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.local_offer_rounded, size: 16, color: AppColors.gold),
-                        const SizedBox(width: 6),
-                        Text(widget.isLender ? 'Your Offer' : 'Lender\'s Offer',
-                            style: AppTextStyles.labelMedium
-                                .copyWith(color: AppColors.gold)),
-                      ],
+                const Spacer(),
+                Icon(Icons.access_time_rounded, size: 14, color: AppColors.textMuted),
+                const SizedBox(width: 4),
+                Text(AppFormatters.formatRelative(widget.match.createdAt),
+                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  // 2. "Trust Score" Avatar Rings
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const SweepGradient(
+                        colors: [Color(0xFF34D399), Color(0xFF10B981), Color(0xFFF59E0B), Color(0xFF34D399)],
+                      ),
+                      boxShadow: [BoxShadow(color: AppColors.emerald.withOpacity(0.4), blurRadius: 8)],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Amount', style: AppTextStyles.caption),
-                            const SizedBox(height: 2),
-                            Text(
-                                AppFormatters.formatINR(widget.match.offeredAmount!),
-                                style: AppTextStyles.labelLarge.copyWith(fontSize: 16)),
-                          ],
-                        ),
-                        Container(width: 1, height: 30, color: AppColors.border),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text('Interest Rate', style: AppTextStyles.caption),
-                            const SizedBox(height: 2),
-                            Text('${widget.match.offeredInterestRate}%/mo',
-                                style: AppTextStyles.labelLarge.copyWith(fontSize: 16)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    if (widget.match.offerMessage != null &&
-                        widget.match.offerMessage!.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(3), // Border thickness
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.surface, // Inner gap color
+                      ),
+                      padding: const EdgeInsets.all(2), // Inner gap thickness
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(8),
+                          shape: BoxShape.circle,
+                          color: AppColors.surfaceAlt,
+                        ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: AppTextStyles.h2.copyWith(
+                              color: widget.isLender ? AppColors.emeraldDark : AppColors.gold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 3.seconds, color: Colors.white54),
+                  
+                  const SizedBox(width: 16),
+                  
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            widget.isLender
+                                ? 'Borrower: $name'
+                                : 'Lender: $name',
+                            style: AppTextStyles.h3.copyWith(fontSize: 16, color: AppColors.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 4),
+                        Text(details['request']!, 
+                            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                  
+                  // Chevron indicating fluid expansion
+                  Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: AppColors.textMuted),
+                ],
+              ),
+              
+              // 4. Fluid Expansion Details
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutQuart,
+                child: !_isExpanded ? const SizedBox() : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.match.offeredAmount != null && widget.match.offeredInterestRate != null) ...[
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHigh.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.border.withOpacity(0.5)),
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.format_quote_rounded, size: 16, color: AppColors.textMuted),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text('"${widget.match.offerMessage}"',
-                                  style: AppTextStyles.bodyMedium
-                                      .copyWith(fontStyle: FontStyle.italic, color: AppColors.textSecondary)),
+                            Row(
+                              children: [
+                                Icon(Icons.local_offer_rounded, size: 16, color: AppColors.gold),
+                                const SizedBox(width: 6),
+                                Text(widget.isLender ? 'Your Offer' : 'Lender\'s Offer',
+                                    style: AppTextStyles.labelMedium.copyWith(color: AppColors.gold)),
+                              ],
                             ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Amount', style: AppTextStyles.caption),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                        AppFormatters.formatINR(widget.match.offeredAmount!),
+                                        style: AppTextStyles.labelLarge.copyWith(fontSize: 16)),
+                                  ],
+                                ),
+                                Container(width: 1, height: 30, color: AppColors.border),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text('Interest Rate', style: AppTextStyles.caption),
+                                    const SizedBox(height: 2),
+                                    Text('${widget.match.offeredInterestRate}%/mo',
+                                        style: AppTextStyles.labelLarge.copyWith(fontSize: 16)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            if (widget.match.offerMessage != null && widget.match.offerMessage!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.format_quote_rounded, size: 16, color: AppColors.textMuted),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text('"${widget.match.offerMessage}"',
+                                          style: AppTextStyles.bodyMedium
+                                              .copyWith(fontStyle: FontStyle.italic, color: AppColors.textSecondary)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ],
+                    if (isActionable) ...[
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: AppButton(
+                                label: 'Accept Offer',
+                                onPressed: _accept,
+                                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                                color: AppColors.emerald)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: AppButton(
+                                label: 'Decline',
+                                onPressed: () => _decline(),
+                                isOutlined: true,
+                                color: AppColors.error)),
+                      ]),
+                      const SizedBox(height: 12),
+                      Center(child: Text('Tip: Swipe card to quickly Accept or Decline', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted))),
+                    ],
+                    if (widget.match.status == MatchStatus.accepted) ...[
+                      const SizedBox(height: 20),
+                      // 3. Shimmering "Open Chat" Button
+                      AppButton(
+                        label: 'Open Chat',
+                        onPressed: () => context.push('/chat/${widget.match.chatRoomId}'),
+                        icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                        color: AppColors.gold,
+                      ).animate(onPlay: (c) => c.repeat(reverse: false)).shimmer(duration: 2.seconds, color: Colors.white24, delay: 1.seconds),
+                    ],
                   ],
                 ),
               ),
-            ],
-            if (widget.match.status == MatchStatus.pending && ((widget.match.offeredAmount == null && widget.isLender) || (widget.match.offeredAmount != null && !widget.isLender))) ...[
-              const SizedBox(height: 20),
-              Row(children: [
-                Expanded(
-                    child: AppButton(
-                        label: 'Accept Offer',
-                        onPressed: _accept,
-                        icon: const Icon(Icons.check_circle_rounded, size: 18),
-                        color: AppColors.emerald)),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: AppButton(
-                        label: 'Decline',
-                        onPressed: _decline,
-                        isOutlined: true,
-                        color: AppColors.error)),
-              ]),
-            ],
-            if (widget.match.status == MatchStatus.accepted) ...[
-              const SizedBox(height: 20),
-              AppButton(
-                label: 'Open Chat',
-                onPressed: () => context.push('/chat/${widget.match.chatRoomId}'),
-                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                color: AppColors.gold,
-              ),
-            ],
-          ]);
-        }
+            ]);
+          }
+        ),
       ),
     );
+
+    // 1. The "Pulse" Match Card (Glow animation applied conditionally based on status)
+    if (widget.match.status == MatchStatus.accepted) {
+      cardContent = cardContent.animate(onPlay: (c) => c.repeat(reverse: true)).boxShadow(
+        begin: BoxShadow(color: AppColors.emerald.withOpacity(0.0), blurRadius: 0, spreadRadius: 0),
+        end: BoxShadow(color: AppColors.emerald.withOpacity(0.3), blurRadius: 20, spreadRadius: 2),
+        duration: 1500.ms,
+      );
+    } else if (isActionable) {
+      cardContent = cardContent.animate(onPlay: (c) => c.repeat(reverse: true)).boxShadow(
+        begin: BoxShadow(color: AppColors.gold.withOpacity(0.0), blurRadius: 0, spreadRadius: 0),
+        end: BoxShadow(color: AppColors.gold.withOpacity(0.2), blurRadius: 15, spreadRadius: 1),
+        duration: 1500.ms,
+      );
+    }
+
+    // 5. Swipe-to-Action Implementation
+    if (isActionable) {
+      return Dismissible(
+        key: Key(widget.match.id),
+        direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.endToStart) { // Swipe Left -> Decline
+            return await _decline();
+          } else if (direction == DismissDirection.startToEnd) { // Swipe Right -> Accept
+            return await _accept();
+          }
+          return false;
+        },
+        background: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(color: AppColors.emerald, borderRadius: BorderRadius.circular(24)),
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 30),
+          child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 32),
+        ),
+        secondaryBackground: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(24)),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 30),
+          child: const Icon(Icons.cancel_rounded, color: Colors.white, size: 32),
+        ),
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }
 

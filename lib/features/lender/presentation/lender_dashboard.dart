@@ -10,6 +10,7 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../core/widgets/shimmer_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/interactive_empty_state.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../models/user_model.dart';
@@ -600,10 +601,10 @@ class _IncomingRequestsSliver extends ConsumerWidget {
               .toList();
 
           if (docs.isEmpty) {
-            return const EmptyState(
-              icon: Icons.inbox_outlined,
+            return const InteractiveEmptyState(
               title: 'No open requests',
               subtitle: 'New borrower requests will appear here.',
+              lottieUrl: 'https://lottie.host/80456184-e3fb-46bf-85f9-2169eb7412f8/Q9i9tA8Y28.json',
             );
           }
           return Column(

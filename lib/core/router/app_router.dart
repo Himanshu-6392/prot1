@@ -59,7 +59,8 @@ import '../../features/admin/presentation/admin_user_management_screen.dart';
 import '../../features/admin/presentation/admin_user_detail_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 
-final isLoggingInProvider = StateProvider<bool>((ref) => false);
+// ─── Calculator ──────────────────────────────
+import '../../features/calculator/presentation/rate_calculator_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -79,8 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding';
-      final isMaintenanceRoute = loc == '/maintenance';
+          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
@@ -117,13 +117,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Guests should not access protected routes
       if (!isLoggedIn && !isAuthRoute && !isMaintenanceRoute) return '/auth/login';
 
+
       return null;
     },
     routes: [
       // ─── Splash & Onboarding ──────────────
       GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
-      GoRoute(path: '/maintenance', builder: (c, s) => const MaintenanceScreen()),
+      GoRoute(path: '/auth/onboarding', builder: (c, s) => const OnboardingScreen()),
 
       // ─── Auth Routes ──────────────────────
       GoRoute(path: '/auth/login', builder: (c, s) => const LoginScreen()),
@@ -220,7 +221,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             AdminUserDetailScreen(userId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
-      GoRoute(path: '/suspended', builder: (c, s) => const AccountSuspendedScreen()),
+      GoRoute(path: '/calculator', builder: (c, s) => const RateCalculatorScreen()),
     ],
     errorBuilder: (context, state) => const Scaffold(
       backgroundColor: Color(0xFF0A0E1A),

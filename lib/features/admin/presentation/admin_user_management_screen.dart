@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
@@ -693,18 +694,36 @@ class _AdminUserTile extends StatelessWidget {
 
                 const SizedBox(width: 10),
 
-                // ─── Manage Arrow ───
+                // ─── Manage Button ───
                 Container(
-                  width: 36,
-                  height: 36,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.textPrimary.withOpacity(0.06),
-                    shape: BoxShape.circle,
+                    color: AppColors.textPrimary,
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.textPrimary.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
-                  child: Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: AppColors.textSecondary,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Manage',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: AppColors.bg,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded,
+                          color: AppColors.bg, size: 14),
+                    ],
                   ),
                 ),
               ],
@@ -716,12 +735,7 @@ class _AdminUserTile extends StatelessWidget {
   }
 
   void _showUserControls(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _UserControlPanel(uid: uid, data: data),
-    );
+    context.push('/admin/users/$uid');
   }
 }
 
@@ -746,7 +760,7 @@ class _Avatar extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: roleColor.withOpacity(0.12),
-            border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
+            border: Border.all(color: roleColor, width: 2),
           ),
           child: Center(
             child: Text(
@@ -800,7 +814,7 @@ class _PillTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(100),
         border: Border.all(color: borderColor),
       ),
       child: Text(

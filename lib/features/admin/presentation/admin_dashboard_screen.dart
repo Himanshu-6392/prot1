@@ -30,34 +30,46 @@ class AdminDashboardScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       body: Stack(
         children: [
-          // ─── Background Blobs ───
+          // ─── Premium Background Blobs ───
           Positioned(
-            top: -100,
-            right: -50,
+            top: -150,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.emerald.withOpacity(0.15),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 150,
+            left: -100,
             child: Container(
               width: 300,
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.emerald.withOpacity(0.05),
+                color: AppColors.gold.withOpacity(0.12),
               ),
             ),
           ),
           Positioned(
-            top: 200,
-            left: -100,
+            bottom: -50,
+            right: -50,
             child: Container(
               width: 250,
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.gold.withOpacity(0.05),
+                color: AppColors.info.withOpacity(0.1),
               ),
             ),
           ),
           BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-            child: Container(color: Colors.transparent),
+            filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+            child: Container(color: Colors.white.withOpacity(0.1)),
           ),
 
           // ─── Main Content ───
@@ -114,21 +126,25 @@ class AdminDashboardScreen extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ref.watch(adminStatsProvider).when(
-                          data: (stats) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.border, width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 8),
-                                )
-                              ],
-                            ),
+                          data: (stats) => ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, 10),
+                                    )
+                                  ],
+                                ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
@@ -153,8 +169,10 @@ class AdminDashboardScreen extends ConsumerWidget {
                                     color: AppColors.error),
                               ],
                             ),
-                          ).animate().fadeIn(duration: 400.ms),
-                          loading: () => const SizedBox(
+                          ),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms),
+                      loading: () => const SizedBox(
                               height: 64,
                               child: Center(
                                   child: CircularProgressIndicator(
@@ -164,48 +182,84 @@ class AdminDashboardScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // ── Section: Quick Actions ─────────────────
+                // ── Section: Command Modules ─────────────────
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => context.push('/admin/users'),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.gold.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.people_alt_rounded, color: AppColors.gold, size: 20),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('User Directory', style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary)),
-                                        Text('Search, filter, and manage all users', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
-                                ],
+                        _buildModuleCard(
+                          context,
+                          title: 'User Directory',
+                          subtitle: 'Search, filter, and manage all users',
+                          icon: Icons.people_alt_rounded,
+                          color: AppColors.gold,
+                          route: '/admin/users',
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildModuleCard(
+                                context,
+                                title: 'Report Center',
+                                subtitle: 'Manage flagged content',
+                                icon: Icons.flag_rounded,
+                                color: AppColors.error,
+                                route: '/admin/reports',
+                                isCompact: true,
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildModuleCard(
+                                context,
+                                title: 'Security Log',
+                                subtitle: 'Audit and monitor activity',
+                                icon: Icons.shield_rounded,
+                                color: AppColors.info,
+                                route: '/admin/security',
+                                isCompact: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildModuleCard(
+                                context,
+                                title: 'Revenue',
+                                subtitle: 'Financial overview',
+                                icon: Icons.account_balance_wallet_rounded,
+                                color: AppColors.emerald,
+                                route: '/admin/revenue',
+                                isCompact: true,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildModuleCard(
+                                context,
+                                title: 'Reviews',
+                                subtitle: 'Monitor & resolve',
+                                icon: Icons.star_rounded,
+                                color: AppColors.gold,
+                                route: '/admin/reviews',
+                                isCompact: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildModuleCard(
+                          context,
+                          title: 'Scheduled Broadcasts',
+                          subtitle: 'Send announcements and alerts',
+                          icon: Icons.campaign_rounded,
+                          color: AppColors.emerald,
+                          route: '/admin/broadcasts',
                         ),
                       ],
                     ),
@@ -244,11 +298,86 @@ class AdminDashboardScreen extends ConsumerWidget {
                   child: _TopUsersSection(),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                const SliverToBoxAdapter(child: SizedBox(height: 220)),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModuleCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required String route,
+    bool isCompact = false,
+  }) {
+    return InkWell(
+      onTap: () => context.push(route),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: EdgeInsets.all(isCompact ? 14 : 18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white.withOpacity(0.9), Colors.white.withOpacity(0.6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: isCompact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(title, style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+              )
+            : Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary)),
+                        Text(subtitle, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                ],
+              ),
       ),
     );
   }
@@ -1698,6 +1827,59 @@ class _AdminSettingsSheetState extends State<_AdminSettingsSheet> {
                   title: 'Export Reports',
                   subtitle: 'Download CSV/PDF of users, loans & KYC data',
                   onTap: _exportReports,
+                ),
+
+                // ── Command Modules ─────────────────────────────
+                _sectionHeader('Command Modules', Icons.dashboard_customize_outlined, AppColors.gold),
+                _settingTile(
+                  icon: Icons.flag_outlined,
+                  iconColor: AppColors.error,
+                  title: 'Report Center',
+                  subtitle: 'Manage flagged content',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/admin/reports');
+                  },
+                ),
+                _settingTile(
+                  icon: Icons.shield_outlined,
+                  iconColor: AppColors.info,
+                  title: 'Security Log',
+                  subtitle: 'Audit and monitor activity',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/admin/security');
+                  },
+                ),
+                _settingTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconColor: AppColors.emerald,
+                  title: 'Revenue Dashboard',
+                  subtitle: 'Financial overview & plans',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/admin/revenue');
+                  },
+                ),
+                _settingTile(
+                  icon: Icons.star_outline,
+                  iconColor: AppColors.gold,
+                  title: 'Reviews & Disputes',
+                  subtitle: 'Monitor and resolve user ratings',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/admin/reviews');
+                  },
+                ),
+                _settingTile(
+                  icon: Icons.campaign_outlined,
+                  iconColor: AppColors.emerald,
+                  title: 'Scheduled Broadcasts',
+                  subtitle: 'Send platform announcements',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/admin/broadcasts');
+                  },
                 ),
 
                 // ── Account & Profile ──────────────────────────

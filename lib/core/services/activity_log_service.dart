@@ -58,4 +58,29 @@ class ActivityLogService {
       // Never crash the app just because logging failed
     }
   }
+
+  static final _secCol = FirebaseFirestore.instance.collection('security_log');
+
+  /// Write a security log entry to Firestore.
+  ///
+  /// [level]   — 'info', 'warning', or 'critical'
+  /// [event]   — short headline, e.g. "Failed Login Attempt"
+  /// [userId]  — UID if known
+  /// [meta]    — extra context (IP, device info, etc)
+  static Future<void> logSecurity({
+    required String level,
+    required String event,
+    String? userId,
+    Map<String, dynamic>? meta,
+  }) async {
+    try {
+      await _secCol.add({
+        'level': level,
+        'event': event,
+        'userId': userId ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+        ...?meta,
+      });
+    } catch (_) {}
+  }
 }

@@ -11,6 +11,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/loan_request_model.dart';
 import '../../../models/lender_model.dart';
+import '../../../core/services/activity_log_service.dart';
 
 class PostRequestScreen extends StatelessWidget {
   const PostRequestScreen({super.key});
@@ -119,6 +120,19 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
           .collection(AppConstants.colRequests)
           .add(request.toMap());
 
+      // ── Log loan request event ────────────────
+      ActivityLogService.log(
+        type: ActivityType.loanRequest,
+        title: '💰 New Loan Request Posted',
+        detail: '${userModel?.name ?? 'Unknown'} • ₹${request.loanAmount.toStringAsFixed(0)} for ${request.tenureMonths}mo',
+        meta: {
+          'amount': request.loanAmount,
+          'tenure': request.tenureMonths,
+          'collateral': request.collateralType,
+          'borrower': userModel?.name ?? '',
+        },
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('✓ Loan request posted successfully!')));
@@ -147,7 +161,7 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionTitle(label: 'Loan Details'),
+            const _SectionTitle(label: 'Loan Details'),
             TextFormField(
               controller: _amountCtr,
               keyboardType: TextInputType.number,
@@ -188,9 +202,9 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
                 divisions: 59,
                 onChanged: (v) => setState(() => _tenure = v.round())),
             const SizedBox(height: 24),
-            _SectionTitle(label: 'Collateral'),
+            const _SectionTitle(label: 'Collateral'),
             DropdownButtonFormField<String>(
-              value: _collateral,
+              initialValue: _collateral,
               dropdownColor: AppColors.surface,
               decoration: const InputDecoration(
                   labelText: 'Collateral Type',
@@ -214,7 +228,7 @@ class _BorrowerFormState extends ConsumerState<_BorrowerForm> {
               validator: (v) => AppValidators.amount(v, min: 1000),
             ).animate().fadeIn(delay: 190.ms),
             const SizedBox(height: 24),
-            _SectionTitle(label: 'Additional Info'),
+            const _SectionTitle(label: 'Additional Info'),
             TextFormField(
               controller: _descCtr,
               maxLines: 3,
@@ -333,7 +347,7 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionTitle(label: 'Business Info'),
+            const _SectionTitle(label: 'Business Info'),
             TextFormField(
               controller: _nameCtr,
               textCapitalization: TextCapitalization.words,
@@ -345,7 +359,7 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
             ).animate().fadeIn(delay: 50.ms),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _city,
+              initialValue: _city,
               dropdownColor: AppColors.surface,
               decoration: const InputDecoration(
                   labelText: 'City',
@@ -359,7 +373,7 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
               validator: (v) => v == null ? 'Select your city' : null,
             ).animate().fadeIn(delay: 80.ms),
             const SizedBox(height: 24),
-            _SectionTitle(label: 'Capital & Loan Range'),
+            const _SectionTitle(label: 'Capital & Loan Range'),
             TextFormField(
               controller: _capitalCtr,
               keyboardType: TextInputType.number,
@@ -394,7 +408,7 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
               )),
             ]).animate().fadeIn(delay: 120.ms),
             const SizedBox(height: 24),
-            _SectionTitle(label: 'Terms'),
+            const _SectionTitle(label: 'Terms'),
             TextFormField(
               controller: _interestCtr,
               keyboardType:
@@ -440,7 +454,7 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
             Text('Max ${_ltv.toStringAsFixed(0)}% of the collateral\'s value',
                 style: AppTextStyles.caption),
             const SizedBox(height: 24),
-            _SectionTitle(label: 'Accepted Collateral'),
+            const _SectionTitle(label: 'Accepted Collateral'),
             Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -448,10 +462,11 @@ class _LenderFormState extends ConsumerState<_LenderForm> {
                 final sel = _selectedCollateral.contains(c);
                 return GestureDetector(
                   onTap: () => setState(() {
-                    if (sel)
+                    if (sel) {
                       _selectedCollateral.remove(c);
-                    else
+                    } else {
                       _selectedCollateral.add(c);
+                    }
                   }),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),

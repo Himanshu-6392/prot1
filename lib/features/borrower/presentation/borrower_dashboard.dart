@@ -723,8 +723,9 @@ class _MyRequestsSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (userId.isEmpty)
+    if (userId.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverToBoxAdapter(
       child: StreamBuilder<QuerySnapshot>(
@@ -734,7 +735,7 @@ class _MyRequestsSliver extends ConsumerWidget {
             .snapshots(),
         builder: (context, snap) {
           if (!snap.hasData) {
-            return Column(children: [
+            return const Column(children: [
               RequestCardShimmer(),
               RequestCardShimmer(),
             ]);

@@ -135,7 +135,7 @@ class UserModel {
         isPremium: isPremium ?? this.isPremium,
         subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
         subscriptionExpiry: subscriptionExpiry ?? this.subscriptionExpiry,
-        createdAt: this.createdAt,
+        createdAt: createdAt,
         updatedAt: DateTime.now(),
         fcmToken: fcmToken ?? this.fcmToken,
         city: city ?? this.city,

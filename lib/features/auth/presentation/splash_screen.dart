@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:hive/hive.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/colors.dart';
+
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -14,6 +16,12 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  // No manual navigation needed here.
+  // GoRouter's redirect logic handles navigating away from /splash
+  // automatically once the authState stream resolves.
+  // This prevents the race condition where this timer fires before
+  // Firebase Auth has restored the user's session.
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +39,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context.go('/auth/onboarding');
     }
   }
+
+  Future<void> _navigate() async {
+    // Show splash for at least 2 seconds
+    await Future.delayed(const Duration(milliseconds: 2000));
+    if (!mounted) return;
+
+    // ── Wait for Firebase Auth to fully resolve ──────────────
+    // Using .authStateChanges().first guarantees we get the real
+    // answer (logged in or not), never a loading/null race condition.
+    final firebaseUser = await ref
+        .read(firebaseAuthProvider)
+        .authStateChanges()
+        .first;
+    if (!mounted) return;
+
+    final box = Hive.box('settings');
+    final hasSeenOnboarding =
+        box.get('hasSeenOnboarding', defaultValue: false) as bool;
+
+    if (firebaseUser != null) {
+      context.go('/');
+    } else if (hasSeenOnboarding) {
+      context.go('/auth/login');
+    } else {
+      context.go('/onboarding');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {

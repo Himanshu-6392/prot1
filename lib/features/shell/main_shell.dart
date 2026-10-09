@@ -7,6 +7,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/user_model.dart';
+import '../../../main.dart';
 
 // ─── Tab model ───────────────────────────────────────────────────────────────
 class _TabItem {
@@ -77,9 +78,11 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final idx = _currentIndex(context);
+    final userAsync = ref.watch(currentUserProvider);
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
         extendBody: false,

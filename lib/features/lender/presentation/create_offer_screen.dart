@@ -89,7 +89,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Create Lending Offer'),
+        title: const Text('Create Lending Offer'),
         leading: AppIconButton(
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
@@ -103,21 +103,21 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Business Info
-              _SectionLabel('Business Info'),
+              const _SectionLabel('Business Info'),
               TextFormField(
                 controller: _nameCtr,
                 textCapitalization: TextCapitalization.words,
                 style: AppTextStyles.bodyLarge,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                     labelText: 'Business / Display Name',
                     prefixIcon: Icon(Icons.business_center_rounded)),
                 validator: AppValidators.name,
               ).animate().fadeIn(delay: 50.ms),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _city,
+                initialValue: _city,
                 dropdownColor: AppColors.surface,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                     labelText: 'City',
                     prefixIcon: Icon(Icons.location_city_rounded)),
                 items: AppConstants.popularCities
@@ -129,64 +129,64 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 validator: (v) => v == null ? 'Select your city' : null,
               ).animate().fadeIn(delay: 80.ms),
 
-              SizedBox(height: 24),
-              _SectionLabel('Capital & Loan Range'),
+              const SizedBox(height: 24),
+              const _SectionLabel('Capital & Loan Range'),
 
               TextFormField(
                 controller: _capitalCtr,
                 keyboardType: TextInputType.number,
                 style: AppTextStyles.bodyLarge,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                     labelText: 'Total Available Capital (₹)',
                     prefixIcon: Icon(Icons.account_balance_wallet_rounded)),
                 validator: (v) => AppValidators.amount(v),
               ).animate().fadeIn(delay: 100.ms),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(children: [
                 Expanded(
                     child: TextFormField(
                   controller: _minLoanCtr,
                   keyboardType: TextInputType.number,
                   style: AppTextStyles.bodyLarge,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                       labelText: 'Min Loan (₹)',
                       prefixIcon: Icon(Icons.arrow_downward_rounded)),
                   validator: (v) => AppValidators.amount(v),
                 )),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                     child: TextFormField(
                   controller: _maxLoanCtr,
                   keyboardType: TextInputType.number,
                   style: AppTextStyles.bodyLarge,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                       labelText: 'Max Loan (₹)',
                       prefixIcon: Icon(Icons.arrow_upward_rounded)),
                   validator: (v) => AppValidators.amount(v),
                 )),
               ]).animate().fadeIn(delay: 120.ms),
 
-              SizedBox(height: 24),
-              _SectionLabel('Terms'),
+              const SizedBox(height: 24),
+              const _SectionLabel('Terms'),
 
               TextFormField(
                 controller: _interestCtr,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 style: AppTextStyles.bodyLarge,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Interest Rate (% per month)',
                   prefixIcon: Icon(Icons.percent_rounded),
                 ),
                 validator: AppValidators.interestRate,
               ).animate().fadeIn(delay: 140.ms),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               Row(children: [
                 Text('Max Tenure',
                     style: AppTextStyles.labelMedium
                         .copyWith(color: AppColors.textSecondary)),
-                Spacer(),
+                const Spacer(),
                 Text(AppFormatters.formatTenure(_tenure),
                     style: AppTextStyles.labelLarge
                         .copyWith(color: AppColors.gold)),
@@ -202,7 +202,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 Text('Loan-to-Value Ratio',
                     style: AppTextStyles.labelMedium
                         .copyWith(color: AppColors.textSecondary)),
-                Spacer(),
+                const Spacer(),
                 Text('${_ltv.toStringAsFixed(0)}%',
                     style: AppTextStyles.labelLarge
                         .copyWith(color: AppColors.emerald)),
@@ -217,8 +217,8 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               Text('Max ${_ltv.toStringAsFixed(0)}% of the collateral\'s value',
                   style: AppTextStyles.caption),
 
-              SizedBox(height: 24),
-              _SectionLabel('Accepted Collateral'),
+              const SizedBox(height: 24),
+              const _SectionLabel('Accepted Collateral'),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -226,10 +226,11 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                   final sel = _selectedCollateral.contains(c);
                   return GestureDetector(
                     onTap: () => setState(() {
-                      if (sel)
+                      if (sel) {
                         _selectedCollateral.remove(c);
-                      else
+                      } else {
                         _selectedCollateral.add(c);
+                      }
                     }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -248,7 +249,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                         if (sel) ...[
                           Icon(Icons.check_rounded,
                               color: AppColors.emerald, size: 14),
-                          SizedBox(width: 5)
+                          const SizedBox(width: 5)
                         ],
                         Text(c,
                             style: AppTextStyles.labelMedium.copyWith(
@@ -261,27 +262,27 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 }).toList(),
               ).animate().fadeIn(delay: 200.ms),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _descCtr,
                 maxLines: 3,
                 style: AppTextStyles.bodyLarge,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'About your service (optional)',
                   prefixIcon: Icon(Icons.notes_rounded),
                   alignLabelWithHint: true,
                 ),
               ).animate().fadeIn(delay: 220.ms),
 
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
               AppButton(
                       label: 'List Offer',
                       onPressed: _submit,
                       isLoading: _loading,
-                      icon: Icon(Icons.publish_rounded, size: 18))
+                      icon: const Icon(Icons.publish_rounded, size: 18))
                   .animate()
                   .fadeIn(delay: 250.ms),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
             ],
           ),
         ),

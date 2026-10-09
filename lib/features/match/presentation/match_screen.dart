@@ -19,8 +19,9 @@ class MatchScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).valueOrNull;
-    if (user == null)
+    if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final isLender = user.role == UserRole.lender;
 
@@ -60,13 +61,14 @@ class MatchScreen extends ConsumerWidget {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Text('Error loading matches: ${snap.error}', style: TextStyle(color: Colors.red)),
+                    child: Text('Error loading matches: ${snap.error}', style: const TextStyle(color: Colors.red)),
                   )
                 );
               }
-              if (!snap.hasData)
+              if (!snap.hasData) {
                 return Center(
                     child: CircularProgressIndicator(color: AppColors.gold));
+              }
               
               var docs = snap.data!.docs.toList();
 
@@ -94,7 +96,7 @@ class MatchScreen extends ConsumerWidget {
                 return bTime.compareTo(aTime);
               });
 
-              if (docs.isEmpty)
+              if (docs.isEmpty) {
                 return EmptyState(
                   icon: isLender
                       ? Icons.receipt_long_rounded
@@ -104,6 +106,7 @@ class MatchScreen extends ConsumerWidget {
                       ? 'Your outgoing loan offers will appear here.'
                       : 'When lenders respond to your requests, they\'ll appear here.',
                 );
+              }
 
               return ListView.builder(
                 physics: const BouncingScrollPhysics(),
@@ -663,12 +666,14 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
             .doc(widget.requestId)
             .snapshots(),
         builder: (context, snap) {
-          if (!snap.hasData)
+          if (!snap.hasData) {
             return Center(
                 child: CircularProgressIndicator(color: AppColors.gold));
-          if (!snap.data!.exists)
+          }
+          if (!snap.data!.exists) {
             return Center(
                 child: Text('Request not found', style: AppTextStyles.h3));
+          }
           final data = snap.data!.data() as Map<String, dynamic>;
 
           final user = ref.watch(currentUserProvider).valueOrNull;
@@ -773,7 +778,7 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
                                 Text(data['borrowerName'] ?? 'Unknown', style: AppTextStyles.h3.copyWith(fontSize: 16)),
                                 if (data['isVerified'] == true) ...[
                                   const SizedBox(width: 6),
-                                  VerifiedBadge(),
+                                  const VerifiedBadge(),
                                 ]
                               ],
                             ),
@@ -921,7 +926,7 @@ class _DetailRow2 extends StatelessWidget {
           Text(label,
               style: AppTextStyles.bodyMedium
                   .copyWith(color: AppColors.textSecondary)),
-          Spacer(),
+          const Spacer(),
           Text(value, style: AppTextStyles.labelMedium),
         ]),
       );
@@ -949,7 +954,7 @@ class MakeOfferSheet extends StatefulWidget {
   final String requestId;
   final Map<String, dynamic> requestData;
 
-  const MakeOfferSheet({
+  const MakeOfferSheet({super.key, 
     required this.lenderId,
     required this.requestId,
     required this.requestData,
@@ -989,7 +994,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
 
     if (amount <= 0 || rate <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter valid amount and rate')),
+        const SnackBar(content: Text('Please enter valid amount and rate')),
       );
       return;
     }
@@ -999,7 +1004,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
     if (widget.lenderId == borrowerId) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('You cannot send an offer to your own request.'),
+          content: const Text('You cannot send an offer to your own request.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1021,7 +1026,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('You already have an active chat with this borrower.'),
+              content: const Text('You already have an active chat with this borrower.'),
               backgroundColor: AppColors.info,
             ),
           );
@@ -1133,7 +1138,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
             decoration: InputDecoration(
               labelText: 'Offered Amount (₹)',
               hintText: 'e.g. 15000',
-              prefixIcon: Icon(Icons.currency_rupee_rounded),
+              prefixIcon: const Icon(Icons.currency_rupee_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
               border: OutlineInputBorder(
@@ -1144,12 +1149,12 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
           const SizedBox(height: 16),
           TextField(
             controller: _rateCtr,
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: AppTextStyles.bodyLarge,
             decoration: InputDecoration(
               labelText: 'Interest Rate (% per month)',
               hintText: 'e.g. 5',
-              prefixIcon: Icon(Icons.percent_rounded),
+              prefixIcon: const Icon(Icons.percent_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
               border: OutlineInputBorder(
@@ -1165,7 +1170,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
             decoration: InputDecoration(
               labelText: 'Message (Optional)',
               hintText: 'Hi, I can fund this if...',
-              prefixIcon: Icon(Icons.message_rounded),
+              prefixIcon: const Icon(Icons.message_rounded),
               filled: true,
               fillColor: AppColors.surfaceAlt,
               border: OutlineInputBorder(
@@ -1177,7 +1182,7 @@ class _MakeOfferSheetState extends State<MakeOfferSheet> {
           AppButton(
             label: _isLoading ? 'Sending...' : 'Send Offer',
             onPressed: _isLoading ? () {} : _submitOffer,
-            icon: _isLoading ? null : Icon(Icons.send_rounded, size: 18),
+            icon: _isLoading ? null : const Icon(Icons.send_rounded, size: 18),
           ),
         ],
       ),

@@ -113,39 +113,44 @@ class AppColors {
 
   static void setDark() {
     isDarkMode = true;
-    bg = const Color(0xFF0A0E1A);
-    surface = const Color(0xFF111827);
-    surfaceAlt = const Color(0xFF1A2235);
-    surfaceHigh = const Color(0xFF1E2D45);
-    gold = const Color(0xFF818CF8); // Indigo light for dark mode
-    goldLight = const Color(0xFFA5B4FC);
-    emerald = const Color(0xFF34D399);
-    emeraldDark = const Color(0xFF10B981);
-    textPrimary = const Color(0xFFF1F5F9);
-    textSecondary = const Color(0xFF94A3B8);
-    textMuted = const Color(0xFF4B5563);
-    textInverse = const Color(0xFF0A0E1A);
-    border = const Color(0xFF1E293B);
-    borderGlow = const Color(0x33818CF8);
+    bg = const Color(0xFF000000);           // Pure black background
+    surface = const Color(0xFF0D0D0D);      // Near-black surface
+    surfaceAlt = const Color(0xFF141414);   // Slightly lighter surface
+    surfaceHigh = const Color(0xFF1A1A1A);  // Card surface
+    gold = const Color(0xFF52C41A);         // Keep green as primary accent
+    goldLight = const Color(0xFF7AE582);    // Lighter green
+    emerald = const Color(0xFF52C41A);
+    emeraldDark = const Color(0xFF389E0D);
+    textPrimary = const Color(0xFFFFFFFF);  // Pure white text
+    textSecondary = const Color(0xFFB0B0B0); // Mid-gray
+    textMuted = const Color(0xFF666666);    // Dark gray
+    textInverse = const Color(0xFF000000);
+    border = const Color(0xFF222222);       // Subtle dark border
+    borderGlow = const Color(0x3352C41A);   // Green glow
     glassBg = const Color(0x1AFFFFFF);
-    glassBorder = const Color(0x26FFFFFF);
+    glassBorder = const Color(0x1AFFFFFF);
     goldGradient = const LinearGradient(
-        colors: [Color(0xFF312E81), Color(0xFF818CF8)],
+        colors: [Color(0xFF1A1A1A), Color(0xFF0D0D0D)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
     emeraldGradient = const LinearGradient(
-        colors: [Color(0xFF34D399), Color(0xFF10B981)],
+        colors: [Color(0xFF7AE582), Color(0xFF52C41A)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
     bgGradient = const LinearGradient(
-        colors: [Color(0xFF0A0E1A), Color(0xFF0D1628)],
+        colors: [Color(0xFF000000), Color(0xFF0A0A0A)],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter);
     cardGradient = const LinearGradient(
-        colors: [Color(0xFF1A2235), Color(0xFF111827)],
+        colors: [Color(0xFF141414), Color(0xFF0D0D0D)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight);
+    goldGlow = const RadialGradient(
+      colors: [Color(0x1A52C41A), Color(0x0052C41A)],
+      radius: 0.8,
+    );
   }
+
 
   static void toggleTheme(BuildContext context) {
     if (isDarkMode) {

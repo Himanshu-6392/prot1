@@ -224,8 +224,8 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                     if (!snap.hasData) {
                       return SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (_, __) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          (_, __) => const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
                             child: RequestCardShimmer(),
                           ),
                           childCount: 5,
@@ -238,8 +238,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                     // Client-side filtering
                     docs = docs.where((d) {
                       final data = d.data() as Map<String, dynamic>;
-                      if (data['borrowerName'] == 'Test User')
+                      if (data['borrowerName'] == 'Test User') {
                         return false; // HIDE DEMO REQUESTS
+                      }
                         
                       final currentUser = ref.read(currentUserProvider).valueOrNull;
                       if (currentUser != null && data['borrowerId'] == currentUser.uid) {
@@ -250,12 +251,16 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                           data['status'] ?? LoanRequestStatus.open.name;
                       if (status != LoanRequestStatus.open.name) return false;
                       if (_filterCity != null &&
-                          data['borrowerCity'] != _filterCity) return false;
-                      if (_verifiedOnly && data['isVerified'] != true)
+                          data['borrowerCity'] != _filterCity) {
                         return false;
+                      }
+                      if (_verifiedOnly && data['isVerified'] != true) {
+                        return false;
+                      }
                       if (_filterCollateral != null &&
-                          data['collateralType'] != _filterCollateral)
+                          data['collateralType'] != _filterCollateral) {
                         return false;
+                      }
                       if (_searchCtr.text.isNotEmpty) {
                         final q = _searchCtr.text.toLowerCase();
                         final name = (data['borrowerName'] ?? '')
@@ -264,8 +269,9 @@ class _BorrowerSearchScreenState extends ConsumerState<BorrowerSearchScreen> {
                         final city = (data['borrowerCity'] ?? '')
                             .toString()
                             .toLowerCase();
-                        if (!name.contains(q) && !city.contains(q))
+                        if (!name.contains(q) && !city.contains(q)) {
                           return false;
+                        }
                       }
                       return true;
                     }).toList();

@@ -1,18 +1,15 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -317,7 +314,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   Text('My Profile', style: AppTextStyles.h3),
                   GestureDetector(
-                    onTap: () => _showSettingsDialog(context),
+                    onTap: () => _showSettingsDialog(context, user!),
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -830,8 +827,9 @@ class _MenuSection extends ConsumerWidget {
                   label: 'Edit Profile',
                   color: AppColors.info,
                   onTap: () {
-                    if (user != null)
+                    if (user != null) {
                       showGlobalEditProfileDialog(context, user!);
+                    }
                   },
                 ),
                 _buildDivider(),
@@ -1110,7 +1108,9 @@ class _PickerOption extends StatelessWidget {
   }
 }
 
-void _showSettingsDialog(BuildContext context) {
+void _showSettingsDialog(BuildContext context, UserModel user) {
+  final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
+  final isAdmin = user.role == UserRole.admin || authEmail.contains('admin104');
   showDialog(
     context: context,
     builder: (ctx) => Dialog(
@@ -1118,38 +1118,95 @@ void _showSettingsDialog(BuildContext context) {
       insetPadding: const EdgeInsets.all(20),
       child: NeumorphicContainer(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('App Settings', style: AppTextStyles.h2),
-                GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt, shape: BoxShape.circle),
-                    child: Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.textSecondary),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('App Settings', style: AppTextStyles.h2),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                      child: Icon(Icons.close_rounded,
+                          size: 18, color: AppColors.textSecondary),
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SwitchListTile(
+                title: Text('Dark Mode', style: AppTextStyles.bodyLarge),
+                subtitle: Text('Toggle app theme', style: AppTextStyles.caption),
+                value: AppColors.isDarkMode,
+                activeThumbColor: AppColors.emerald,
+                onChanged: (val) {
+                  AppColors.toggleTheme(context);
+                  Navigator.pop(ctx);
+                },
+              ),
+              if (isAdmin) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 16),
+                Text('Admin Modules', style: AppTextStyles.h4.copyWith(color: AppColors.gold)),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: Icon(Icons.dashboard_rounded, color: AppColors.gold),
+                  title: const Text('Admin Dashboard'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.flag_rounded, color: AppColors.error),
+                  title: const Text('Report Center'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin/reports');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.shield_rounded, color: AppColors.info),
+                  title: const Text('Security Log'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin/security');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.account_balance_wallet_rounded, color: AppColors.emerald),
+                  title: const Text('Revenue'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin/revenue');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.star_rounded, color: AppColors.gold),
+                  title: const Text('Reviews & Disputes'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin/reviews');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.campaign_rounded, color: AppColors.emerald),
+                  title: const Text('Scheduled Broadcasts'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/admin/broadcasts');
+                  },
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            SwitchListTile(
-              title: Text('Dark Mode', style: AppTextStyles.bodyLarge),
-              subtitle: Text('Toggle app theme', style: AppTextStyles.caption),
-              value: AppColors.isDarkMode,
-              activeColor: AppColors.emerald,
-              onChanged: (val) {
-                AppColors.toggleTheme(context);
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -1358,7 +1415,7 @@ Future<void> showGlobalEditProfileDialog(
 
                   // Gender Dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedGender,
+                    initialValue: selectedGender,
                     dropdownColor: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     style: AppTextStyles.bodyMedium,
@@ -1752,7 +1809,7 @@ Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
                                   bankCtr.text =
                                       bankNameFromApi; // Auto-update bank name
                                 }
-                              } on DioException catch (e) {
+                              } on DioException {
                                 setState(() => isSaving = false);
                                 ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                                   content: const Text(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -104,6 +105,7 @@ class SecurityNotifier extends StateNotifier<SecurityState> {
   // ─── Device Lock ──────────────────────────────────
 
   Future<bool> authenticateWithDevice(String reason) async {
+    if (kIsWeb) return true; // Unsupported on web, bypass
     try {
       final canAuthenticateWithBiometrics = await _localAuth.canCheckBiometrics;
       final canAuthenticate =

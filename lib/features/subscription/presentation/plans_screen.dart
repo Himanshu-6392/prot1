@@ -21,7 +21,7 @@ class _PlansScreenState extends State<PlansScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Subscription Plans'),
+        title: const Text('Subscription Plans'),
         leading: AppIconButton(
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
@@ -46,13 +46,13 @@ class _PlansScreenState extends State<PlansScreen> {
                 ],
               ),
               child: Column(children: [
-                Icon(Icons.workspace_premium_rounded,
+                const Icon(Icons.workspace_premium_rounded,
                     size: 48, color: Colors.white),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text('Go Premium',
                     style: AppTextStyles.displaySmall
                         .copyWith(color: Colors.white)),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
                     'Unlock more connections, verified badge,\nand priority ranking',
                     style: AppTextStyles.bodyMedium
@@ -61,7 +61,7 @@ class _PlansScreenState extends State<PlansScreen> {
               ]),
             ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
 
-            SizedBox(height: 28),
+            const SizedBox(height: 28),
 
             // Plan Cards
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -77,7 +77,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   HapticFeedback.selectionClick();
                 },
               ).animate().fadeIn(delay: 100.ms)),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                   child: _PlanCard(
                 title: 'Premium',
@@ -93,7 +93,7 @@ class _PlansScreenState extends State<PlansScreen> {
               ).animate().fadeIn(delay: 150.ms)),
             ]),
 
-            SizedBox(height: 28),
+            const SizedBox(height: 28),
 
             // Contact Unlock option
             Container(
@@ -109,13 +109,13 @@ class _PlansScreenState extends State<PlansScreen> {
                     Text('Pay Per Contact',
                         style: AppTextStyles.h3
                             .copyWith(color: AppColors.emerald)),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                         'Unlock individual contact details without a subscription.',
                         style: AppTextStyles.bodySmall
                             .copyWith(color: AppColors.textSecondary)),
-                    SizedBox(height: 14),
-                    Row(children: [
+                    const SizedBox(height: 14),
+                    const Row(children: [
                       Expanded(
                           child: _ContactUnlockOption(
                               price: AppConstants.contactUnlockBasic,
@@ -129,7 +129,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   ]),
             ).animate().fadeIn(delay: 200.ms),
 
-            SizedBox(height: 28),
+            const SizedBox(height: 28),
 
             AppButton(
               label: _selected == 0
@@ -139,16 +139,16 @@ class _PlansScreenState extends State<PlansScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Payment gateway coming soon!')));
               },
-              icon: Icon(Icons.payment_rounded, size: 18),
+              icon: const Icon(Icons.payment_rounded, size: 18),
             ).animate().fadeIn(delay: 250.ms),
 
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text('Cancel anytime. Auto-renewed monthly.',
                 style:
                     AppTextStyles.caption.copyWith(color: AppColors.textMuted),
                 textAlign: TextAlign.center),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -207,11 +207,11 @@ class _PlanCard extends StatelessWidget {
                     style: AppTextStyles.tag
                         .copyWith(color: Colors.white, fontSize: 9)),
               ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(title,
                 style: AppTextStyles.h3.copyWith(
                     color: isSelected ? color : AppColors.textPrimary)),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             RichText(
                 text: TextSpan(
               text: '₹$price',
@@ -223,19 +223,19 @@ class _PlanCard extends StatelessWidget {
                         .copyWith(color: AppColors.textSecondary))
               ],
             )),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             ...features.map((f) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(children: [
                     Icon(Icons.check_rounded, color: color, size: 14),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Expanded(
                         child: Text(f,
                             style: AppTextStyles.caption
                                 .copyWith(color: AppColors.textSecondary))),
                   ]),
                 )),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             if (isSelected)
               Container(
                 width: double.infinity,
@@ -246,7 +246,7 @@ class _PlanCard extends StatelessWidget {
                 child: Center(
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.check_circle_rounded, color: color, size: 14),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text('Selected',
                       style: AppTextStyles.labelSmall.copyWith(color: color)),
                 ])),
@@ -276,7 +276,7 @@ class _ContactUnlockOption extends StatelessWidget {
         Text('₹$price',
             style: AppTextStyles.amountSmall
                 .copyWith(color: AppColors.emerald, fontSize: 18)),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(label, style: AppTextStyles.caption, textAlign: TextAlign.center),
       ]),
     );
@@ -335,10 +335,10 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
                 size: 40,
               ),
             ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             Text(_unlocked ? 'Contact Unlocked!' : 'Unlock Contact Details',
                 style: AppTextStyles.h2, textAlign: TextAlign.center),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               _unlocked
                   ? 'You can now see the full contact number and reach out directly.'
@@ -348,18 +348,18 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
               textAlign: TextAlign.center,
             ),
             if (!_unlocked) ...[
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
               if (_otpSent)
                 TextFormField(
                   controller: _otpCtr,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.h1.copyWith(letterSpacing: 16),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                       labelText: 'Enter OTP', hintText: '──────'),
                   maxLength: 6,
                 ).animate().fadeIn(),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               AppButton(
                 label: _otpSent
                     ? 'Verify & Unlock'
@@ -380,11 +380,11 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
                     });
                   }
                 },
-                icon: Icon(Icons.payment_rounded, size: 18),
+                icon: const Icon(Icons.payment_rounded, size: 18),
               ),
             ],
             if (_unlocked) ...[
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -398,7 +398,7 @@ class _ContactUnlockScreenState extends State<ContactUnlockScreen> {
                   Text('+91 98765 43210',
                       style:
                           AppTextStyles.h2.copyWith(color: AppColors.emerald)),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text('Tap to call', style: AppTextStyles.caption),
                 ]),
               ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),

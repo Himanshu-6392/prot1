@@ -37,7 +37,7 @@ class AppFormatters {
     final y = months ~/ 12;
     final m = months % 12;
     if (m == 0) return '$y year${y > 1 ? 's' : ''}';
-    return '$y yr ${m} mo';
+    return '$y yr $m mo';
   }
 
   /// LTV: 70%

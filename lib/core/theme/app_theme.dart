@@ -251,26 +251,69 @@ class AppTheme {
         ),
       );
 
-  // Dark theme — keep for toggle support
+  // Dark theme — pure black, no blue tint
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A0E1A),
+        scaffoldBackgroundColor: const Color(0xFF000000),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF818CF8),
-          secondary: Color(0xFF34D399),
-          surface: Color(0xFF111827),
-          error: Color(0xFFDC2626),
+          primary: Color(0xFF52C41A),
+          secondary: Color(0xFF52C41A),
+          surface: Color(0xFF0D0D0D),
+          error: Color(0xFFFF4D4F),
           onPrimary: Colors.white,
           onSecondary: Colors.white,
-          onSurface: Color(0xFFF1F5F9),
+          onSurface: Color(0xFFFFFFFF),
           onError: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0A0E1A),
+          backgroundColor: Color(0xFF000000),
           elevation: 0,
           scrolledUnderElevation: 0,
           systemOverlayStyle: SystemUiOverlayStyle.light,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF0D0D0D),
+          selectedItemColor: Color(0xFF52C41A),
+          unselectedItemColor: Color(0xFF666666),
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFF0D0D0D),
+          indicatorColor: const Color(0xFF52C41A).withOpacity(0.15),
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF141414),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFF222222),
+          space: 1,
+          thickness: 1,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: const Color(0xFF1A1A1A),
+          contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: const Color(0xFF0D0D0D),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: Color(0xFF0D0D0D),
+          modalBackgroundColor: Color(0xFF0D0D0D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
         ),
         textTheme: TextTheme(
           displayLarge: AppTextStyles.displayLarge,

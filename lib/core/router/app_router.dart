@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/firebase_providers.dart';
+import '../providers/platform_settings_provider.dart';
 import '../../models/user_model.dart';
 
 // ─── Auth Feature ─────────────────────────────
@@ -14,6 +16,8 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/auth/presentation/kyc_borrower_screen.dart';
 import '../../features/auth/presentation/kyc_lender_screen.dart';
+import '../../features/auth/presentation/maintenance_screen.dart';
+import '../../features/auth/presentation/account_suspended_screen.dart';
 
 // ─── Shell / Nav ──────────────────────────────
 import '../../features/shell/main_shell.dart';
@@ -53,6 +57,11 @@ import '../../features/profile/presentation/kyc_verification_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/admin_user_management_screen.dart';
 import '../../features/admin/presentation/admin_user_detail_screen.dart';
+import '../../features/admin/presentation/admin_security_log_screen.dart';
+import '../../features/admin/presentation/admin_report_center_screen.dart';
+import '../../features/admin/presentation/admin_reviews_screen.dart';
+import '../../features/admin/presentation/admin_revenue_screen.dart';
+import '../../features/admin/presentation/admin_broadcasts_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 
 // ─── Calculator ──────────────────────────────
@@ -60,23 +69,59 @@ import '../../features/calculator/presentation/rate_calculator_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final maintenanceMode = ref.watch(maintenanceModeProvider);
+  final userAsync = ref.watch(currentUserProvider);
+  final isLoggingIn = ref.watch(isLoggingInProvider);
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
+      // ── CRITICAL: Wait until auth state has resolved ───────────────
+      // If auth is still loading, do nothing — don't redirect yet.
+      // Without this, authState.valueOrNull = null (loading = not logged in)
+      // which makes the router wrongly think the user is a guest.
+      if (authState.isLoading) return null;
+
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc == '/auth/login' || loc == '/auth/signup' || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
+          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
+      final isMaintenanceRoute = loc == '/maintenance';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
 
-      // Logged-in users should never see onboarding or login screens
-      if (isLoggedIn && isAuthRoute) return '/';
+      // Admin email — exempt from maintenance
+      final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
+      
+      // Determine if they are an admin via email OR via Firestore Role
+      final isAdmin = email.contains('admin104') || 
+                      (userAsync.valueOrNull?.role == UserRole.admin);
+
+      // ── Maintenance Mode Guard ─────────────────────────────────────
+      if (maintenanceMode && !isAdmin) {
+        // Wait for user document to load before deciding
+        if (isLoggedIn && userAsync.isLoading) return null;
+
+        if (!isLoggingIn) {
+          if (!isMaintenanceRoute) return '/maintenance';
+        }
+      }
+      if (!maintenanceMode && isMaintenanceRoute) return '/auth/login';
+      // ───────────────────────────────────────────────────────────────
+
+      // Logged-in users should never see auth/splash/onboarding screens
+      if (isLoggedIn && isAuthRoute && !isLoggingIn) return '/';
+
+      // Guest on splash: decide between onboarding and login
+      if (!isLoggedIn && loc == '/splash') {
+        final box = Hive.box('settings');
+        final hasSeenOnboarding = box.get('hasSeenOnboarding', defaultValue: false) as bool;
+        return hasSeenOnboarding ? '/auth/login' : '/onboarding';
+      }
 
       // Guests should not access protected routes
-      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
+      if (!isLoggedIn && !isAuthRoute && !isMaintenanceRoute) return '/auth/login';
 
 
       return null;
@@ -181,11 +226,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (c, s) =>
             AdminUserDetailScreen(userId: s.pathParameters['id']!),
       ),
+      GoRoute(
+        path: '/admin/security',
+        builder: (c, s) => const AdminSecurityLogScreen(),
+      ),
+      GoRoute(
+        path: '/admin/reports',
+        builder: (c, s) => const AdminReportCenterScreen(),
+      ),
+      GoRoute(
+        path: '/admin/reviews',
+        builder: (c, s) => const AdminReviewsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/revenue',
+        builder: (c, s) => const AdminRevenueScreen(),
+      ),
+      GoRoute(
+        path: '/admin/broadcasts',
+        builder: (c, s) => const AdminBroadcastsScreen(),
+      ),
       GoRoute(path: '/kyc', builder: (c, s) => const KycVerificationScreen()),
       GoRoute(path: '/calculator', builder: (c, s) => const RateCalculatorScreen()),
+      GoRoute(path: '/suspended', builder: (c, s) => const AccountSuspendedScreen()),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+    errorBuilder: (context, state) => const Scaffold(
+      backgroundColor: Color(0xFF0A0E1A),
       body: Center(
         child: Text(
           'Page not found',
@@ -221,12 +287,16 @@ class DashboardRouter extends ConsumerWidget {
             'isPremium': true,
           });
         }
-        
-        // Auto-downgrade shivansh back to borrower if they were accidentally elevated
-        if (user.email == 'shivanshsingh6229@gmail.com' && user.role == UserRole.admin) {
-          FirebaseFirestore.instance.collection('users').doc(user.uid).update({'role': 'borrower'});
+
+        // ── Real-time Block Guard ─────────────────────────────────
+        // If a non-admin user's account is blocked (even while active),
+        // immediately redirect them to the suspended screen.
+        final isAdmin = user.role == UserRole.admin || authEmail.contains('admin104');
+        if (user.isBlocked == true && !isAdmin) {
+          return const AccountSuspendedScreen();
         }
-        
+        // ─────────────────────────────────────────────────────────
+
         // Force the route immediately so they don't have to wait for the stream to update
         if (user.role == UserRole.admin || authEmail.contains('admin104')) {
           return const AdminDashboardScreen();
@@ -236,6 +306,7 @@ class DashboardRouter extends ConsumerWidget {
         }
         return const BorrowerDashboard();
       },
+
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

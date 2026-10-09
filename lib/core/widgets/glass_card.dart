@@ -43,7 +43,7 @@ class GlassCard extends StatelessWidget {
             padding: padding,
             decoration: BoxDecoration(
               gradient: gradient ??
-                  LinearGradient(
+                  const LinearGradient(
                     colors: [Color(0x22FFFFFF), Color(0x0AFFFFFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,

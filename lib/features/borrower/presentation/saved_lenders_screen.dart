@@ -29,7 +29,7 @@ class SavedLendersScreen extends ConsumerWidget {
           label: 'Browse Lenders',
           width: 180,
           onPressed: () => context.go('/search'),
-          icon: Icon(Icons.search_rounded, size: 18),
+          icon: const Icon(Icons.search_rounded, size: 18),
         ),
       ),
     );

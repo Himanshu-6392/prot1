@@ -148,11 +148,12 @@ class _PinEntrySheetState extends ConsumerState<_PinEntrySheet> {
       loading: _loading,
       canDismiss: widget.canDismiss,
       onChanged: (v) {
-        if (_hasError)
+        if (_hasError) {
           setState(() {
             _hasError = false;
             _errorMessage = '';
           });
+        }
       },
       onCompleted: _onCompleted,
     );
@@ -222,11 +223,12 @@ class _VerifyOldPinSheetState extends ConsumerState<_VerifyOldPinSheet> {
       loading: _loading,
       canDismiss: true,
       onChanged: (v) {
-        if (_hasError)
+        if (_hasError) {
           setState(() {
             _hasError = false;
             _errorMessage = '';
           });
+        }
       },
       onCompleted: _onCompleted,
     );

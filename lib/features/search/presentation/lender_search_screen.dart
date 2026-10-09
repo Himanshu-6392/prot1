@@ -12,7 +12,6 @@ import '../../../core/widgets/shimmer_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/lender_model.dart';
-import '../../../core/providers/firebase_providers.dart';
 
 class LenderSearchScreen extends ConsumerStatefulWidget {
   const LenderSearchScreen({super.key});
@@ -209,8 +208,8 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
                     if (!snap.hasData) {
                       return SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (_, __) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          (_, __) => const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
                             child: LenderCardShimmer(),
                           ),
                           childCount: 5,
@@ -222,16 +221,21 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
 
                     // Client-side filtering
                     docs = docs.where((d) {
-                      if (d.id.startsWith('dummy_'))
+                      if (d.id.startsWith('dummy_')) {
                         return false; // HIDE DUMMY LENDERS
+                      }
                       final data = d.data() as Map<String, dynamic>;
                       if (data['businessName']?.toString().toLowerCase() ==
-                          'test') return false; // HIDE TEST OFFERS
+                          'test') {
+                        return false; // HIDE TEST OFFERS
+                      }
                       if (data['isActive'] != true) return false;
-                      if (_filterCity != null && data['city'] != _filterCity)
+                      if (_filterCity != null && data['city'] != _filterCity) {
                         return false;
-                      if (_verifiedOnly && data['isVerified'] != true)
+                      }
+                      if (_verifiedOnly && data['isVerified'] != true) {
                         return false;
+                      }
                       if (_filterCollateral != null) {
                         final col =
                             List<String>.from(data['acceptedCollateral'] ?? []);
@@ -244,8 +248,9 @@ class _LenderSearchScreenState extends ConsumerState<LenderSearchScreen> {
                             .toLowerCase();
                         final city =
                             (data['city'] ?? '').toString().toLowerCase();
-                        if (!name.contains(q) && !city.contains(q))
+                        if (!name.contains(q) && !city.contains(q)) {
                           return false;
+                        }
                       }
                       return true;
                     }).toList();

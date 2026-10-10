@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
@@ -27,35 +28,56 @@ class InteractiveEmptyState extends StatelessWidget {
           SizedBox(
             height: 120,
             width: double.infinity,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // Center Lottie Illustration
-                lottieUrl.startsWith('http')
-                    ? Lottie.network(
-                        lottieUrl,
-                        height: 100,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                          Icons.inbox_rounded,
-                          size: 60,
-                          color: Colors.white24,
-                        ),
-                      )
-                    : Lottie.asset(
-                        lottieUrl,
-                        height: 100,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                          Icons.inbox_rounded,
-                          size: 60,
-                          color: Colors.white24,
+            child: Center(
+              child: kIsWeb
+                  ? Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: AppColors.border,
+                          width: 1.5,
                         ),
                       ),
-              ],
+                      child: Icon(
+                        Icons.inbox_outlined,
+                        size: 34,
+                        color: AppColors.emerald,
+                      ),
+                    ).animate(onPlay: (c) => c.repeat(reverse: true))
+                     .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.04, 1.04), duration: 2.seconds)
+                  : (lottieUrl.startsWith('http')
+                      ? Lottie.network(
+                          lottieUrl,
+                          height: 100,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                            Icons.inbox_rounded,
+                            size: 60,
+                            color: Colors.white24,
+                          ),
+                        )
+                      : Lottie.asset(
+                          lottieUrl,
+                          height: 100,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                            Icons.inbox_rounded,
+                            size: 60,
+                            color: Colors.white24,
+                          ),
+                        )),
             ),
           ),
           

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/security/app_security.dart';
 
 final isLoggingInProvider = StateProvider<bool>((ref) => false);
 
@@ -97,18 +99,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _displayName = "");
       }
     }
-  }
-
-  void _showComingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Social Login coming soon!',
-            style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: AppColors.gold,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -400,7 +390,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // ── Admin & Blocked Account Check ────────────────────────
       final doc = await ref.read(firestoreProvider).collection('users').doc(cred.user!.uid).get();
       final role = doc.data()?['role'];
-      final isAdmin = role == 'admin' || _emailCtr.text.trim().toLowerCase().contains('admin104');
+      final isAdmin = role == 'admin' || AppSecurity.isAuthorizedAdminEmail(_emailCtr.text);
 
       final isBlocked = doc.data()?['isBlocked'] == true;
       if (isBlocked && !isAdmin) {
@@ -416,6 +406,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // --- DEV AUTOLOGIN FALLBACK ---
       if (e.code == 'invalid-credential' || e.code == 'user-not-found') {
         try {
+          final isDevAdmin = AppSecurity.isAuthorizedAdminEmail(_emailCtr.text);
           final cred = await ref.read(firebaseAuthProvider).createUserWithEmailAndPassword(
                 email: _emailCtr.text.trim(),
                 password: _passwordCtr.text,
@@ -425,13 +416,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           await ref.read(firestoreProvider).collection('users').doc(cred.user!.uid).set({
             'uid': cred.user!.uid,
             'email': _emailCtr.text.trim(),
-            'name': _emailCtr.text.trim().contains('admin104') ? 'Super Admin' : 'Dev User',
+            'name': isDevAdmin ? 'Super Admin' : 'Dev User',
             'phone': '',
-            'role': _emailCtr.text.trim().contains('admin104') ? 'admin' : 'borrower',
+            'role': isDevAdmin ? 'admin' : 'borrower',
             'kycStatus': 'verified',
             'isVerified': true,
             'isBlocked': false,
             'isPremium': true,
+            'trustScore': 0,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });

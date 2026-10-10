@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/router/app_router.dart';
 import 'core/providers/security_provider.dart';
@@ -12,7 +11,6 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/colors.dart';
 import 'firebase_options.dart';
 import 'package:device_preview/device_preview.dart';
-import 'package:device_frame/device_frame.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
@@ -45,20 +43,20 @@ Future<void> main() async {
 
 
   // Hive local cache
-  print('Initializing Hive...');
+  debugPrint('Initializing Hive...');
   await Hive.initFlutter();
-  print('Opening Hive box...');
+  debugPrint('Opening Hive box...');
   await Hive.openBox('settings');
-  print('Hive box opened successfully!');
+  debugPrint('Hive box opened successfully!');
 
-  print('Calling runApp...');
+  debugPrint('Calling runApp...');
   runApp(DevicePreview(
     enabled: !kReleaseMode,
     isToolbarVisible: false,
     defaultDevice: Devices.ios.iPhone13,
     builder: (context) => const ProviderScope(child: PeerLendApp()),
   ));
-  print('runApp called!');
+  debugPrint('runApp called!');
 }
 
 class PeerLendApp extends ConsumerStatefulWidget {
@@ -73,7 +71,7 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp>
   @override
   void initState() {
     super.initState();
-    print('PeerLendApp initState...');
+    debugPrint('PeerLendApp initState...');
     WidgetsBinding.instance.addObserver(this);
     // Trigger initial auth if user is logged in
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -119,7 +117,7 @@ class _PeerLendAppState extends ConsumerState<PeerLendApp>
 
   @override
   Widget build(BuildContext context) {
-    print('PeerLendApp build...');
+    debugPrint('PeerLendApp build...');
     final router = ref.watch(routerProvider);
 
     // Sync AppColors static palette with the active theme mode.

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,7 +10,6 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../core/widgets/shimmer_widgets.dart';
-import '../../../core/widgets/glass_widgets.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/interactive_empty_state.dart';
@@ -25,6 +22,9 @@ import '../../../core/widgets/pin_entry_dialog.dart';
 import 'dart:math' as math;
 import '../../../models/user_model.dart';
 import '../../../models/loan_request_model.dart';
+import '../../../core/widgets/profile_stats_card.dart';
+import '../../../core/widgets/role_switch_sheet.dart';
+import '../../../core/services/trust_score_service.dart';
 
 class BorrowerDashboard extends ConsumerStatefulWidget {
   const BorrowerDashboard({super.key});
@@ -36,6 +36,7 @@ class BorrowerDashboard extends ConsumerStatefulWidget {
 class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
   bool _requestsExpanded = true;
   static bool _hasNotifications = true;
+  final GlobalKey _myRequestsKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -132,19 +133,22 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                 ),
                 SliverToBoxAdapter(child: _buildHeader(context, user)),
                 SliverToBoxAdapter(
-                  child: _buildPortfolioCard(uid)
+                  child: _buildPortfolioCard(uid, user)
                       .animate()
                       .fadeIn(delay: 200.ms, duration: 500.ms)
                       .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
                 ),
                 SliverToBoxAdapter(
-                  child: _QuickActions()
+                  child: _QuickActions(onMyRequestsTap: () {
+                    Scrollable.ensureVisible(_myRequestsKey.currentContext!, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+                  })
                       .animate()
                       .fadeIn(delay: 300.ms, duration: 400.ms)
                       .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
+                    key: _myRequestsKey,
                     padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
                     child: SectionHeader(
                       title: 'My Requests',
@@ -181,7 +185,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                 SliverToBoxAdapter(
                   child: const MarketInsightsCard(),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
             ),
           ),
@@ -310,132 +314,83 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
     );
   }
 
-  Widget _buildPortfolioCard(String userId) {
+  Widget _buildPortfolioCard(String userId, UserModel? user) {
+    if (userId.isEmpty) {
+      final breakdown = TrustScoreService.calculate(user: user);
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: ProfileStatsCard(
+          trustScore: breakdown.totalScore,
+          badgeText: breakdown.badgeText,
+          badgeIcon: breakdown.levelIcon,
+          stat1Value: '0',
+          stat1Label: 'Active',
+          stat2Value: '0',
+          stat2Label: 'Matches',
+          buttonLabel: 'Post New Request',
+          onButtonPressed: () => context.push('/post-request'),
+          onTrustScoreTap: () => TrustScoreService.showBreakdownSheet(context, breakdown),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection(AppConstants.colMatches)
-            .where('borrowerId', isEqualTo: userId)
+            .collection(AppConstants.colCollateral)
+            .where('ownerId', isEqualTo: userId)
             .snapshots(),
-        builder: (context, matchSnap) {
-          int matchedCount = matchSnap.hasData ? matchSnap.data!.docs.length : 0;
+        builder: (context, colSnap) {
+          final colCount = colSnap.hasData ? colSnap.data!.docs.length : 0;
 
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection(AppConstants.colRequests)
+                .collection(AppConstants.colMatches)
                 .where('borrowerId', isEqualTo: userId)
                 .snapshots(),
-            builder: (context, reqSnap) {
-              int activeCount = 0;
+            builder: (context, matchSnap) {
+              int matchedCount = matchSnap.hasData ? matchSnap.data!.docs.length : 0;
 
-              if (reqSnap.hasData) {
-                for (var doc in reqSnap.data!.docs) {
-                  final d = doc.data() as Map<String, dynamic>;
-                  final status = d['status'] ?? 'open';
-                  if (status == 'open') {
-                    activeCount++;
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection(AppConstants.colRequests)
+                    .where('borrowerId', isEqualTo: userId)
+                    .snapshots(),
+                builder: (context, reqSnap) {
+                  int activeCount = 0;
+
+                  if (reqSnap.hasData) {
+                    for (var doc in reqSnap.data!.docs) {
+                      final d = doc.data() as Map<String, dynamic>;
+                      final status = d['status'] ?? 'open';
+                      if (status == 'open') {
+                        activeCount++;
+                      }
+                    }
                   }
-                }
-              }
 
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.insights_rounded, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'YOUR PROFILE STATS',
-                          style: AppTextStyles.tag.copyWith(
-                            color: Colors.white70,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
-                              const SizedBox(width: 4),
-                              Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
+                  final breakdown = TrustScoreService.calculate(
+                    user: user,
+                    requestsCount: activeCount,
+                    collateralCount: colCount,
+                    matchesCount: matchedCount,
+                  );
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const _TrustScoreGauge(score: 742), // 742 out of 1000
-                        const Spacer(),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              reqSnap.hasData ? '$activeCount' : '-',
-                              style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
-                            ),
-                            Text('Active', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                          ],
-                        ),
-                        const SizedBox(width: 24),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              matchSnap.hasData ? '$matchedCount' : '-',
-                              style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
-                            ),
-                            Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: AppButton(
-                        label: 'Post New Request',
-                        onPressed: () => context.push('/post-request'),
-                        color: AppColors.emerald,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+                  return ProfileStatsCard(
+                    trustScore: breakdown.totalScore,
+                    badgeText: breakdown.badgeText,
+                    badgeIcon: breakdown.levelIcon,
+                    stat1Value: reqSnap.hasData ? '$activeCount' : '-',
+                    stat1Label: 'Active',
+                    stat2Value: matchSnap.hasData ? '$matchedCount' : '-',
+                    stat2Label: 'Matches',
+                    buttonLabel: 'Post New Request',
+                    onButtonPressed: () => context.push('/post-request'),
+                    onTrustScoreTap: () => TrustScoreService.showBreakdownSheet(context, breakdown),
+                  );
+                },
+              );
             },
           );
         },
@@ -444,169 +399,17 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _StatsRow extends ConsumerWidget {
-  final String userId;
-  const _StatsRow({required this.userId});
+// ─────────────────────────────────────────────
+class _QuickActions extends ConsumerStatefulWidget {
+  final VoidCallback onMyRequestsTap;
+  const _QuickActions({required this.onMyRequestsTap});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (userId.isEmpty) return const SizedBox(height: 115);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection(AppConstants.colRequests)
-          .where('borrowerId', isEqualTo: userId)
-          .snapshots(),
-      builder: (context, snap) {
-        int activeLoans = 0;
-        int completedDeals = 0;
-        double totalRequested = 0;
-
-        if (snap.hasData) {
-          final docs = snap.data!.docs;
-          for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final status = data['status'] ?? 'open';
-            final amount = (data['loanAmount'] ?? 0).toDouble();
-
-            if (status == 'completed') {
-              completedDeals++;
-            } else if (status == 'open' ||
-                status == 'matched' ||
-                status == 'accepted') {
-              activeLoans++;
-              totalRequested += amount;
-            }
-          }
-        }
-
-        return SizedBox(
-          height: 115,
-          child: ListView(
-            clipBehavior: Clip.none,
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 24, right: 12),
-            children: [
-              _StatCard(
-                  label: 'Total Requested',
-                  value: snap.hasData
-                      ? AppFormatters.formatINR(totalRequested)
-                      : '...',
-                  icon: Icons.account_balance_wallet_rounded,
-                  color: AppColors.gold),
-              _StatCard(
-                  label: 'Active Requests',
-                  value: snap.hasData ? '$activeLoans' : '...',
-                  icon: Icons.bolt_rounded,
-                  color: AppColors.goldLight),
-              _StatCard(
-                  label: 'Completed Deals',
-                  value: snap.hasData ? '$completedDeals' : '...',
-                  icon: Icons.check_circle_rounded,
-                  color: AppColors.emerald),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  ConsumerState<_QuickActions> createState() => _QuickActionsState();
 }
 
-class _StatCard extends ConsumerWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  const _StatCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.watch(sensitiveDataVisibleProvider);
-
-    return GestureDetector(
-      onTap: () {
-        if (!isVisible) {
-          showPinDialog(context, ref);
-        }
-      },
-      child: NeumorphicContainer(
-        width: 160,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(16),
-        borderRadius: 24,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: AppColors.textSecondary, size: 16),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: isVisible
-                      ? Text(
-                          value,
-                          key: const ValueKey('visible'),
-                          style: AppTextStyles.h1
-                              .copyWith(fontSize: 32, height: 1),
-                        )
-                      : Row(
-                          key: const ValueKey('hidden'),
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'â€¢â€¢â€¢â€¢',
-                              style: AppTextStyles.h1.copyWith(
-                                fontSize: 32,
-                                height: 1,
-                                color: AppColors.textPrimary.withOpacity(0.5),
-                                letterSpacing: 4,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(Icons.lock_rounded,
-                                size: 20,
-                                color: AppColors.textPrimary.withOpacity(0.4)),
-                          ],
-                        ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ).animate().fadeIn().slideY(begin: 0.2, end: 0),
-    );
-  }
-}
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _QuickActions extends StatefulWidget {
-  const _QuickActions({super.key});
-
-  @override
-  State<_QuickActions> createState() => _QuickActionsState();
-}
-
-class _QuickActionsState extends State<_QuickActions> {
+class _QuickActionsState extends ConsumerState<_QuickActions> {
   static bool _matchesBadge = false;
-  static bool _analyticsBadge = false;
 
   @override
   Widget build(BuildContext context) {
@@ -615,17 +418,29 @@ class _QuickActionsState extends State<_QuickActions> {
       child: Container(
         height: 60,
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Material(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  width: 1.2,
+                ),
+              ),
+              child: Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(30),
           child: Row(
@@ -633,12 +448,12 @@ class _QuickActionsState extends State<_QuickActions> {
             children: [
               _buildPillAction(
                 context: context,
-                icon: Icons.pending_actions_rounded,
-                label: 'Matches',
+                icon: Icons.receipt_long_rounded,
+                label: 'My Requests',
                 onTap: () async {
                   if (_matchesBadge) setState(() => _matchesBadge = false);
                   await Future.delayed(const Duration(milliseconds: 150));
-                  if (context.mounted) context.push('/match');
+                  if (context.mounted) context.push('/my-requests');
                 },
                 showBadge: _matchesBadge,
               ),
@@ -648,8 +463,10 @@ class _QuickActionsState extends State<_QuickActions> {
                 icon: Icons.switch_account_rounded,
                 label: 'Switch Role',
                 onTap: () async {
-                  await Future.delayed(const Duration(milliseconds: 150));
-                  if (context.mounted) context.push('/auth/role-selection');
+                  final user = ref.read(currentUserProvider).valueOrNull;
+                  if (user != null) {
+                    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'role': UserRole.lender.name});
+                  }
                 },
               ),
               Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
@@ -662,8 +479,8 @@ class _QuickActionsState extends State<_QuickActions> {
             ],
           ),
         ),
-      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-    );
+      )))),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
   }
 
   Widget _buildPillAction({
@@ -674,41 +491,45 @@ class _QuickActionsState extends State<_QuickActions> {
     bool showBadge = false,
   }) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(30), // Keeps ripple contained to the section
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(icon, size: 18, color: AppColors.textPrimary),
-                  if (showBadge)
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 0.7, end: 1.2, duration: 1.seconds),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30), // Keeps ripple contained to the section
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 18, color: AppColors.textPrimary),
+                    if (showBadge)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                        ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 0.7, end: 1.2, duration: 1.seconds),
+                      ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1372,7 +1193,6 @@ class _FinancialTipsRowState extends State<_FinancialTipsRow> {
     ).animate().fadeIn(delay: 200.ms);
   }
 }
-
 // ──────────────────────────────────────────────
 class _TrustScoreGauge extends StatelessWidget {
   final int score;

@@ -14,11 +14,14 @@ import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/interactive_empty_state.dart';
 import '../../../core/providers/firebase_providers.dart';
-import '../../../core/widgets/glass_widgets.dart';
 import '../../../core/widgets/market_insights_card.dart';
 import '../../../models/user_model.dart';
 import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
+import '../../../core/widgets/profile_stats_card.dart';
+import '../../../core/widgets/financial_tips_row.dart';
+import '../../../core/widgets/role_switch_sheet.dart';
+import '../../../core/services/trust_score_service.dart';
 
 class LenderDashboard extends ConsumerStatefulWidget {
   const LenderDashboard({super.key});
@@ -28,6 +31,8 @@ class LenderDashboard extends ConsumerStatefulWidget {
 }
 
 class _LenderDashboardState extends ConsumerState<LenderDashboard> {
+  bool _requestsExpanded = true;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -61,7 +66,7 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
                 shape: BoxShape.circle,
                 color: AppColors.emerald.withValues(alpha: 0.05),
               ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 4.seconds),
           ),
           Positioned(
             top: 200,
@@ -73,7 +78,7 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
                 shape: BoxShape.circle,
                 color: AppColors.gold.withValues(alpha: 0.05),
               ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 5.seconds, delay: 1.seconds),
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
@@ -125,16 +130,36 @@ class _LenderDashboardState extends ConsumerState<LenderDashboard> {
                 SliverToBoxAdapter(child: _ManageSection(userId: user?.uid ?? '')),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
                     child: SectionHeader(
                       title: 'Incoming Requests',
+                      isExpandable: true,
+                      isExpanded: _requestsExpanded,
+                      onToggle: () => setState(() => _requestsExpanded = !_requestsExpanded),
+                    ),
+                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
+                ),
+                if (_requestsExpanded) _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+                    child: SectionHeader(
+                      title: 'Borrowers Near You',
                       onSeeAll: () => context.push('/borrower-search'),
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
                 ),
-                _IncomingRequestsSliver(lenderId: user?.uid ?? ''),
                 SliverToBoxAdapter(
-                  child: const MarketInsightsCard(),
+                  child: _NearbyBorrowersRow(lenderId: user?.uid ?? '')
+                      .animate()
+                      .fadeIn(delay: 500.ms, duration: 500.ms)
+                      .slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
+                ),
+                const SliverToBoxAdapter(
+                  child: FinancialTipsRow(),
+                ),
+                const SliverToBoxAdapter(
+                  child: MarketInsightsCard(),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
@@ -186,7 +211,7 @@ class _LenderHeader extends ConsumerWidget {
                     )),
                 Text(firstName,
                     style: AppTextStyles.h1.copyWith(
-                      color: AppColors.emerald,
+                      color: AppColors.gold,
                       letterSpacing: -1,
                       height: 1.1,
                     )),
@@ -284,6 +309,7 @@ class _LenderPortfolioCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (userId.isEmpty) return const SizedBox(height: 170);
+    final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -294,7 +320,6 @@ class _LenderPortfolioCard extends ConsumerWidget {
             .snapshots(),
         builder: (context, snap) {
           int activeOffers = 0;
-          double availableCapital = 0;
           int totalMatches = 0;
 
           if (snap.hasData) {
@@ -302,292 +327,46 @@ class _LenderPortfolioCard extends ConsumerWidget {
               final d = doc.data() as Map<String, dynamic>;
               if (d['isActive'] == true) {
                 activeOffers++;
-                availableCapital += (d['availableCapital'] ?? 0).toDouble();
               }
               totalMatches += ((d['matchedBorrowerIds'] as List?)?.length ?? 0);
             }
           }
 
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: AppColors.goldGradient,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'AVAILABLE CAPITAL',
-                      style: AppTextStyles.tag.copyWith(
-                        color: Colors.white70,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
-                          const SizedBox(width: 4),
-                          Text('Level 1', style: AppTextStyles.caption.copyWith(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          snap.hasData ? AppFormatters.formatINR(availableCapital) : '...',
-                          style: AppTextStyles.displaySmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$activeOffers',
-                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
-                        ),
-                        Text('Active Offers', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                      ],
-                    ),
-                    const SizedBox(width: 24),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$totalMatches',
-                          style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24),
-                        ),
-                        Text('Matches', style: AppTextStyles.caption.copyWith(color: Colors.white70)),
-                      ],
-                    ),
-                  ],
-                ),
+          final breakdown = TrustScoreService.calculate(
+            user: user,
+            requestsCount: activeOffers,
+            matchesCount: totalMatches,
+          );
 
-                const SizedBox(height: 32),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton(
-                    label: 'Create New Offer',
-                    onPressed: () => context.push('/create-offer'),
-                    color: AppColors.emerald,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+          return ProfileStatsCard(
+            trustScore: breakdown.totalScore,
+            badgeText: breakdown.badgeText,
+            badgeIcon: breakdown.levelIcon,
+            stat1Value: snap.hasData ? '$activeOffers' : '-',
+            stat1Label: 'Active',
+            stat2Value: snap.hasData ? '$totalMatches' : '-',
+            stat2Label: 'Matches',
+            buttonLabel: 'Create New Offer',
+            onButtonPressed: () => context.push('/create-offer'),
+            onTrustScoreTap: () => TrustScoreService.showBreakdownSheet(context, breakdown),
+          );
         },
       ),
     );
   }
 }
 
-class _CardStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _CardStat(this.label, this.value, this.color);
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: AppTextStyles.tag
-                .copyWith(color: color.withOpacity(0.7), letterSpacing: 0.8)),
-        const SizedBox(height: 4),
-        Text(value, style: AppTextStyles.h2.copyWith(color: color)),
-      ],
-    );
-  }
-}
 
-class _LenderStatsRow extends ConsumerWidget {
-  final String userId;
-  const _LenderStatsRow({required this.userId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (userId.isEmpty) return const SizedBox(height: 100);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection(AppConstants.colLenders)
-          .where('userId', isEqualTo: userId)
-          .snapshots(),
-      builder: (context, snap) {
-        int activeOffers = 0;
-        double availableCapital = 0;
-
-        if (snap.hasData) {
-          final docs = snap.data!.docs;
-          for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final isActive = data['isActive'] == true;
-            final capital = (data['availableCapital'] ?? 0).toDouble();
-
-            if (isActive) {
-              activeOffers++;
-              availableCapital += capital;
-            }
-          }
-        }
-
-        return SizedBox(
-          height: 120,
-          child: ListView(
-            clipBehavior: Clip.none,
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 24, right: 12),
-            children: [
-              _StatCard2(
-                  label: 'Available Capital',
-                  value: snap.hasData
-                      ? AppFormatters.formatINR(availableCapital)
-                      : '...',
-                  icon: Icons.account_balance_wallet_rounded,
-                  color: AppColors.gold),
-              _StatCard2(
-                  label: 'Active Offers',
-                  value: snap.hasData ? '$activeOffers' : '...',
-                  icon: Icons.receipt_long_rounded,
-                  color: AppColors.emerald),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection(AppConstants.colMatches)
-                    .where('lenderId', isEqualTo: userId)
-                    .where('status', isEqualTo: 'pending')
-                    .snapshots(),
-                builder: (context, snap) {
-                  final count = snap.hasData ? snap.data!.docs.length : 0;
-                  return _StatCard2(
-                      label: 'Pending Requests',
-                      value: count.toString(),
-                      icon: Icons.inbox_rounded,
-                      color: AppColors.info);
-                },
-              ),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection(AppConstants.colMatches)
-                    .where('lenderId', isEqualTo: userId)
-                    .where('status', isEqualTo: 'accepted')
-                    .snapshots(),
-                builder: (context, snap) {
-                  final count = snap.hasData ? snap.data!.docs.length : 0;
-                  return _StatCard2(
-                      label: 'Accepted Deals',
-                      value: count.toString(),
-                      icon: Icons.handshake_rounded,
-                      color: AppColors.success);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _StatCard2 extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final Color color;
-  const _StatCard2(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return NeumorphicContainer(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      borderRadius: 24,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(height: 8),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value,
-                style: AppTextStyles.amountSmall
-                    .copyWith(color: color, fontSize: 20, height: 1)),
-            const SizedBox(height: 4),
-            Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textPrimary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-          ]),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
-  }
-}
-
-class _ManageSection extends StatefulWidget {
+class _ManageSection extends ConsumerStatefulWidget {
   final String userId;
   const _ManageSection({required this.userId});
 
   @override
-  State<_ManageSection> createState() => _ManageSectionState();
+  ConsumerState<_ManageSection> createState() => _ManageSectionState();
 }
 
-class _ManageSectionState extends State<_ManageSection> {
+class _ManageSectionState extends ConsumerState<_ManageSection> {
   static bool _browseBadge = false;
 
   @override
@@ -595,17 +374,22 @@ class _ManageSectionState extends State<_ManageSection> {
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 8),
       child: Container(
-        height: 60,
+        height: 70,
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.65),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.9),
+            width: 1.2,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -615,12 +399,12 @@ class _ManageSectionState extends State<_ManageSection> {
             children: [
               _buildPillAction(
                 context: context,
-                icon: Icons.person_search_rounded,
-                label: 'Browse',
+                icon: Icons.receipt_long_rounded,
+                label: 'My Requests',
                 onTap: () async {
                   if (_browseBadge) setState(() => _browseBadge = false);
                   await Future.delayed(const Duration(milliseconds: 150));
-                  if (context.mounted) context.push('/borrower-search');
+                  if (context.mounted) context.push('/my-requests');
                 },
                 showBadge: _browseBadge,
               ),
@@ -640,8 +424,10 @@ class _ManageSectionState extends State<_ManageSection> {
                 icon: Icons.switch_account_rounded,
                 label: 'Switch Role',
                 onTap: () async {
-                  await Future.delayed(const Duration(milliseconds: 150));
-                  if (context.mounted) context.push('/auth/role-selection');
+                  final user = ref.read(currentUserProvider).valueOrNull;
+                  if (user != null) {
+                    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'role': UserRole.borrower.name});
+                  }
                 },
               ),
             ],
@@ -659,96 +445,52 @@ class _ManageSectionState extends State<_ManageSection> {
     bool showBadge = false,
   }) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(icon, color: AppColors.textPrimary.withOpacity(0.7), size: 22),
-                if (showBadge)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(icon, color: AppColors.textPrimary.withOpacity(0.7), size: 22),
+                  if (showBadge)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 10,
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionTile(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.2))),
-            child: Icon(icon, color: color, size: 24),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(label,
-              style: AppTextStyles.labelSmall
-                  .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-              maxLines: 2),
-        ]),
+        ),
       ),
     );
   }
 }
+
+
 
 class _IncomingRequestsSliver extends ConsumerWidget {
   final String lenderId;
@@ -800,80 +542,504 @@ class _IncomingRequestsSliver extends ConsumerWidget {
   }
 }
 
-class _IncomingCard extends StatelessWidget {
+class _IncomingCard extends StatefulWidget {
   final Map<String, dynamic> data;
   final String id;
   const _IncomingCard({required this.data, required this.id});
 
   @override
+  State<_IncomingCard> createState() => _IncomingCardState();
+}
+
+class _IncomingCardState extends State<_IncomingCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: Key(id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-      ),
-      onDismissed: (_) {
-        FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(id).delete();
-      },
-      child: GestureDetector(
-        onTap: () => context.push('/request/$id'),
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          padding: const EdgeInsets.all(18),
+    final statusColor = AppColors.gold;
+    final loanAmount = (widget.data['loanAmount'] ?? 0).toDouble();
+    final tenure = widget.data['tenureMonths'] ?? 0;
+    final maxRate = widget.data['maxInterestRatePerMonth'] ?? '-';
+    final collateralType = widget.data['collateralType'] ?? '';
+    final borrowerName = widget.data['borrowerName'] ?? 'Unknown Borrower';
+    final description = widget.data['description'] ?? '';
+    final city = widget.data['borrowerCity'] ?? '';
+    final collateralValue = (widget.data['collateralValue'] ?? 0).toDouble();
+    
+    // Parse createdAt
+    DateTime? getSafeTime(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return val.toDate(); // Handles Timestamp
+      } catch (_) {
+        return null;
+      }
+    }
+    final createdAt = getSafeTime(widget.data['createdAt']) ?? DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      child: Dismissible(
+        key: Key(widget.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.error,
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(
-                  child: Text(
-                AppFormatters.formatINR((data['loanAmount'] ?? 0).toDouble()),
-                style: AppTextStyles.amountMedium,
-              )),
-              TagChip(label: data['collateralType'] ?? '', color: AppColors.info),
-            ]),
-            const SizedBox(height: 8),
-            Text(data['description'] ?? '',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 10),
-            Row(children: [
-              Icon(Icons.location_on_rounded,
-                  color: AppColors.textMuted, size: 13),
-              const SizedBox(width: 4),
-              Text(data['borrowerCity'] ?? '', style: AppTextStyles.caption),
-              const SizedBox(width: 12),
-              Icon(Icons.percent_rounded, color: AppColors.textMuted, size: 13),
-              const SizedBox(width: 4),
-              Text('Max ${data['maxInterestRatePerMonth'] ?? '-'}%/mo',
-                  style: AppTextStyles.caption),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text('Respond',
-                    style:
-                        AppTextStyles.labelSmall.copyWith(color: Colors.white)),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+        ),
+        onDismissed: (_) {
+          FirebaseFirestore.instance.collection(AppConstants.colRequests).doc(widget.id).delete();
+        },
+        child: Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          elevation: _expanded ? 4 : 1,
+          shadowColor: _expanded ? statusColor.withOpacity(0.15) : Colors.black12,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _expanded
+                    ? statusColor.withOpacity(0.35)
+                    : AppColors.border.withOpacity(0.4),
+                width: _expanded ? 1.5 : 1,
               ),
-            ]),
-          ]),
-        ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Tappable header ────────────────────────
+                  InkWell(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    splashColor: statusColor.withOpacity(0.08),
+                    highlightColor: statusColor.withOpacity(0.04),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.receipt_long_rounded,
+                                color: statusColor, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppFormatters.formatINR(loanAmount),
+                                  style: AppTextStyles.amountMedium
+                                      .copyWith(fontSize: 17),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${AppFormatters.formatTenure(tenure)} · $maxRate%/mo',
+                                  style: AppTextStyles.caption
+                                      .copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TagChip(
+                              label: (widget.data['status'] ?? 'OPEN').toString().toUpperCase(),
+                              color: statusColor),
+                          const SizedBox(width: 6),
+                          AnimatedRotation(
+                            turns: _expanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 250),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.textMuted.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.expand_more_rounded,
+                                  color: AppColors.textPrimary.withValues(alpha: 0.7), size: 18),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Expandable body ───────────────────────────
+                  if (_expanded)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.border.withOpacity(0.5)),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                                // Tags
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    TagChip(
+                                        label: collateralType,
+                                        color: AppColors.info),
+                                    TagChip(
+                                        label: AppFormatters.formatTenure(tenure),
+                                      color: AppColors.textSecondary),
+                                  TagChip(
+                                      label: '${maxRate}%/mo',
+                                      color: AppColors.warning),
+                                  if (widget.data['isVerified'] == true)
+                                    TagChip(
+                                        label: '✓ Verified',
+                                        color: AppColors.emerald),
+                                ],
+                              ),
+
+                              if (description.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  description,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.textSecondary,
+                                    height: 1.5,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+
+                              const SizedBox(height: 12),
+
+                              // Meta row
+                              Row(
+                                children: [
+                                  Icon(Icons.person_outline_rounded, color: AppColors.textMuted, size: 13),
+                                  const SizedBox(width: 3),
+                                  Flexible(child: Text(borrowerName, style: AppTextStyles.caption)),
+                                  const SizedBox(width: 10),
+                                  Icon(Icons.location_on_rounded,
+                                      color: AppColors.textMuted, size: 13),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                      child: Text(city,
+                                          style: AppTextStyles.caption)),
+                                  const SizedBox(width: 10),
+                                  Icon(Icons.account_balance_wallet_outlined,
+                                      color: AppColors.textMuted, size: 13),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: Text(
+                                      'Collateral: ${AppFormatters.formatINR(collateralValue)}',
+                                      style: AppTextStyles.caption,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                      AppFormatters.formatRelative(createdAt),
+                                      style: AppTextStyles.caption),
+                                ],
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              // View details / Respond button
+                              SizedBox(
+                                width: double.infinity,
+                                child: AppButton(
+                                  label: 'Respond to Request',
+                                  onPressed: () => context.push('/request/${widget.id}'),
+                                  color: AppColors.gold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
+  }
+}
+
+// ──────────────────────────────────────────────
+// Borrowers Near You Row & Card
+// ──────────────────────────────────────────────
+class _NearbyBorrowersRow extends ConsumerWidget {
+  final String lenderId;
+  const _NearbyBorrowersRow({required this.lenderId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(AppConstants.colRequests)
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return SizedBox(
+            height: 120,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              scrollDirection: Axis.horizontal,
+              itemCount: 3,
+              separatorBuilder: (_, __) => const SizedBox(width: 24),
+              itemBuilder: (_, __) => const ShimmerBox(width: 300, height: 100, borderRadius: 12),
+            ),
+          );
+        }
+
+        var docs = snap.data!.docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          if (data['borrowerName'] == 'Test User') return false;
+          if (lenderId.isNotEmpty && data['borrowerId'] == lenderId) return false;
+          final status = data['status'] ?? 'open';
+          return status == 'open';
+        }).toList();
+
+        final List<Map<String, dynamic>> items;
+        if (docs.isNotEmpty) {
+          items = docs.map((d) {
+            final map = Map<String, dynamic>.from(d.data() as Map<String, dynamic>);
+            map['requestId'] = d.id;
+            return map;
+          }).toList();
+        } else {
+          items = [
+            {
+              'requestId': '',
+              'borrowerName': 'Aarav Sharma',
+              'borrowerCity': 'Kanpur',
+              'loanAmount': 35000.0,
+              'maxInterestRatePerMonth': 2.0,
+              'collateralType': 'Gold',
+              'isVerified': true,
+            },
+            {
+              'requestId': '',
+              'borrowerName': 'Priya Patel',
+              'borrowerCity': 'Lucknow',
+              'loanAmount': 50000.0,
+              'maxInterestRatePerMonth': 2.5,
+              'collateralType': 'Laptop',
+              'isVerified': true,
+            },
+            {
+              'requestId': '',
+              'borrowerName': 'Rahul Verma',
+              'borrowerCity': 'Kanpur',
+              'loanAmount': 20000.0,
+              'maxInterestRatePerMonth': 1.8,
+              'collateralType': 'Bike',
+              'isVerified': false,
+            },
+          ];
+        }
+
+        return SizedBox(
+          height: 120,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            itemCount: items.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 24),
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return _ProductBorrowerCard(data: item)
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: (i * 80).ms)
+                  .slideX(begin: 0.1, curve: Curves.easeOutBack);
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProductBorrowerCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _ProductBorrowerCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (data['borrowerName'] ?? 'Borrower').toString();
+    final city = (data['borrowerCity'] ?? 'Nearby').toString();
+    final requestId = (data['requestId'] ?? '').toString();
+
+    final double loanAmount = (data['loanAmount'] ?? 0).toDouble();
+    final String limitText = loanAmount > 0
+        ? AppFormatters.formatINRCompact(loanAmount)
+        : '₹25K';
+
+    final double interestRate =
+        (data['maxInterestRatePerMonth'] ?? 0).toDouble();
+    final String aprText = interestRate > 0
+        ? '$interestRate% APR'
+        : '2% APR';
+
+    // Subtle colors for avatar tint
+    final colorHash = name.length % 3;
+    final Color tintColor = colorHash == 0
+        ? const Color(0xFF6366F1) // Indigo
+        : colorHash == 1
+            ? const Color(0xFF10B981) // Emerald
+            : const Color(0xFFF59E0B); // Amber
+
+    return Container(
+      width: 300,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            if (requestId.isNotEmpty) {
+              context.push('/request/$requestId');
+            } else {
+              context.push('/borrower-search');
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Avatar
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: tintColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'B',
+                        style: AppTextStyles.h2.copyWith(color: tintColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          name,
+                          style: AppTextStyles.h3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_rounded,
+                                size: 12, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                city,
+                                style: AppTextStyles.caption
+                                    .copyWith(color: AppColors.textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            aprText,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.emerald,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Right Side (Limit & Action)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('Up to',
+                              style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textMuted, fontSize: 10)),
+                          Text(limitText,
+                              style: AppTextStyles.h3.copyWith(
+                                  color: AppColors.textPrimary,
+                                  height: 1.0,
+                                  fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
+

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/firebase_providers.dart';
 import '../providers/platform_settings_provider.dart';
+import '../security/app_security.dart';
 import '../../models/user_model.dart';
 
 // ─── Auth Feature ─────────────────────────────
@@ -26,6 +27,7 @@ import '../../features/shell/main_shell.dart';
 import '../../features/borrower/presentation/borrower_dashboard.dart';
 import '../../features/borrower/presentation/post_request_screen.dart';
 import '../../features/borrower/presentation/saved_lenders_screen.dart';
+import '../../features/borrower/presentation/my_requests_screen.dart';
 
 // ─── Lender Feature ──────────────────────────
 import '../../features/lender/presentation/lender_dashboard.dart';
@@ -67,6 +69,8 @@ import '../../features/profile/presentation/profile_screen.dart';
 // ─── Calculator ──────────────────────────────
 import '../../features/calculator/presentation/rate_calculator_screen.dart';
 
+final activeDashboardRoleProvider = StateProvider<UserRole?>((ref) => null);
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
   final maintenanceMode = ref.watch(maintenanceModeProvider);
@@ -85,8 +89,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc.startsWith('/auth') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
+          (loc.startsWith('/auth') && loc != '/auth/role-selection') || loc == '/splash' || loc == '/onboarding' || loc == '/auth/onboarding';
       final isMaintenanceRoute = loc == '/maintenance';
+      final isSuspendedRoute = loc == '/suspended';
 
       // Fix for browser getting stuck on #/borrower_dashboard
       if (loc == '/borrower_dashboard') return '/';
@@ -94,9 +99,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Admin email — exempt from maintenance
       final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
       
-      // Determine if they are an admin via email OR via Firestore Role
-      final isAdmin = email.contains('admin104') || 
+      // Determine if they are an admin via verified email OR via Firestore Role
+      final isAdmin = AppSecurity.isAuthorizedAdminEmail(email) || 
                       (userAsync.valueOrNull?.role == UserRole.admin);
+
+      // ── Blocked / Suspended Account Guard ─────────────────────────
+      final isBlocked = userAsync.valueOrNull?.isBlocked == true;
+      if (isLoggedIn && isBlocked && !isAdmin) {
+        if (!isSuspendedRoute) return '/suspended';
+        return null;
+      }
 
       // ── Maintenance Mode Guard ─────────────────────────────────────
       if (maintenanceMode && !isAdmin) {
@@ -121,7 +133,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Guests should not access protected routes
-      if (!isLoggedIn && !isAuthRoute && !isMaintenanceRoute) return '/auth/login';
+      if (!isLoggedIn && !isAuthRoute && !isMaintenanceRoute && !isSuspendedRoute) return '/auth/login';
 
 
       return null;
@@ -131,6 +143,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
       GoRoute(path: '/auth/onboarding', builder: (c, s) => const OnboardingScreen()),
+      GoRoute(path: '/maintenance', builder: (c, s) => const MaintenanceScreen()),
+      GoRoute(path: '/suspended', builder: (c, s) => const AccountSuspendedScreen()),
 
       // ─── Auth Routes ──────────────────────
       GoRoute(path: '/auth/login', builder: (c, s) => const LoginScreen()),
@@ -151,8 +165,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/', builder: (c, s) => const DashboardRouter()),
           GoRoute(
               path: '/lender',
-              builder: (c, s) =>
-                  const LenderDashboard()), // Kept for direct linking if needed
+              redirect: (context, state) {
+                ref.read(activeDashboardRoleProvider.notifier).state = UserRole.lender;
+                return '/';
+              }),
+          GoRoute(
+              path: '/borrower',
+              redirect: (context, state) {
+                ref.read(activeDashboardRoleProvider.notifier).state = UserRole.borrower;
+                return '/';
+              }),
           GoRoute(path: '/search', builder: (c, s) => const SearchRouter()),
           GoRoute(path: '/match', builder: (c, s) => const MatchScreen()),
           GoRoute(path: '/chat', builder: (c, s) => const ChatListScreen()),
@@ -164,6 +186,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ─── Borrower ─────────────────────────
+      GoRoute(
+          path: '/my-requests',
+          builder: (c, s) => const MyRequestsScreen()),
       GoRoute(
           path: '/post-request', builder: (c, s) => const PostRequestScreen()),
       GoRoute(
@@ -279,9 +304,9 @@ class DashboardRouter extends ConsumerWidget {
         }
         final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? user.email.toLowerCase();
 
-        // Auto-elevate the account to Admin if it matches the criteria
-        if (user.role != UserRole.admin && 
-            authEmail.contains('admin104')) {
+        // Auto-elevate the account to Admin if it matches the authorized criteria
+        final isDesignatedAdmin = AppSecurity.isAuthorizedAdminEmail(authEmail);
+        if (user.role != UserRole.admin && isDesignatedAdmin) {
           FirebaseFirestore.instance.collection('users').doc(user.uid).update({
             'role': 'admin',
             'isPremium': true,
@@ -291,20 +316,23 @@ class DashboardRouter extends ConsumerWidget {
         // ── Real-time Block Guard ─────────────────────────────────
         // If a non-admin user's account is blocked (even while active),
         // immediately redirect them to the suspended screen.
-        final isAdmin = user.role == UserRole.admin || authEmail.contains('admin104');
+        final isAdmin = user.role == UserRole.admin || isDesignatedAdmin;
         if (user.isBlocked == true && !isAdmin) {
           return const AccountSuspendedScreen();
         }
         // ─────────────────────────────────────────────────────────
 
+        final overrideRole = ref.watch(activeDashboardRoleProvider);
+        final effectiveRole = overrideRole ?? user.role;
+
         // Force the route immediately so they don't have to wait for the stream to update
-        if (user.role == UserRole.admin || authEmail.contains('admin104')) {
+        if (user.role == UserRole.admin || isDesignatedAdmin) {
           return const AdminDashboardScreen();
         }
-        if (user.role == UserRole.lender) {
-          return const LenderDashboard();
+        if (effectiveRole == UserRole.lender) {
+          return const LenderDashboard(key: ValueKey('lender_dashboard'));
         }
-        return const BorrowerDashboard();
+        return const BorrowerDashboard(key: ValueKey('borrower_dashboard'));
       },
 
       loading: () => const Scaffold(
@@ -313,7 +341,7 @@ class DashboardRouter extends ConsumerWidget {
       error: (err, stack) {
         debugPrint('Router Stream Error: $err');
         final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
-        if (authEmail.contains('admin104')) {
+        if (AppSecurity.isAuthorizedAdminEmail(authEmail)) {
           return const AdminDashboardScreen();
         }
         return const BorrowerDashboard();
@@ -339,11 +367,15 @@ class SearchRouter extends ConsumerWidget {
         }
 
         final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? user.email.toLowerCase();
+        final isDesignatedAdmin = AppSecurity.isAuthorizedAdminEmail(authEmail);
 
-        if (user.role == UserRole.admin || authEmail.contains('admin104')) {
+        final overrideRole = ref.watch(activeDashboardRoleProvider);
+        final effectiveRole = overrideRole ?? user.role;
+
+        if (user.role == UserRole.admin || isDesignatedAdmin) {
           return const AdminUserManagementScreen();
         }
-        if (user.role == UserRole.lender) {
+        if (effectiveRole == UserRole.lender) {
           return const BorrowerSearchScreen();
         }
         return const LenderSearchScreen();
@@ -354,7 +386,7 @@ class SearchRouter extends ConsumerWidget {
         error: (err, stack) {
           debugPrint('SearchRouter Stream Error: $err');
           final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
-          if (authEmail.contains('admin104')) {
+          if (AppSecurity.isAuthorizedAdminEmail(authEmail)) {
             return const AdminUserManagementScreen();
           }
           return const LenderSearchScreen();

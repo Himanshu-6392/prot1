@@ -8,11 +8,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
-import '../../../core/providers/firebase_providers.dart';
 import '../../../core/providers/admin_stats_provider.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
@@ -298,7 +296,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   child: _TopUsersSection(),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 220)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
             ),
           ),

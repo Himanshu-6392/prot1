@@ -1,12 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/text_styles.dart';
-import '../../../core/providers/firebase_providers.dart';
-import '../../../models/user_model.dart';
 import '../../../main.dart';
 
 // ─── Tab model ───────────────────────────────────────────────────────────────
@@ -78,7 +74,6 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final idx = _currentIndex(context);
-    final userAsync = ref.watch(currentUserProvider);
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

@@ -21,7 +21,8 @@ import '../../../models/user_model.dart';
 import '../../../core/widgets/pin_entry_dialog.dart';
 import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/glass_widgets.dart';
-import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/role_switch_sheet.dart';
+import '../../../core/security/app_security.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -104,6 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     bool supportsCropping = kIsWeb || defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
 
     if (supportsCropping) {
+      if (!mounted) return;
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         compressFormat: ImageCompressFormat.jpg,
@@ -139,10 +141,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _uploadBytes(Uint8List bytes) async {
-    print('Starting upload with bytes length: ${bytes.length}');
+    debugPrint('Starting upload with bytes length: ${bytes.length}');
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      print('User is not logged in!');
+      debugPrint('User is not logged in!');
       return;
     }
 
@@ -531,108 +533,8 @@ class _StatsRow extends ConsumerWidget {
 
   Future<void> _switchRole(BuildContext context, WidgetRef ref) async {
     if (user == null) return;
-    final currentRole = user!.role;
-    // Allow switching between lender and borrower
-    final newRole =
-        currentRole == UserRole.lender ? UserRole.borrower : UserRole.lender;
-
-    final confirm = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Icon(Icons.swap_horiz_rounded, color: AppColors.gold, size: 48),
-            const SizedBox(height: 16),
-            Text('Switch Role', style: AppTextStyles.h2),
-            const SizedBox(height: 8),
-            Text(
-              'Are you sure you want to switch your role to ${newRole.name.toUpperCase()}?',
-              style: AppTextStyles.bodyMedium
-                  .copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Text('Cancel',
-                        style: AppTextStyles.button
-                            .copyWith(color: AppColors.textPrimary)),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: AppButton(
-                    label: 'Switch to ${newRole.name}',
-                    onPressed: () => Navigator.pop(context, true),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await ref
-            .read(firestoreProvider)
-            .collection('users')
-            .doc(user!.uid)
-            .update({
-          'role': newRole.name,
-        });
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Role switched to ${newRole.name}!'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to switch role: $e'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      }
-    }
+    final newRole = user!.role == UserRole.lender ? UserRole.borrower : UserRole.lender;
+    await ref.read(firestoreProvider).collection('users').doc(user!.uid).update({'role': newRole.name});
   }
 
   @override
@@ -979,15 +881,61 @@ class _MenuItem extends StatelessWidget {
 class _LogoutButton extends ConsumerWidget {
   const _LogoutButton();
 
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.logout_rounded, color: AppColors.error, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text('Log Out', style: AppTextStyles.h3),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to log out of your PeerLend account? You will need to sign in again to access your portfolio and transactions.',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      ref.read(sensitiveDataVisibleProvider.notifier).state = false;
+      await FirebaseAuth.instance.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
-        onTap: () async {
-          ref.read(sensitiveDataVisibleProvider.notifier).state = false;
-          await FirebaseAuth.instance.signOut();
-        },
+        onTap: () => _confirmLogout(context, ref),
         child: NeumorphicContainer(
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Row(
@@ -1110,7 +1058,7 @@ class _PickerOption extends StatelessWidget {
 
 void _showSettingsDialog(BuildContext context, UserModel user) {
   final authEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase() ?? '';
-  final isAdmin = user.role == UserRole.admin || authEmail.contains('admin104');
+  final isAdmin = user.role == UserRole.admin || AppSecurity.isAuthorizedAdminEmail(authEmail);
   showDialog(
     context: context,
     builder: (ctx) => Dialog(
@@ -1810,13 +1758,15 @@ Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
                                       bankNameFromApi; // Auto-update bank name
                                 }
                               } on DioException {
-                                setState(() => isSaving = false);
-                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                  content: const Text(
-                                      'Invalid IFSC Code. Please verify your details.'),
-                                  backgroundColor: AppColors.error,
-                                  behavior: SnackBarBehavior.floating,
-                                ));
+                                if (ctx.mounted) {
+                                  setState(() => isSaving = false);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                    content: const Text(
+                                        'Invalid IFSC Code. Please verify your details.'),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                  ));
+                                }
                                 return;
                               } catch (e) {
                                 // Ignore other errors to not block the user entirely if API is down
@@ -1837,13 +1787,15 @@ Future<void> showBankDetailsDialog(BuildContext context, UserModel user) async {
                                 });
                                 if (ctx.mounted) {
                                   Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: const Text(
-                                        'Bank Details verified and saved securely! 🏦'),
-                                    backgroundColor: AppColors.success,
-                                    behavior: SnackBarBehavior.floating,
-                                  ));
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: const Text(
+                                          'Bank Details verified and saved securely! 🏦'),
+                                      backgroundColor: AppColors.success,
+                                      behavior: SnackBarBehavior.floating,
+                                    ));
+                                  }
                                 }
                               } catch (e) {
                                 setState(() => isSaving = false);

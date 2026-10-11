@@ -26,6 +26,9 @@ import '../../../core/widgets/profile_stats_card.dart';
 import '../../../core/services/trust_score_service.dart';
 import '../../../core/widgets/lender_bookmark_button.dart';
 import '../../../core/providers/saved_lenders_provider.dart';
+import '../../../core/widgets/horizontal_recommendation_carousel.dart';
+import '../../../core/widgets/pressable_card.dart';
+import '../../../core/widgets/role_swipe_capsule.dart';
 
 class BorrowerDashboard extends ConsumerStatefulWidget {
   const BorrowerDashboard({super.key});
@@ -35,9 +38,7 @@ class BorrowerDashboard extends ConsumerStatefulWidget {
 }
 
 class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
-  bool _requestsExpanded = true;
   static bool _hasNotifications = true;
-  final GlobalKey _myRequestsKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -140,26 +141,22 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                       .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
                 ),
                 SliverToBoxAdapter(
-                  child: _QuickActions(onMyRequestsTap: () {
-                    Scrollable.ensureVisible(_myRequestsKey.currentContext!, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
-                  })
+                  child: const _QuickActions()
                       .animate()
                       .fadeIn(delay: 300.ms, duration: 400.ms)
                       .slideY(begin: 0.06, end: 0, curve: Curves.easeOut),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    key: _myRequestsKey,
-                    padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
-                    child: SectionHeader(
-                      title: 'My Requests',
-                      isExpandable: true,
-                      isExpanded: _requestsExpanded,
-                      onToggle: () => setState(() => _requestsExpanded = !_requestsExpanded),
+                    padding: const EdgeInsets.only(top: 14, bottom: 8),
+                    child: Center(
+                      child: const RoleSwipeCapsule()
+                          .animate()
+                          .fadeIn(delay: 350.ms, duration: 350.ms)
+                          .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
                     ),
-                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
+                  ),
                 ),
-                if (_requestsExpanded) _MyRequestsSliver(userId: uid),
                 if (user?.role != UserRole.lender) ...[
                   SliverToBoxAdapter(
                     child: Padding(
@@ -173,7 +170,7 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                   const _RecommendedLendersSliver(),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
                       child: SectionHeader(
                         title: 'Saved Lenders',
                         onSeeAll: () => context.push('/saved-lenders'),
@@ -407,8 +404,8 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
 
 // ─────────────────────────────────────────────
 class _QuickActions extends ConsumerStatefulWidget {
-  final VoidCallback onMyRequestsTap;
-  const _QuickActions({required this.onMyRequestsTap});
+  final VoidCallback? onMyRequestsTap;
+  const _QuickActions({super.key, this.onMyRequestsTap});
 
   @override
   ConsumerState<_QuickActions> createState() => _QuickActionsState();
@@ -462,18 +459,6 @@ class _QuickActionsState extends ConsumerState<_QuickActions> {
                   if (context.mounted) context.push('/my-requests');
                 },
                 showBadge: _matchesBadge,
-              ),
-              Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
-              _buildPillAction(
-                context: context,
-                icon: Icons.switch_account_rounded,
-                label: 'Switch Role',
-                onTap: () async {
-                  final user = ref.read(currentUserProvider).valueOrNull;
-                  if (user != null) {
-                    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'role': UserRole.lender.name});
-                  }
-                },
               ),
               Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
               _buildPillAction(
@@ -850,16 +835,7 @@ class _RecommendedLendersSliver extends ConsumerWidget {
       builder: (context, snap) {
         if (!snap.hasData) {
           return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Column(
-                children: [
-                  RequestCardShimmer(),
-                  SizedBox(height: 12),
-                  RequestCardShimmer(),
-                ],
-              ),
-            ),
+            child: HorizontalRecommendationCarouselShimmer(height: 200),
           );
         }
 
@@ -903,20 +879,20 @@ class _RecommendedLendersSliver extends ConsumerWidget {
           );
         }
 
-        // Show top 3 recommended lenders
-        final displayDocs = docs.take(3).toList();
+        // Show top recommended lenders in horizontal swipe carousel
+        final displayDocs = docs.take(6).toList();
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, i) {
-              final d = displayDocs[i];
-              final data = d.data() as Map<String, dynamic>;
+        return SliverToBoxAdapter(
+          child: HorizontalRecommendationCarousel<QueryDocumentSnapshot>(
+            items: displayDocs,
+            height: 208,
+            itemBuilder: (context, doc, index) {
+              final data = doc.data() as Map<String, dynamic>;
               return _RecommendedLenderCard(
-                lenderId: d.id,
+                lenderId: doc.id,
                 data: data,
               );
             },
-            childCount: displayDocs.length,
           ),
         );
       },
@@ -950,7 +926,7 @@ class _RecommendedLenderCard extends StatelessWidget {
     final String collateralStr = collaterals.isNotEmpty ? collaterals.take(2).join(', ') : '';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      margin: const EdgeInsets.fromLTRB(20, 2, 6, 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -963,17 +939,14 @@ class _RecommendedLenderCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: PressableCard(
         borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            context.push('/lender-profile/$lenderId');
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+        onTap: () {
+          context.push('/lender-profile/$lenderId');
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top Row: Avatar, Name, City, Active Tag, Bookmark
@@ -1090,7 +1063,7 @@ class _RecommendedLenderCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
                 // Loan details badge container
                 Container(
@@ -1159,23 +1132,27 @@ class _RecommendedLenderCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
-                // Bottom row: Collateral Tag & "View Lender Profile" CTA
+                // Bottom row: Collateral Tag & "View Profile" CTA
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (collateralStr.isNotEmpty)
-                      TagChip(
-                        label: 'Accepts: $collateralStr',
-                        color: AppColors.info,
+                      Flexible(
+                        child: TagChip(
+                          label: collateralStr,
+                          color: AppColors.info,
+                        ),
                       )
                     else
                       const SizedBox(),
+                    const SizedBox(width: 8),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'View Lender Profile',
+                          'View Profile',
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.emerald,
                             fontWeight: FontWeight.w700,
@@ -1195,8 +1172,7 @@ class _RecommendedLenderCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, curve: Curves.easeOut);
+      );
   }
 }
 
@@ -1212,16 +1188,7 @@ class _SavedLendersSliver extends ConsumerWidget {
 
     return savedListAsync.when(
       loading: () => const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Column(
-            children: [
-              RequestCardShimmer(),
-              SizedBox(height: 12),
-              RequestCardShimmer(),
-            ],
-          ),
-        ),
+        child: HorizontalRecommendationCarouselShimmer(height: 200),
       ),
       error: (err, _) => SliverToBoxAdapter(
         child: Padding(
@@ -1322,13 +1289,14 @@ class _SavedLendersSliver extends ConsumerWidget {
           );
         }
 
-        // Show a maximum of 2–3 saved lender cards on the home screen
-        final displayItems = items.take(3).toList();
+        // Show saved lenders in horizontal swipe carousel
+        final displayItems = items.take(10).toList();
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final item = displayItems[index];
+        return SliverToBoxAdapter(
+          child: HorizontalRecommendationCarousel<Map<String, dynamic>>(
+            items: displayItems,
+            height: 208,
+            itemBuilder: (context, item, index) {
               final lenderId = (item['lenderId'] ?? '').toString();
 
               return _SavedLenderHomeCard(
@@ -1336,7 +1304,6 @@ class _SavedLendersSliver extends ConsumerWidget {
                 savedData: item,
               );
             },
-            childCount: displayItems.length,
           ),
         );
       },
@@ -1372,6 +1339,7 @@ class _SavedLenderHomeCard extends ConsumerWidget {
         }
 
         final double maxLoan = (data['maxLoanAmount'] ?? savedData['maxLoanAmount'] ?? 0).toDouble();
+        final double minLoan = (data['minLoanAmount'] ?? savedData['minLoanAmount'] ?? 0).toDouble();
         final double rate = (data['interestRatePerMonth'] ?? savedData['interestRatePerMonth'] ?? 0).toDouble();
         final int tenure = (data['maxTenureMonths'] ?? savedData['maxTenureMonths'] ?? 0).toInt();
         final collaterals = (data['acceptedCollateral'] is List)
@@ -1380,7 +1348,7 @@ class _SavedLenderHomeCard extends ConsumerWidget {
         final String collateralStr = collaterals.isNotEmpty ? collaterals.take(2).join(', ') : '';
 
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          margin: const EdgeInsets.fromLTRB(20, 2, 6, 8),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
@@ -1393,237 +1361,242 @@ class _SavedLenderHomeCard extends ConsumerWidget {
               ),
             ],
           ),
-          child: Material(
-            color: Colors.transparent,
+          child: PressableCard(
             borderRadius: BorderRadius.circular(20),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
-                context.push('/lender-profile/$lenderId');
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Row: Avatar, Name & City, Tag, Bookmark Button
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.goldGradient,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.gold.withValues(alpha: 0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              initial,
-                              style: AppTextStyles.h3.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+            onTap: () {
+              context.push('/lender-profile/$lenderId');
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top Row: Avatar, Name & City, Tag, Bookmark Button
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppColors.goldGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.gold.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      businessName,
-                                      style: AppTextStyles.h3.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (isVerified) ...[
-                                    const SizedBox(width: 4),
-                                    Icon(Icons.verified_rounded,
-                                        color: AppColors.emerald, size: 16),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on_rounded,
-                                      color: AppColors.textMuted, size: 12),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    city,
-                                    style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Active Lender Tag
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.emerald.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.emerald.withValues(alpha: 0.25),
-                            ),
-                          ),
+                        child: Center(
                           child: Text(
-                            'Active Lender',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.emerald,
+                            initial,
+                            style: AppTextStyles.h3.copyWith(
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 10,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-
-                        // Bookmark Save/Unsave Button
-                        LenderBookmarkButton(
-                          lenderId: lenderId,
-                          businessName: businessName,
-                          city: city,
-                          isVerified: isVerified,
-                          size: 20,
-                          padding: const EdgeInsets.all(6),
-                          showBackground: true,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Compact Loan Details Box
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.bg.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.border.withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    businessName,
+                                    style: AppTextStyles.h3.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isVerified) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(Icons.verified_rounded,
+                                      color: AppColors.emerald, size: 16),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_rounded,
+                                    color: AppColors.textMuted, size: 12),
+                                const SizedBox(width: 3),
+                                Text(
+                                  city,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Max Loan',
-                                  style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11)),
-                              const SizedBox(height: 2),
-                              Text(
-                                maxLoan > 0
-                                    ? AppFormatters.formatINR(maxLoan)
-                                    : '₹5,00,000',
-                                style: AppTextStyles.labelLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
+
+                      // Active Lender Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.emerald.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.emerald.withValues(alpha: 0.25),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text('Rate',
-                                  style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11)),
-                              const SizedBox(height: 2),
-                              Text(
-                                rate > 0 ? '$rate%/mo' : '1.5%/mo',
-                                style: AppTextStyles.labelLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                            ],
+                        ),
+                        child: Text(
+                          'Active Lender',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.emerald,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text('Tenure',
-                                  style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11)),
-                              const SizedBox(height: 2),
-                              Text(
-                                tenure > 0
-                                    ? AppFormatters.formatTenure(tenure)
-                                    : 'Flexible',
-                                style: AppTextStyles.labelLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.info,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
+                      // Bookmark Save/Unsave Button
+                      LenderBookmarkButton(
+                        lenderId: lenderId,
+                        businessName: businessName,
+                        city: city,
+                        isVerified: isVerified,
+                        maxLoanAmount: maxLoan,
+                        minLoanAmount: minLoan,
+                        interestRatePerMonth: rate,
+                        maxTenureMonths: tenure,
+                        acceptedCollateral: collaterals,
+                        size: 20,
+                        padding: const EdgeInsets.all(6),
+                        showBackground: true,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Compact Loan Details Box
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.bg.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.4),
                       ),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Bottom Row: Collateral Badge & Chevron / View Profile
-                    Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        if (collateralStr.isNotEmpty)
-                          TagChip(
-                            label: 'Accepts: $collateralStr',
-                            color: AppColors.info,
-                          )
-                        else
-                          const SizedBox(),
-                        Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text('Max Loan',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11)),
+                            const SizedBox(height: 2),
                             Text(
-                              'View Lender Profile',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.emerald,
-                                fontWeight: FontWeight.w700,
+                              maxLoan > 0
+                                  ? AppFormatters.formatINR(maxLoan)
+                                  : '₹5,00,000',
+                              style: AppTextStyles.labelLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 11,
-                              color: AppColors.emerald,
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text('Rate',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11)),
+                            const SizedBox(height: 2),
+                            Text(
+                              rate > 0 ? '$rate%/mo' : '1.5%/mo',
+                              style: AppTextStyles.labelLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('Tenure',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11)),
+                            const SizedBox(height: 2),
+                            Text(
+                              tenure > 0
+                                  ? AppFormatters.formatTenure(tenure)
+                                  : 'Flexible',
+                              style: AppTextStyles.labelLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.info,
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Bottom Row: Collateral Badge & Chevron / View Profile
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (collateralStr.isNotEmpty)
+                        Flexible(
+                          child: TagChip(
+                            label: 'Accepts: $collateralStr',
+                            color: AppColors.info,
+                          ),
+                        )
+                      else
+                        const SizedBox(),
+                      const SizedBox(width: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'View Profile',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.emerald,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 11,
+                            color: AppColors.emerald,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-        ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, curve: Curves.easeOut);
+        );
       },
     );
   }

@@ -28,11 +28,13 @@ import '../../features/borrower/presentation/borrower_dashboard.dart';
 import '../../features/borrower/presentation/post_request_screen.dart';
 import '../../features/borrower/presentation/saved_lenders_screen.dart';
 import '../../features/borrower/presentation/my_requests_screen.dart';
+import '../../features/borrower/presentation/borrower_profile_screen.dart';
 
 // ─── Lender Feature ──────────────────────────
 import '../../features/lender/presentation/lender_dashboard.dart';
 import '../../features/lender/presentation/create_offer_screen.dart';
 import '../../features/lender/presentation/lender_profile_screen.dart';
+import '../../features/lender/presentation/saved_borrowers_screen.dart';
 
 // ─── Search ──────────────────────────────────
 import '../../features/search/presentation/lender_search_screen.dart';
@@ -200,11 +202,19 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ─── Lender ───────────────────────────
       GoRoute(
+          path: '/saved-borrowers',
+          builder: (c, s) => const SavedBorrowersScreen()),
+      GoRoute(
           path: '/create-offer', builder: (c, s) => const CreateOfferScreen()),
       GoRoute(
         path: '/lender-profile/:id',
         builder: (c, s) =>
             LenderProfileScreen(lenderId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/borrower-profile/:id',
+        builder: (c, s) =>
+            BorrowerProfileScreen(borrowerId: s.pathParameters['id']!),
       ),
 
       // ─── Match ────────────────────────────

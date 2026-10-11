@@ -23,8 +23,9 @@ import 'dart:math' as math;
 import '../../../models/user_model.dart';
 import '../../../models/loan_request_model.dart';
 import '../../../core/widgets/profile_stats_card.dart';
-import '../../../core/widgets/role_switch_sheet.dart';
 import '../../../core/services/trust_score_service.dart';
+import '../../../core/widgets/lender_bookmark_button.dart';
+import '../../../core/providers/saved_lenders_provider.dart';
 
 class BorrowerDashboard extends ConsumerStatefulWidget {
   const BorrowerDashboard({super.key});
@@ -162,19 +163,24 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                 if (user?.role != UserRole.lender) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
                       child: SectionHeader(
-                        title: 'Lenders Near You',
-                        onSeeAll: () => context.go('/search'),
+                        title: 'Recommended Lenders',
+                        onSeeAll: () => context.push('/search'),
+                      ),
+                    ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
+                  ),
+                  const _RecommendedLendersSliver(),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+                      child: SectionHeader(
+                        title: 'Saved Lenders',
+                        onSeeAll: () => context.push('/saved-lenders'),
                       ),
                     ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideX(begin: -0.06, end: 0, curve: Curves.easeOut),
                   ),
-                  SliverToBoxAdapter(
-                    child: _NearbyLendersRow()
-                        .animate()
-                        .fadeIn(delay: 500.ms, duration: 500.ms)
-                        .slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
-                  ),
+                  const _SavedLendersSliver(),
                 ],
                 SliverToBoxAdapter(
                   child: const _FinancialTipsRow()
@@ -182,8 +188,8 @@ class _BorrowerDashboardState extends ConsumerState<BorrowerDashboard> {
                       .fadeIn(delay: 600.ms, duration: 500.ms)
                       .slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
                 ),
-                SliverToBoxAdapter(
-                  child: const MarketInsightsCard(),
+                const SliverToBoxAdapter(
+                  child: MarketInsightsCard(),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
@@ -636,7 +642,7 @@ class _RequestCardState extends State<_RequestCard> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         elevation: _expanded ? 4 : 1,
-        shadowColor: _expanded ? statusColor.withOpacity(0.15) : Colors.black12,
+        shadowColor: _expanded ? statusColor.withValues(alpha: 0.15) : Colors.black12,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
@@ -644,8 +650,8 @@ class _RequestCardState extends State<_RequestCard> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _expanded
-                  ? statusColor.withOpacity(0.35)
-                  : AppColors.border.withOpacity(0.4),
+                  ? statusColor.withValues(alpha: 0.35)
+                  : AppColors.border.withValues(alpha: 0.4),
               width: _expanded ? 1.5 : 1,
             ),
           ),
@@ -654,11 +660,11 @@ class _RequestCardState extends State<_RequestCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // â”€â”€ Tappable header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Tappable header ─────────────────────────────
                 InkWell(
                   onTap: () => setState(() => _expanded = !_expanded),
-                  splashColor: statusColor.withOpacity(0.08),
-                  highlightColor: statusColor.withOpacity(0.04),
+                  splashColor: statusColor.withValues(alpha: 0.08),
+                  highlightColor: statusColor.withValues(alpha: 0.04),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -667,7 +673,7 @@ class _RequestCardState extends State<_RequestCard> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.12),
+                            color: statusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(Icons.receipt_long_rounded,
@@ -722,7 +728,7 @@ class _RequestCardState extends State<_RequestCard> {
                       Divider(
                           height: 1,
                           thickness: 1,
-                          color: AppColors.border.withOpacity(0.5)),
+                          color: AppColors.border.withValues(alpha: 0.5)),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                         child: Column(
@@ -805,7 +811,7 @@ class _RequestCardState extends State<_RequestCard> {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: statusColor,
                                   side: BorderSide(
-                                      color: statusColor.withOpacity(0.4)),
+                                      color: statusColor.withValues(alpha: 0.4)),
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 10),
                                   shape: RoundedRectangleBorder(
@@ -828,8 +834,12 @@ class _RequestCardState extends State<_RequestCard> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _NearbyLendersRow extends ConsumerWidget {
+// ──────────────────────────────────────────────
+// Recommended Lenders Sliver & Card
+// ──────────────────────────────────────────────
+class _RecommendedLendersSliver extends ConsumerWidget {
+  const _RecommendedLendersSliver();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return StreamBuilder<QuerySnapshot>(
@@ -839,58 +849,74 @@ class _NearbyLendersRow extends ConsumerWidget {
           .snapshots(),
       builder: (context, snap) {
         if (!snap.hasData) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: List.generate(
-                3,
-                (i) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: ShimmerBox(
-                      width: double.infinity, height: 58, borderRadius: 14),
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                children: [
+                  RequestCardShimmer(),
+                  SizedBox(height: 12),
+                  RequestCardShimmer(),
+                ],
+              ),
+            ),
+          );
+        }
+
+        var docs = snap.data!.docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final name = data['businessName']?.toString().toLowerCase() ?? '';
+          return name != 'test' && name.isNotEmpty;
+        }).toList();
+
+        // Sort featured first, then by rating
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aFeat = aData['isFeatured'] == true ? 1 : 0;
+          final bFeat = bData['isFeatured'] == true ? 1 : 0;
+          if (bFeat != aFeat) return bFeat.compareTo(aFeat);
+          final aRating = (aData['rating'] ?? 0).toDouble();
+          final bRating = (bData['rating'] ?? 0).toDouble();
+          return bRating.compareTo(aRating);
+        });
+
+        if (docs.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Center(
+                  child: Text(
+                    'No lenders available right now.',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
                 ),
               ),
             ),
           );
         }
 
-        var docs = snap.data!.docs.toList();
-        docs = docs.where((d) {
-          final data = d.data() as Map<String, dynamic>;
-          return data['businessName']?.toString().toLowerCase() != 'test';
-        }).toList();
+        // Show top 3 recommended lenders
+        final displayDocs = docs.take(3).toList();
 
-        docs.sort((a, b) {
-          final aFeat =
-              (a.data() as Map<String, dynamic>)['isFeatured'] == true ? 1 : 0;
-          final bFeat =
-              (b.data() as Map<String, dynamic>)['isFeatured'] == true ? 1 : 0;
-          return bFeat.compareTo(aFeat);
-        });
-        if (docs.length > 5) docs = docs.sublist(0, 5);
-
-        if (docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Text('No lenders available near you right now.',
-                style: TextStyle(color: Colors.grey)),
-          );
-        }
-
-        return SizedBox(
-          height: 120,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            clipBehavior: Clip.none,
-            itemCount: docs.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 24),
-            itemBuilder: (context, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
-              return _ProductLenderCard(data: data, id: docs[i].id)
-                  .animate().fadeIn(duration: 300.ms, delay: (i * 80).ms).slideX(begin: 0.1, curve: Curves.easeOutBack);
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, i) {
+              final d = displayDocs[i];
+              final data = d.data() as Map<String, dynamic>;
+              return _RecommendedLenderCard(
+                lenderId: d.id,
+                data: data,
+              );
             },
+            childCount: displayDocs.length,
           ),
         );
       },
@@ -898,126 +924,269 @@ class _NearbyLendersRow extends ConsumerWidget {
   }
 }
 
-class _ProductLenderCard extends StatelessWidget {
+class _RecommendedLenderCard extends StatelessWidget {
+  final String lenderId;
   final Map<String, dynamic> data;
-  final String id;
-  const _ProductLenderCard({required this.data, required this.id});
+
+  const _RecommendedLenderCard({
+    required this.lenderId,
+    required this.data,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final name = data['businessName'] ?? 'Lender';
-    final city = data['city'] ?? 'Nearby';
-    
+    final name = (data['businessName'] ?? 'Lender').toString();
+    final city = (data['city'] ?? 'India').toString();
+    final isVerified = data['isVerified'] == true;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'L';
+
     final double maxLoan = (data['maxLoanAmount'] ?? 0).toDouble();
-    final String limitText = maxLoan > 0 ? AppFormatters.formatINRCompact(maxLoan) : '₹5L';
-    
-    final double interestRate = (data['interestRatePerMonth'] ?? 0).toDouble();
-    final String aprText = interestRate > 0 ? '$interestRate% APR' : '12.5% APR';
-    
-    // Subtle colors for avatar tint
-    final colorHash = name.length % 3;
-    final Color tintColor = colorHash == 0 
-        ? const Color(0xFF6366F1) // Indigo
-        : colorHash == 1 
-            ? const Color(0xFF10B981) // Emerald
-            : const Color(0xFFF59E0B); // Amber
+    final double minLoan = (data['minLoanAmount'] ?? 0).toDouble();
+    final double rate = (data['interestRatePerMonth'] ?? 0).toDouble();
+    final int tenure = (data['maxTenureMonths'] ?? 0).toInt();
+    final collaterals = (data['acceptedCollateral'] is List)
+        ? (data['acceptedCollateral'] as List).map((e) => e.toString()).toList()
+        : <String>[];
+    final String collateralStr = collaterals.isNotEmpty ? collaterals.take(2).join(', ') : '';
 
     return Container(
-      width: 300,
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push('/lender-profile/$id'),
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            context.push('/lender-profile/$lenderId');
+          },
           child: Padding(
             padding: const EdgeInsets.all(16),
-        child: Center(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Avatar
-              Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: tintColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      name[0].toUpperCase(),
-                      style: AppTextStyles.h2.copyWith(color: tintColor),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        name,
-                        style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Row: Avatar, Name, City, Active Tag, Bookmark
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: AppColors.goldGradient,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.gold.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Row(
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: AppTextStyles.h3.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.location_on_rounded, size: 12, color: AppColors.textSecondary),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  style: AppTextStyles.h3.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isVerified) ...[
+                                const SizedBox(width: 4),
+                                Icon(Icons.verified_rounded,
+                                    color: AppColors.emerald, size: 16),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_rounded,
+                                  color: AppColors.textMuted, size: 12),
+                              const SizedBox(width: 3),
+                              Text(
+                                city,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Badge: Limit / Active
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.emerald.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.account_balance_rounded,
+                              size: 13, color: AppColors.emerald),
                           const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              city,
-                              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            maxLoan > 0 ? AppFormatters.formatINRCompact(maxLoan) : 'Active',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.emerald,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.emerald.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          aprText,
-                          style: AppTextStyles.caption.copyWith(color: AppColors.emerald, fontWeight: FontWeight.bold, fontSize: 10),
-                        ),
+                    ),
+                    const SizedBox(width: 6),
+                    LenderBookmarkButton(
+                      lenderId: lenderId,
+                      businessName: name,
+                      city: city,
+                      isVerified: isVerified,
+                      maxLoanAmount: maxLoan,
+                      minLoanAmount: minLoan,
+                      interestRatePerMonth: rate,
+                      maxTenureMonths: tenure,
+                      acceptedCollateral: collaterals,
+                      size: 20,
+                      padding: const EdgeInsets.all(6),
+                      showBackground: true,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Loan details badge container
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.bg.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Available Loan',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.textMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            maxLoan > 0
+                                ? AppFormatters.formatINR(maxLoan)
+                                : '₹5,00,000',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text('Rate',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.textMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            rate > 0 ? '$rate%/mo' : '1.5%/mo',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('Max Tenure',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.textMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            tenure > 0
+                                ? AppFormatters.formatTenure(tenure)
+                                : '12 mos',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.info,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                
-                // Right Side (Limit & Action)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
+
+                const SizedBox(height: 12),
+
+                // Bottom row: Collateral Tag & "View Lender Profile" CTA
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Limit text
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    if (collateralStr.isNotEmpty)
+                      TagChip(
+                        label: 'Accepts: $collateralStr',
+                        color: AppColors.info,
+                      )
+                    else
+                      const SizedBox(),
+                    Row(
                       children: [
-                        Text('Up to', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted, fontSize: 10)),
-                        Text(limitText, style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary, height: 1.0, fontWeight: FontWeight.w900)),
+                        Text(
+                          'View Lender Profile',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.emerald,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: AppColors.emerald,
+                        ),
                       ],
                     ),
                   ],
@@ -1027,7 +1196,435 @@ class _ProductLenderCard extends StatelessWidget {
           ),
         ),
       ),
+    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, curve: Curves.easeOut);
+  }
+}
+
+// ──────────────────────────────────────────────
+// Saved Lenders Sliver & Card for Home Screen
+// ──────────────────────────────────────────────
+class _SavedLendersSliver extends ConsumerWidget {
+  const _SavedLendersSliver();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final savedListAsync = ref.watch(savedLendersListProvider);
+
+    return savedListAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Column(
+            children: [
+              RequestCardShimmer(),
+              SizedBox(height: 12),
+              RequestCardShimmer(),
+            ],
+          ),
+        ),
       ),
+      error: (err, _) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline_rounded, color: AppColors.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Unable to load saved lenders',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      data: (items) {
+        if (items.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.emerald.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.bookmark_outline_rounded,
+                          size: 26,
+                          color: AppColors.emerald,
+                        ),
+                      ),
+                    ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
+                    const SizedBox(height: 14),
+                    Text(
+                      'No saved lenders yet',
+                      style: AppTextStyles.h3.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Save lenders you're interested in to find their profiles and loan offers quickly.",
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 18),
+                    AppButton(
+                      label: 'Explore Lenders',
+                      icon: const Icon(Icons.explore_rounded, size: 16),
+                      height: 40,
+                      width: 180,
+                      color: AppColors.emerald,
+                      onPressed: () => context.push('/search'),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOut),
+            ),
+          );
+        }
+
+        // Show a maximum of 2–3 saved lender cards on the home screen
+        final displayItems = items.take(3).toList();
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = displayItems[index];
+              final lenderId = (item['lenderId'] ?? '').toString();
+
+              return _SavedLenderHomeCard(
+                lenderId: lenderId,
+                savedData: item,
+              );
+            },
+            childCount: displayItems.length,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SavedLenderHomeCard extends ConsumerWidget {
+  final String lenderId;
+  final Map<String, dynamic> savedData;
+
+  const _SavedLenderHomeCard({
+    required this.lenderId,
+    required this.savedData,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final businessName = (savedData['businessName'] ?? 'Lender').toString();
+    final city = (savedData['city'] ?? 'India').toString();
+    final isVerified = savedData['isVerified'] == true;
+    final initial = businessName.isNotEmpty ? businessName[0].toUpperCase() : 'L';
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(AppConstants.colLenders)
+          .doc(lenderId)
+          .snapshots(),
+      builder: (context, snap) {
+        Map<String, dynamic> data = savedData;
+        if (snap.hasData && snap.data!.exists) {
+          data = Map<String, dynamic>.from(snap.data!.data() as Map<String, dynamic>);
+        }
+
+        final double maxLoan = (data['maxLoanAmount'] ?? savedData['maxLoanAmount'] ?? 0).toDouble();
+        final double rate = (data['interestRatePerMonth'] ?? savedData['interestRatePerMonth'] ?? 0).toDouble();
+        final int tenure = (data['maxTenureMonths'] ?? savedData['maxTenureMonths'] ?? 0).toInt();
+        final collaterals = (data['acceptedCollateral'] is List)
+            ? (data['acceptedCollateral'] as List).map((e) => e.toString()).toList()
+            : <String>[];
+        final String collateralStr = collaterals.isNotEmpty ? collaterals.take(2).join(', ') : '';
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                context.push('/lender-profile/$lenderId');
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Row: Avatar, Name & City, Tag, Bookmark Button
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: AppColors.goldGradient,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.gold.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              initial,
+                              style: AppTextStyles.h3.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      businessName,
+                                      style: AppTextStyles.h3.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isVerified) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.verified_rounded,
+                                        color: AppColors.emerald, size: 16),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on_rounded,
+                                      color: AppColors.textMuted, size: 12),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    city,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Active Lender Tag
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.emerald.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            'Active Lender',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.emerald,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // Bookmark Save/Unsave Button
+                        LenderBookmarkButton(
+                          lenderId: lenderId,
+                          businessName: businessName,
+                          city: city,
+                          isVerified: isVerified,
+                          size: 20,
+                          padding: const EdgeInsets.all(6),
+                          showBackground: true,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Compact Loan Details Box
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.bg.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Max Loan',
+                                  style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11)),
+                              const SizedBox(height: 2),
+                              Text(
+                                maxLoan > 0
+                                    ? AppFormatters.formatINR(maxLoan)
+                                    : '₹5,00,000',
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text('Rate',
+                                  style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11)),
+                              const SizedBox(height: 2),
+                              Text(
+                                rate > 0 ? '$rate%/mo' : '1.5%/mo',
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Tenure',
+                                  style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11)),
+                              const SizedBox(height: 2),
+                              Text(
+                                tenure > 0
+                                    ? AppFormatters.formatTenure(tenure)
+                                    : 'Flexible',
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Bottom Row: Collateral Badge & Chevron / View Profile
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (collateralStr.isNotEmpty)
+                          TagChip(
+                            label: 'Accepts: $collateralStr',
+                            color: AppColors.info,
+                          )
+                        else
+                          const SizedBox(),
+                        Row(
+                          children: [
+                            Text(
+                              'View Lender Profile',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.emerald,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 11,
+                              color: AppColors.emerald,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, curve: Curves.easeOut);
+      },
     );
   }
 }
@@ -1107,8 +1704,8 @@ class _FinancialTipsRowState extends State<_FinancialTipsRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 16, 16),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 16, 16),
             child: SectionHeader(title: 'Financial Tips', isExpandable: false),
           ),
           const SizedBox(height: 16),
@@ -1191,81 +1788,6 @@ class _FinancialTipsRowState extends State<_FinancialTipsRow> {
         ],
       ),
     ).animate().fadeIn(delay: 200.ms);
-  }
-}
-// ──────────────────────────────────────────────
-class _TrustScoreGauge extends StatelessWidget {
-  final int score;
-  const _TrustScoreGauge({required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: score / 1000.0),
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return CustomPaint(
-          size: const Size(120, 60), 
-          painter: _TrustScorePainter(percentage: value),
-          child: SizedBox(
-            width: 120,
-            height: 60,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  (value * 1000).toInt().toString(),
-                  style: AppTextStyles.amountLarge.copyWith(color: Colors.white, fontSize: 24, height: 1.0),
-                ),
-                Text(
-                  'Trust Score',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TrustScorePainter extends CustomPainter {
-  final double percentage;
-  _TrustScorePainter({required this.percentage});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height * 2);
-    final startAngle = math.pi;
-    final sweepAngle = math.pi;
-
-    // Background track
-    final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(rect, startAngle, sweepAngle, false, trackPaint);
-
-    // Progress arc
-    final progressPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFF34D399), Color(0xFFF59E0B)], // Emerald to Gold
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(rect, startAngle, sweepAngle * percentage, false, progressPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TrustScorePainter oldDelegate) {
-    return oldDelegate.percentage != percentage;
   }
 }
 

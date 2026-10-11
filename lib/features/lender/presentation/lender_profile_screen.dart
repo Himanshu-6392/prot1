@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/lender_bookmark_button.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/lender_model.dart';
@@ -107,6 +108,26 @@ class _LenderProfileBody extends StatelessWidget {
                 onPressed: () => context.pop(),
                 bgColor: Colors.black26),
           ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: Center(
+                child: LenderBookmarkButton(
+                  lenderId: lender.id,
+                  businessName: lender.businessName,
+                  city: lender.city,
+                  isVerified: lender.isVerified,
+                  maxLoanAmount: lender.maxLoanAmount,
+                  minLoanAmount: lender.minLoanAmount,
+                  interestRatePerMonth: lender.interestRatePerMonth,
+                  maxTenureMonths: lender.maxTenureMonths,
+                  acceptedCollateral: lender.acceptedCollateral,
+                  rating: lender.rating,
+                  showBackground: true,
+                ),
+              ),
+            ),
+          ],
           flexibleSpace: FlexibleSpaceBar(
             background: Container(
               color: Colors.transparent,
